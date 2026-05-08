@@ -5,10 +5,6 @@
 #include <iostream>
 #include "UnitaSI.hpp"
 
-
-
-
-
 class Neurone{
 
     private:

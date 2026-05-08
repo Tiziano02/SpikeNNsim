@@ -1,13 +1,23 @@
-# Build
+# Build directories
 build/
 cmake-build-debug/
 cmake-build-release/
+
+# CMake
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+compile_commands.json
 
 # Compiled files
 *.o
 *.out
 *.exe
 *.app
+*.a
+*.so
+*.dylib
 
 # macOS
 .DS_Store
@@ -17,3 +27,15 @@ cmake-build-release/
 
 # Temporary files
 *.tmp
+*.log
+
+# Swap files (per vim)
+*.swp
+
+# Python cache (per plotting/scripts futuri)
+__pycache__/
+*.pyc
+
+# Data output
+data/
+plots/
