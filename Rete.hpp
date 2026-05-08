@@ -13,7 +13,7 @@ class Rete {
 
   private:
     std::vector<Neurone> neuroni_;
-    std::vector<std::vector<double>> connessioni_; // matrice di connessioni con pesi --> sostiture con Eigen in futuro
+    std::vector<Sinapsi> sinapsi_; // vettore di sinapsi --> nell'oggetto Sinapsi ci sono già gli ID dei neuroni pre e post sinaptici, quindi non serve una matrice di adiacenza, basta un vettore di sinapsi
     std::vector<double> inputEsterno_;             // input associati a ciascun neurone
     std::map<int, size_t> idToIndex_;              // mappa dagli ID agli indici
   
@@ -28,23 +28,10 @@ class Rete {
             aggiungiNeurone(n); // aggiunge il neurone alla rete
         }
     }
-    // costruttore utility --> utilizzabile se si vuole N neuroni standard tutti uguali biologicamente con connessioni specificate da matrice di pesi
-    Rete(int N, std::vector<std::vector<double>>& connessioni)  {
-        for (int i = 0; i < N; ++i) {
-            Neurone n(i);
-            aggiungiNeurone(n); // aggiunge il neurone alla rete
-        }
-        for (size_t i = 0; i < connessioni.size(); ++i) {
-            for (size_t j = 0; j < connessioni[i].size(); ++j) {
-                if (connessioni[i][j] != 0.0)
-                    connettiNeuroni(i, j, connessioni[i][j]); // aggiunge la connessione alla rete
-            }
-        }
-    }
 
     // metodi per gestire la rete neurale
     void aggiungiNeurone(const Neurone &neurone);
-    void connettiNeuroni(int id1, int id2, double peso);
+    void connettiNeuroni(int id1, int id2, double peso, double tau);
     void setInput(int id, double valore);
     void step(double dt);
 

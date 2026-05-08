@@ -2,6 +2,7 @@
 #define RETEIMP_HPP
 
 #include "Rete.hpp"
+#include "Sinapsi.hpp"
 
 // Implementazione dei metodi della classe ReteNeurale
 
@@ -11,17 +12,13 @@ void Rete::aggiungiNeurone(const Neurone &neurone) {
     neuroni_.push_back(neurone);                       // aggiunge il neurone alla lista
     idToIndex_[neurone.getId()] = neuroni_.size() - 1; // aggiunge ID alla mappa
     
-    int newSize = neuroni_.size(); // dimensione aggiornata della rete
+    // osservazione: quando aggiungo un neurone non aggiungo una sinapsi perché non so ancora a quali neuroni sarà connesso, le sinapsi vengono aggiunte successivamente con il metodo connettiNeuroni
     
-    connessioni_.resize(newSize); // aggiunge una nuova riga alla matrice di connessioni
-    for (auto &row : connessioni_) // aggiunge una nuova colonna a ogni riga esistente
-        row.resize(newSize, 0.0);
-
     inputEsterno_.push_back(0.0); // aggiunge un nuovo input associato al nuovo neurone
 }
-void Rete::connettiNeuroni(int id1, int id2, double peso) {
+void Rete::connettiNeuroni(int id1, int id2, double peso, double tau) {
     if (idToIndex_.count(id1) && idToIndex_.count(id2))        // verifica che entrambi i neuroni esistano (perche mappa ha ID unici)
-        connessioni_[idToIndex_[id1]][idToIndex_[id2]] = peso; // inserisco la connessione da id1 a id2 con il peso specificato
+        sinapsi_.push_back(Sinapsi(id1, id2, peso, tau)); // inserisco la connessione da id1 a id2 con il peso specificato
 }
 void Rete::setInput(int id, double valore) {
     if (idToIndex_.count(id))
@@ -29,13 +26,20 @@ void Rete::setInput(int id, double valore) {
 }
 void Rete::step(double dt) {
 
+    // update sinapsi usando la classe
+    for (size_t i = 0; i < sinapsi_.size(); ++i) 
+        sinapsi_[i].update(dt, neuroni_[idToIndex_[sinapsi_[i].getIdPre()]].hasFired()); // aggiorna la sinapsi in base al firing del neurone pre-sinaptico
+    
+
     std::vector<double> inputTotale(neuroni_.size(), 0.0);
 
-    // calcola l'input totale per ogni neurone basato sullo step precedente
+    // calcola l'input totale per ogni neurone basato sullo step precedente --> si puà fare meglio
     for (size_t i = 0; i < neuroni_.size(); ++i) {
-        for (size_t j = 0; j < neuroni_.size(); ++j)
-            if (neuroni_[j].hasFired())
-                inputTotale[i] += connessioni_[j][i]; // somma i contributi dei neuroni che hanno sparato
+        for (size_t j = 0; j < sinapsi_.size(); ++j) {
+            if (sinapsi_[j].getIdPost() == neuroni_[i].getId()) {
+                inputTotale[i] += sinapsi_[j].getCurrent();
+            }
+        }
         inputTotale[i] += inputEsterno_[i];           // aggiungi l'input esterno se presente
     }
 
