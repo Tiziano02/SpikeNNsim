@@ -29,6 +29,9 @@ compile_commands.json
 *.tmp
 *.log
 
+# Simulation outputs
+*.txt
+
 # Swap files (per vim)
 *.swp
 
