@@ -163,25 +163,4 @@ class ReteNeurale{
 
         ~ReteNeurale() = default;
 };
-/*
-    Documentazione: 
-    1) ordine delle conessioni nella matrice di connessioni: 
-        - connessioni_[i][j] rappresenta la connessione da neurone i a neurone j, con il peso specificato
-        - peso positivo indica una connessione eccitatoria, peso negativo indica una connessione inibitoria, peso zero indica nessuna connessione
-    2) gestione dell'input esterno: 
-        - inputEsterno_[i] rappresenta l'input esterno associato al neurone i, che viene aggiunto all'input totale calcolato dalle connessioni sinaptiche
-    3) dinamica del potenziale di membrana:
-        - il potenziale di membrana V_ viene aggiornato in base alla formula: dV/dt = (-(V_ - Vrest_) + inputTotale)/tau_
-        - quando V_ supera la soglia Vth_, il neurone spara (fired = true), il potenziale viene resettato a Vreset_ e inizia il periodo refrattario
-    4) gestione del periodo refrattario:
-        - tempoRR_ rappresenta il tempo refrattario rimanente, durante il quale il neurone non può sparare
-        - quando un neurone spara, tempoRR_ viene impostato a tauR_, e viene decrementato ad ogni passo di simulazione fino a tornare a zero
-    5) spike interviene immediatamente nel passo successivo senza ritardo di trasmissione 
-    6) simulazione:
-        - il metodo simulazione() esegue la simulazione della rete per un tempo totale T con passo dt, salvando i potenziali di membrana e gli stati di firing in due file separati
-    7) estendibilità futura: 
-    ....
-    
 
-
-*/
