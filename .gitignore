@@ -1,0 +1,19 @@
+# Build
+build/
+cmake-build-debug/
+cmake-build-release/
+
+# Compiled files
+*.o
+*.out
+*.exe
+*.app
+
+# macOS
+.DS_Store
+
+# VS Code
+.vscode/
+
+# Temporary files
+*.tmp
