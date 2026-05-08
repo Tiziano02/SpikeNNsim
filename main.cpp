@@ -1,4 +1,4 @@
-#include "ReteNeurale.hpp"
+#include "Rete.hpp"
 #include <random>
 
 int main(){
@@ -11,7 +11,7 @@ int main(){
         neuroni.push_back(n); // crea N neuroni con ID da 0 a N-1
     }
 
-    ReteNeurale rete; // creazione della rete neurale
+    Rete rete; // creazione della rete neurale
 
     for(const auto& neurone : neuroni)
         rete.aggiungiNeurone(neurone); // aggiunge i neuroni alla rete
@@ -27,25 +27,29 @@ int main(){
             if(i != j && prob_dist(gen) < 0.1){
                 double peso;
                 if(i < 80){ // eccitatore (primi 80)
-                    peso = 30.0;
+                    peso = 300.0/N * (1.0 + 0.5 * prob_dist(gen)); // peso random tra 300/N e 450/N
                 } else { // inibitore (ultimi 20)
-                    peso = -30.0 *  weight_inh(gen);
+                    peso = -300.0/N * (1.0 + 0.5 * prob_dist(gen)) *  weight_inh(gen);
                 }
                 rete.connettiNeuroni(i, j, peso);
             }
         }
     }
 
-    // imposta input esterno random tra 18 e 22 per tutti i neuroni
-    std::uniform_real_distribution<> input_dist(18.0, 22.0);
+    // imposta input esterno random tra 18 e 22 mV per tutti i neuroni
+    std::uniform_real_distribution<> input_dist(18.0 * mV, 22.0 * mV);
     for(int i = 0; i < N; ++i){
         rete.setInput(i, input_dist(gen));
     }
 
-rete.simulazione(
-    0.1,
-    1000.0,
-    "potenziali.txt",
-    "firing.txt"
-);
+    // usa le unità di misura corrette per il passo temporale e la durata
+    double dt = 0.1 * mS;      // 0.1 millisecondo
+    double T = 1000.0 * mS;    // 1000 millisecondi
+
+    rete.simulazione(
+        dt,
+        T,
+        "potenziali.txt",
+        "firing.txt"
+    );
 }

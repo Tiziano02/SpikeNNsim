@@ -1,4 +1,8 @@
+#ifndef RETEIMP_HPP
+#define RETEIMP_HPP
+
 #include "Rete.hpp"
+
 // Implementazione dei metodi della classe ReteNeurale
 
 // metodi per gestire la rete neurale
@@ -78,3 +82,5 @@ void Rete::salvaStatoRete(std::ofstream &filePotenziali, std::ofstream &fileFiri
         fileFiring << f << " ";
     fileFiring << "\n";
 }
+
+#endif // RETEIMP_HPP

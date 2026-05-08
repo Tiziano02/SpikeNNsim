@@ -1,3 +1,5 @@
+#ifndef UNITA_SI_HPP
+#define UNITA_SI_HPP
 // Definizione delle unità di misura, dei multipli e sottomultipli
 
 // unità fondamentali del Sistema Internazionale
@@ -35,3 +37,5 @@ const double p = 1e-12;                     // pico
 // unità più comode 
 const double mV = m * Volt;                 // millivolt
 const double mS = m * s;                    // millisecondo
+
+#endif // UNITA_SI_HPP

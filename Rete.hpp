@@ -1,3 +1,6 @@
+#ifndef RETE_HPP
+#define RETE_HPP
+
 #include "Neurone.hpp"
 #include "UnitaSI.hpp"
 #include <fstream>
@@ -9,9 +12,8 @@
 class Rete {
 
   private:
-    
     std::vector<Neurone> neuroni_;
-    std::vector<std::vector<double>> connessioni_; // matrice di connessioni con pesi
+    std::vector<std::vector<double>> connessioni_; // matrice di connessioni con pesi --> sostiture con Eigen in futuro
     std::vector<double> inputEsterno_;             // input associati a ciascun neurone
     std::map<int, size_t> idToIndex_;              // mappa dagli ID agli indici
   
@@ -19,17 +21,24 @@ class Rete {
     // costruttore di default
     Rete() = default; // --> cosa dovrebbe fare ? 0 neuroni, matrice vuota, input vuoto, mappa vuota
 
+    // costruttore utility --> utilizzabile se si vuole N neuroni standard tutti uguali biologicamente
     Rete(int N) {
         for (int i = 0; i < N; ++i) {
             Neurone n(i);
             aggiungiNeurone(n); // aggiunge il neurone alla rete
         }
     }
-
-    Rete(int N, std::vector<std::vector<double>> connessioni) : connessioni_(connessioni) {
+    // costruttore utility --> utilizzabile se si vuole N neuroni standard tutti uguali biologicamente con connessioni specificate da matrice di pesi
+    Rete(int N, std::vector<std::vector<double>>& connessioni)  {
         for (int i = 0; i < N; ++i) {
             Neurone n(i);
             aggiungiNeurone(n); // aggiunge il neurone alla rete
+        }
+        for (size_t i = 0; i < connessioni.size(); ++i) {
+            for (size_t j = 0; j < connessioni[i].size(); ++j) {
+                if (connessioni[i][j] != 0.0)
+                    connettiNeuroni(i, j, connessioni[i][j]); // aggiunge la connessione alla rete
+            }
         }
     }
 
@@ -46,7 +55,7 @@ class Rete {
     // metodo log
     void salvaStatoRete(std::ofstream &filePotenziali, std::ofstream &fileFiring, double time);
 
-    // metodo
+    // simualzione della rete 
     void simulazione(double dt, double T, const std::string &filenameV, const std::string &filenameF) {
         
         int steps = static_cast<int>(T / dt);
@@ -72,3 +81,7 @@ class Rete {
 
     ~Rete() = default;
 };
+
+#include "reteImp.hpp"
+
+#endif // RETE_HPP
