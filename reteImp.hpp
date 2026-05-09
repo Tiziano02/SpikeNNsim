@@ -2,7 +2,6 @@
 #define RETEIMP_HPP
 
 #include "Rete.hpp"
-#include "Sinapsi.hpp"
 
 // Implementazione dei metodi della classe ReteNeurale
 
@@ -11,7 +10,6 @@ void Rete::aggiungiNeurone(const Neurone &neurone) {
     if (idToIndex_.count(neurone.getId()) == 0) {
         neuroni_.push_back(neurone);                       // aggiunge il neurone alla lista
         idToIndex_[neurone.getId()] = neuroni_.size() - 1; // aggiunge ID alla mappa
-        inputEsterno_.push_back(0.0);                      // aggiunge un nuovo input associato al nuovo neurone
         inputTotale_.push_back(0.0);                       // aggiunge un nuovo input totale associato al nuovo neurone
     } else {
         std::cerr << "hai inserito due neuroni con lo stesso ID\n";
@@ -24,13 +22,10 @@ void Rete::connettiNeuroni(const Sinapsi &s) {
     else
         std::cerr << "uno dei due neuroni che vuoi connettere non esistono\n";
 }
-void Rete::setInput(int id, double valore) {
-    if (idToIndex_.count(id))
-        inputEsterno_[idToIndex_[id]] = valore; // imposta l'input associato al neurone con ID specificato
-    else
-        std::cerr << "neuroni a cui si vuole dare inputEsterno non esiste\n";
-}
-void Rete::step(double dt) {
+
+
+// metodo evoluzione della rete
+void Rete::step(double dt, const std::vector<InputCorrente> &inputEsterni) {
 
     // reset input totale prima di calcolare il nuovo stato della rete
     std::fill(inputTotale_.begin(), inputTotale_.end(), 0.0);
@@ -45,9 +40,14 @@ void Rete::step(double dt) {
         inputTotale_[post] += sinapsi_[cor].getCurrent();
     }
 
-    // aggiungo l'input esterno e aggiorno lo stato di ogni neurone
+    // aggiungo gli input esterni
+    for (size_t i = 0; i < inputEsterni.size(); ++i) {
+        size_t idx = idToIndex_[inputEsterni[i].id];
+        inputTotale_[idx] += inputEsterni[i].valoreCorrente;
+    }
+
+    // aggiorno lo stato di ogni neurone
     for (size_t i = 0; i < neuroni_.size(); ++i) {
-        inputTotale_[i] += inputEsterno_[i];
         neuroni_[i].update(inputTotale_[i], dt);
     }
 }
