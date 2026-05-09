@@ -15,36 +15,38 @@ void Rete::aggiungiNeurone(const Neurone &neurone) {
     // osservazione: quando aggiungo un neurone non aggiungo una sinapsi perché non so ancora a quali neuroni sarà connesso, le sinapsi vengono aggiunte successivamente con il metodo connettiNeuroni
     
     inputEsterno_.push_back(0.0); // aggiunge un nuovo input associato al nuovo neurone
+    inputTotale_.push_back(0.0); // aggiunge un nuovo input totale associato al nuovo neurone
 }
 void Rete::connettiNeuroni(const Sinapsi &s) {
     if (idToIndex_.count(s.getIdPre()) && idToIndex_.count(s.getIdPost()))        // verifica che entrambi i neuroni esistano (perche mappa ha ID unici)
         sinapsi_.push_back(s); // inserisco la connessione da id1 a id2 con il peso specificato
 }
-void Rete::setInput(int& id, double& valore) {
+void Rete::setInput(int id, double valore) {
     if (idToIndex_.count(id))
         inputEsterno_[idToIndex_[id]] = valore; // imposta l'input associato al neurone con ID specificato
 }
-void Rete::step(double& dt) {
+void Rete::step(double dt) {
+
+    // reset input totale prima di calcolare il nuovo stato della rete
+    std::fill(inputTotale_.begin(), inputTotale_.end(), 0.0);
 
     // update sinapsi usando la classe
     for (size_t i = 0; i < sinapsi_.size(); ++i) 
         sinapsi_[i].update(dt, neuroni_[idToIndex_[sinapsi_[i].getIdPre()]].hasFired()); // aggiorna la sinapsi in base al firing del neurone pre-sinaptico
     
 
-    std::vector<double> inputTotale(neuroni_.size(), 0.0);
-
     // aggiungi il contributo di tutte le sinapsi al potenziale del neurone post-sinaptico
     for (size_t cor = 0; cor < sinapsi_.size(); ++cor) {
         size_t post = idToIndex_[sinapsi_[cor].getIdPost()];
-        inputTotale[post] += sinapsi_[cor].getCurrent(); 
+        inputTotale_[post] += sinapsi_[cor].getCurrent(); 
     }
 
     // aggiungo l'input esterno e aggiorno lo stato di ogni neurone
     for (size_t i = 0; i < neuroni_.size(); ++i){
-        inputTotale[i] += inputEsterno_[i];
-        neuroni_[i].update(inputTotale[i], dt);         
+        inputTotale_[i] += inputEsterno_[i];
+        neuroni_[i].update(inputTotale_[i], dt);         
     } 
-       
+
 }
 
 // metodi getter
