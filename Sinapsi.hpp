@@ -8,21 +8,21 @@ class Sinapsi
 private:
     double peso_; // forza della sinapsi, positiva per eccitatoria, negativa per inibitoria
     int idPre_, idPost_;  // ID del neurone pre-sinaptico e post-sinaptico
-    double Vsyn_; // "corrente" sinaptica che contribuisce al potenziale del neurone post-sinaptico
+    double Isyn_; // "corrente" sinaptica che contribuisce al potenziale del neurone post-sinaptico
     double tau_; // tempo di decadimento della corrente sinaptica
-    // double R_; // resistenza sinaptica inserie dopo , può essere regolata per modulare l'efficacia della sinapsi
+
 public:
-    Sinapsi(int idPre, int idPost, double peso, double tau) : idPre_(idPre), idPost_(idPost), peso_(peso), tau_(tau),  Vsyn_(0.0) {};
+    Sinapsi(double peso, int idPre, int idPost, double tau) : idPre_(idPre), idPost_(idPost), peso_(peso), Isyn_(0.0) ,tau_(tau) {};
     
     // metodo update
     void update(double dt, bool preFired) {
         if (preFired) {
-            Vsyn_ += peso_;  // (unità di musra  = V) aggiunge il contributo della sinapsi se il neurone pre-sinaptico ha sparato
+            Isyn_ += peso_;   
         }
-        Vsyn_ += dt *  -Vsyn_ / tau_; // decadimento della corrente sinaptica nel tempo
+        Isyn_ += dt *  -(Isyn_ /tau_); // decadimento della corrente sinaptica nel tempo
     }
 
-    double getCurrent() const { return Vsyn_; }
+    double getCurrent() const { return Isyn_; }
     int getIdPre() const { return idPre_; }
     int getIdPost() const { return idPost_; }
     
