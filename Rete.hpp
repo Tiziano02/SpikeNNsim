@@ -3,6 +3,7 @@
 
 #include "Neurone.hpp"
 #include "UnitaSI.hpp"
+#include "Sinapsi.hpp"
 #include <fstream>
 #include <iostream> // --> eliminabile se si toglie la gestione degli errori con i file
 #include <map>
@@ -31,29 +32,32 @@ class Rete {
 
     // metodi per gestire la rete neurale
     void aggiungiNeurone(const Neurone &neurone);
-    void connettiNeuroni(int id1, int id2, double peso, double tau);
-    void setInput(int id, double valore);
-    void step(double dt);
+    void connettiNeuroni(const Sinapsi &s);
+    void setInput(int& id, double& valore);
+    void step(double& dt);
 
     // metodi getter
     std::vector<double> getPotenziali() const;
     std::vector<int> getFiringStates() const;
+    std::vector<double> getSinapsi() const; // getter per le sinapsi, utile per debug o analisi della rete
 
     // metodo log
-    void salvaStatoRete(std::ofstream &filePotenziali, std::ofstream &fileFiring, double time);
+    void salvaStatoRete(std::ofstream &filePotenziali, std::ofstream &fileFiring, std::ofstream &fileSinapsi, double time);
 
     // simualzione della rete 
-    void simulazione(double dt, double T, const std::string &filenameV, const std::string &filenameF) {
+    void simulazione(double dt, double T, const std::string &filenameV, const std::string &filenameF, const std::string &filenameS) {
         
         int steps = static_cast<int>(T / dt);
         double time = 0.0 * s;
 
         std::ofstream filePotenziali;
         std::ofstream fileFiring;
+        std::ofstream fileSinapsi;
         filePotenziali.open(filenameV);
         fileFiring.open(filenameF);
+        fileSinapsi.open(filenameS);
 
-        if (!filePotenziali.is_open() || !fileFiring.is_open()) {
+        if (!filePotenziali.is_open() || !fileFiring.is_open() || !fileSinapsi.is_open()) {
             std::cerr << "Errore nell'apertura dei file di output!" << std::endl;
             return;
         }
@@ -62,7 +66,7 @@ class Rete {
             step(dt);   // esegue un passo di simulazione
             time += dt; // aggiorna il tempo
 
-            salvaStatoRete(filePotenziali, fileFiring, time); // salva lo stato della rete nei file
+            salvaStatoRete(filePotenziali, fileFiring, fileSinapsi, time); // salva lo stato della rete nei file
         }
     }
 

@@ -1,3 +1,6 @@
+#ifndef SINAPSI_HPP
+#define SINAPSI_HPP
+
 #include "UnitaSI.hpp"
 
 class Sinapsi
@@ -25,4 +28,6 @@ public:
     
     ~Sinapsi() = default;
 };
+
+#endif // SINAPSI_HPP
 

@@ -16,15 +16,15 @@ void Rete::aggiungiNeurone(const Neurone &neurone) {
     
     inputEsterno_.push_back(0.0); // aggiunge un nuovo input associato al nuovo neurone
 }
-void Rete::connettiNeuroni(int id1, int id2, double peso, double tau) {
-    if (idToIndex_.count(id1) && idToIndex_.count(id2))        // verifica che entrambi i neuroni esistano (perche mappa ha ID unici)
-        sinapsi_.push_back(Sinapsi(id1, id2, peso, tau)); // inserisco la connessione da id1 a id2 con il peso specificato
+void Rete::connettiNeuroni(const Sinapsi &s) {
+    if (idToIndex_.count(s.getIdPre()) && idToIndex_.count(s.getIdPost()))        // verifica che entrambi i neuroni esistano (perche mappa ha ID unici)
+        sinapsi_.push_back(s); // inserisco la connessione da id1 a id2 con il peso specificato
 }
-void Rete::setInput(int id, double valore) {
+void Rete::setInput(int& id, double& valore) {
     if (idToIndex_.count(id))
         inputEsterno_[idToIndex_[id]] = valore; // imposta l'input associato al neurone con ID specificato
 }
-void Rete::step(double dt) {
+void Rete::step(double& dt) {
 
     // update sinapsi usando la classe
     for (size_t i = 0; i < sinapsi_.size(); ++i) 
@@ -59,6 +59,16 @@ std::vector<double> Rete::getPotenziali() const {
 
     return potenziali;
 }
+std::vector<double> Rete::getSinapsi() const {
+
+    std::vector<double> sinapsi;
+    sinapsi.reserve(sinapsi_.size());
+
+    for (const auto &s : sinapsi_)
+        sinapsi.push_back(s.getCurrent());
+
+    return sinapsi;
+}
 std::vector<int> Rete::getFiringStates() const {
 
     std::vector<int> firingStates;
@@ -71,10 +81,11 @@ std::vector<int> Rete::getFiringStates() const {
 }
 
 // metodi log
-void Rete::salvaStatoRete(std::ofstream &filePotenziali, std::ofstream &fileFiring, double time) {
+void Rete::salvaStatoRete(std::ofstream &filePotenziali, std::ofstream &fileFiring,std::ofstream &fileSinapsi, double time) {
 
     std::vector<double> potenziali = getPotenziali();
     std::vector<int> spikes = getFiringStates();
+    std::vector<double> sinapsi = getSinapsi();
 
     filePotenziali << time << " ";
     for (double v : potenziali)
@@ -85,6 +96,11 @@ void Rete::salvaStatoRete(std::ofstream &filePotenziali, std::ofstream &fileFiri
     for (int f : spikes)
         fileFiring << f << " ";
     fileFiring << "\n";
+
+    fileSinapsi << time << " ";
+    for (double s : sinapsi)
+        fileSinapsi << s << " ";
+    fileSinapsi << "\n";
 }
 
 #endif // RETEIMP_HPP
