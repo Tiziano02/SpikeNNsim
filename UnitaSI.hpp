@@ -38,4 +38,7 @@ const double p = 1e-12;                     // pico
 const double mV = m * Volt;                 // millivolt
 const double mS = m * s;                    // millisecondo
 
+// parametri utili per la simulazione
+
+
 #endif // UNITA_SI_HPP

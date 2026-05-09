@@ -33,19 +33,18 @@ void Rete::step(double& dt) {
 
     std::vector<double> inputTotale(neuroni_.size(), 0.0);
 
-    // calcola l'input totale per ogni neurone basato sullo step precedente --> si puà fare meglio
-    for (size_t i = 0; i < neuroni_.size(); ++i) {
-        for (size_t j = 0; j < sinapsi_.size(); ++j) {
-            if (sinapsi_[j].getIdPost() == neuroni_[i].getId()) {
-                inputTotale[i] += sinapsi_[j].getCurrent();
-            }
-        }
-        inputTotale[i] += inputEsterno_[i];           // aggiungi l'input esterno se presente
+    // aggiungi il contributo di tutte le sinapsi al potenziale del neurone post-sinaptico
+    for (size_t cor = 0; cor < sinapsi_.size(); ++cor) {
+        size_t post = idToIndex_[sinapsi_[cor].getIdPost()];
+        inputTotale[post] += sinapsi_[cor].getCurrent(); 
     }
 
-    // aggiorna lo stato di ogni neurone in base all'input totale e alle regole di attivazione
-    for (size_t i = 0; i < neuroni_.size(); ++i)
-        neuroni_[i].update(inputTotale[i], dt);
+    // aggiungo l'input esterno e aggiorno lo stato di ogni neurone
+    for (size_t i = 0; i < neuroni_.size(); ++i){
+        inputTotale[i] += inputEsterno_[i];
+        neuroni_[i].update(inputTotale[i], dt);         
+    } 
+       
 }
 
 // metodi getter

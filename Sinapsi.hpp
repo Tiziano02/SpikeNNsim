@@ -17,7 +17,7 @@ public:
     // metodo update
     void update(double dt, bool preFired) {
         if (preFired) {
-            Vsyn_ += peso_ ;  // (unità di musra  = V) aggiunge il contributo della sinapsi se il neurone pre-sinaptico ha sparato
+            Vsyn_ += peso_;  // (unità di musra  = V) aggiunge il contributo della sinapsi se il neurone pre-sinaptico ha sparato
         }
         Vsyn_ += dt *  -Vsyn_ / tau_; // decadimento della corrente sinaptica nel tempo
     }
