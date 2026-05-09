@@ -48,7 +48,7 @@ class Rete {
     // simualzione della rete 
     void simulazione(double dt, double T, const std::string &filenameV, const std::string &filenameF, const std::string &filenameS) {
         
-        int steps = static_cast<int>(T / dt);
+        int steps = static_cast<int>(std::round(T / dt));
         double time = 0.0 * s;
 
         std::ofstream filePotenziali;

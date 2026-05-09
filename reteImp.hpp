@@ -8,22 +8,27 @@
 
 // metodi per gestire la rete neurale
 void Rete::aggiungiNeurone(const Neurone &neurone) {
-
-    neuroni_.push_back(neurone);                       // aggiunge il neurone alla lista
-    idToIndex_[neurone.getId()] = neuroni_.size() - 1; // aggiunge ID alla mappa
-    
+    if (idToIndex_.count(neurone.getId()) == 0) {
+        neuroni_.push_back(neurone);                       // aggiunge il neurone alla lista
+        idToIndex_[neurone.getId()] = neuroni_.size() - 1; // aggiunge ID alla mappa
+        inputEsterno_.push_back(0.0);                      // aggiunge un nuovo input associato al nuovo neurone
+        inputTotale_.push_back(0.0);                       // aggiunge un nuovo input totale associato al nuovo neurone
+    } else {
+        std::cerr << "hai inserito due neuroni con lo stesso ID\n";
+    }
     // osservazione: quando aggiungo un neurone non aggiungo una sinapsi perché non so ancora a quali neuroni sarà connesso, le sinapsi vengono aggiunte successivamente con il metodo connettiNeuroni
-    
-    inputEsterno_.push_back(0.0); // aggiunge un nuovo input associato al nuovo neurone
-    inputTotale_.push_back(0.0); // aggiunge un nuovo input totale associato al nuovo neurone
 }
 void Rete::connettiNeuroni(const Sinapsi &s) {
-    if (idToIndex_.count(s.getIdPre()) && idToIndex_.count(s.getIdPost()))        // verifica che entrambi i neuroni esistano (perche mappa ha ID unici)
-        sinapsi_.push_back(s); // inserisco la connessione da id1 a id2 con il peso specificato
+    if (idToIndex_.count(s.getIdPre()) && idToIndex_.count(s.getIdPost())) // verifica che entrambi i neuroni esistano (perche mappa ha ID unici)
+        sinapsi_.push_back(s);                                             // inserisco la connessione da id1 a id2 con il peso specificato
+    else
+        std::cerr << "uno dei due neuroni che vuoi connettere non esistono\n";
 }
 void Rete::setInput(int id, double valore) {
     if (idToIndex_.count(id))
         inputEsterno_[idToIndex_[id]] = valore; // imposta l'input associato al neurone con ID specificato
+    else
+        std::cerr << "neuroni a cui si vuole dare inputEsterno non esiste\n";
 }
 void Rete::step(double dt) {
 
@@ -31,22 +36,20 @@ void Rete::step(double dt) {
     std::fill(inputTotale_.begin(), inputTotale_.end(), 0.0);
 
     // update sinapsi usando la classe
-    for (size_t i = 0; i < sinapsi_.size(); ++i) 
+    for (size_t i = 0; i < sinapsi_.size(); ++i)
         sinapsi_[i].update(dt, neuroni_[idToIndex_[sinapsi_[i].getIdPre()]].hasFired()); // aggiorna la sinapsi in base al firing del neurone pre-sinaptico
-    
 
     // aggiungi il contributo di tutte le sinapsi al potenziale del neurone post-sinaptico
     for (size_t cor = 0; cor < sinapsi_.size(); ++cor) {
         size_t post = idToIndex_[sinapsi_[cor].getIdPost()];
-        inputTotale_[post] += sinapsi_[cor].getCurrent(); 
+        inputTotale_[post] += sinapsi_[cor].getCurrent();
     }
 
     // aggiungo l'input esterno e aggiorno lo stato di ogni neurone
-    for (size_t i = 0; i < neuroni_.size(); ++i){
+    for (size_t i = 0; i < neuroni_.size(); ++i) {
         inputTotale_[i] += inputEsterno_[i];
-        neuroni_[i].update(inputTotale_[i], dt);         
-    } 
-
+        neuroni_[i].update(inputTotale_[i], dt);
+    }
 }
 
 // metodi getter
@@ -82,7 +85,7 @@ std::vector<int> Rete::getFiringStates() const {
 }
 
 // metodi log
-void Rete::salvaStatoRete(std::ofstream &filePotenziali, std::ofstream &fileFiring,std::ofstream &fileSinapsi, double time) {
+void Rete::salvaStatoRete(std::ofstream &filePotenziali, std::ofstream &fileFiring, std::ofstream &fileSinapsi, double time) {
 
     std::vector<double> potenziali = getPotenziali();
     std::vector<int> spikes = getFiringStates();

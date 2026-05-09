@@ -1,3 +1,6 @@
+#ifndef NEURONE_HPP
+#define NEURONE_HPP
+
 #include "UnitaSI.hpp"
 
 class Neurone
@@ -11,7 +14,7 @@ private:
     double Vreset_;         // potenziale di reset dopo il firing
     double R_;              // resistenza del neurone
     double C_;              // capacità del neurone
-    double tau_ = R_ * C_;  // una volta 
+    double tau_;  // una volta 
     double tauR_;           // tempo refrattario del neurone
     double tempoRR_;        // tempo refrattario rimanente
     bool fired = false;     // stato di firing del neuroneù
@@ -20,12 +23,12 @@ public:
     
 // costrutture di default e con parametri per inizializzare i neuroni con i parametri biologici e lo stato dinamico iniziale
     Neurone(int id) : id_(id), V_(-65.0 * mV), Vth_(-50.0 * mV), Vrest_(-65.0 * mV), Vreset_(-70.0 * mV),
-                      R_(1.0 * M * Ohm), C_(100.0 * p * F), tauR_(5.0 * mS), tempoRR_(0.0 * mS), fired(false) {}
+                      R_(1.0 * M * Ohm), C_(100.0 * p * F), tau_(R_ *C_), tauR_(5.0 * mS), tempoRR_(0.0 * mS), fired(false) {}
 
                       
     // costruttore per inizializzare i neuroni con i parametri biologici e lo stato dinamico iniziale
     Neurone(int id, double V_0, double V_th, double V_rest, double V_reset, double R, double C, double tauR)
-        : id_(id), V_(V_0), Vth_(V_th), Vrest_(V_rest), Vreset_(V_reset), R_(R), C_(C), tauR_(tauR),
+        : id_(id), V_(V_0), Vth_(V_th), Vrest_(V_rest), Vreset_(V_reset), R_(R), C_(C),tau_(R*C) ,tauR_(tauR),
           tempoRR_(0.0 * mS), fired(false) {}
 
     // Metodi della classe Neurone
@@ -60,3 +63,5 @@ public:
 
     ~Neurone() = default;
 };
+
+#endif // NEURONE_HPP
