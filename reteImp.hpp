@@ -7,7 +7,7 @@
 
 // metodi per gestire la rete neurale
 void Rete::aggiungiNeurone(const Neurone &neurone) {
-    if (idToIndex_.count(neurone.getId()) == 0) {
+    if (hasNeurone(neurone.getId()) == false) {
         neuroni_.push_back(neurone);                       // aggiunge il neurone alla lista
         idToIndex_[neurone.getId()] = neuroni_.size() - 1; // aggiunge ID alla mappa
         inputTotale_.push_back(0.0);                       // aggiunge un nuovo input totale associato al nuovo neurone
@@ -17,7 +17,7 @@ void Rete::aggiungiNeurone(const Neurone &neurone) {
     // osservazione: quando aggiungo un neurone non aggiungo una sinapsi perché non so ancora a quali neuroni sarà connesso, le sinapsi vengono aggiunte successivamente con il metodo connettiNeuroni
 }
 void Rete::connettiNeuroni(const Sinapsi &s) {
-    if (idToIndex_.count(s.getIdPre()) && idToIndex_.count(s.getIdPost())) // verifica che entrambi i neuroni esistano (perche mappa ha ID unici)
+    if (hasNeurone(s.getIdPre()) && hasNeurone(s.getIdPost())) // verifica che entrambi i neuroni esistano (perche mappa ha ID unici)
         sinapsi_.push_back(s);                                             // inserisco la connessione da id1 a id2 con il peso specificato
     else
         std::cerr << "uno dei due neuroni che vuoi connettere non esistono\n";
