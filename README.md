@@ -98,6 +98,11 @@ Future developments include:
 
 A complete roadmap is available in TODO.md.
 
+## Documentation
+
+- [Architecture](docs/ARCHITECTURE.md)
+- [Roadmap](docs/TODO.md)
+
 ## License
 
 Released under the GNU GPL v3.0 License.
