@@ -36,7 +36,7 @@ public:
     {
         fired = false;
 
-        // gestione refrattario
+        // gestione tempo refrattario rimanente (implementazione del tempo refrattario assoluto)
         if (tempoRR_ > 0)
         {
             tempoRR_ -= dt;

@@ -14,7 +14,6 @@ void Rete::aggiungiNeurone(const Neurone &neurone) {
     } else {
         std::cerr << "hai inserito due neuroni con lo stesso ID\n";
     }
-    // osservazione: quando aggiungo un neurone non aggiungo una sinapsi perché non so ancora a quali neuroni sarà connesso, le sinapsi vengono aggiunte successivamente con il metodo connettiNeuroni
 }
 void Rete::connettiNeuroni(const Sinapsi &s) {
     if (hasNeurone(s.getIdPre()) && hasNeurone(s.getIdPost())) // verifica che entrambi i neuroni esistano (perche mappa ha ID unici)
