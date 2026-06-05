@@ -96,6 +96,6 @@ A complete roadmap is available in TODO.md.
 
 ## License
 
-This project is distributed under the MIT License.
+Released under the GNU GPL v3.0 License.
 
 See [LICENSE](LICENSE) for details.
