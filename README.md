@@ -1,83 +1,97 @@
 # HeaderRN
 
-Documentazione delle classi Neurone e ReteNeurale nel file ReteNeurale.hpp : 
-1) ordine delle conessioni nella matrice di connessioni: 
-    - connessioni_[i][j] rappresenta la connessione da neurone i a neurone j, con il peso specificato
-    - peso positivo indica una connessione eccitatoria, peso negativo indica una connessione inibitoria, peso zero indica nessuna connessione
-2) gestione dell'input esterno: 
-    - inputEsterno_[i] rappresenta l'input esterno associato al neurone i, che viene aggiunto all'input totale calcolato dalle connessioni sinaptiche
-3) dinamica del potenziale di membrana:
-    - il potenziale di membrana V_ viene aggiornato in base alla formula: dV/dt = (-(V_ - Vrest_) + inputTotale)/tau_
-    - quando V_ supera la soglia Vth_, il neurone spara (fired = true), il potenziale viene resettato a Vreset_ e inizia il periodo refrattario
-4) gestione del periodo refrattario:
-    - tempoRR_ rappresenta il tempo refrattario rimanente, durante il quale il neurone non può sparare
-    - quando un neurone spara, tempoRR_ viene impostato a tauR_, e viene decrementato ad ogni passo di simulazione fino a tornare a zero
-5) spike interviene immediatamente nel passo successivo senza ritardo di trasmissione 
-6) simulazione:
-     - il metodo simulazione() esegue la simulazione della rete per un tempo totale T con passo dt, salvando i potenziali di membrana e gli stati di firing in due file separati
-7) estendibilità futura: 
-    -
-    -
+HeaderRN is a header-only C++ framework for simulating spiking neural networks.
+
+The library provides a modular architecture for building networks of neurons and synapses, running time-domain simulations, and exporting data for external analysis.
+
+HeaderRN was originally developed as a personal project to understand how spiking neural network simulations work at a low level.
+
+Instead of relying on existing simulation frameworks, the goal was to build the fundamental components from scratch, including neurons, synapses, network topology and simulation management.
+
+The project later evolved into a reusable framework aimed at experimentation, education and future computational neuroscience applications.
+
+Its design is guided by three main principles:
+
+- clarity and educational value;
+- simplicity of use;
+- extensibility toward more advanced neural models.
+
+## Features
+
+Current features include:
 
 
-Nome  del progetto : Framework per la simulazioni di reti di neuroni
+- Leaky Integrate-and-Fire neurons
+- Current-based synapses with exponential decay
+- Time-dependent external inputs
+- Custom network topologies
+- Explicit physical units system
+- Time-domain simulations
+- Data export for post-processing
+- Modular object-oriented architecture
 
-Autore : Tiziano Costantini
+## Design Philosophy
 
-Data : 07/06/2026
+HeaderRN follows a simple object-oriented design.
 
-Descrizione del progetto : 
+The main components of a simulation are represented by dedicated classes:
 
-permetter di creare un grafo di neuroni, 
-connessi tra loro da sinapsi, 
-e di simulare il comportamento dinamico di questo grafo nel tempo.
+- `Rete`
+- `Neurone`
+- `Sinapsi`
+- `Simulazione`
+- `Input`
 
+This separation aims to keep the code readable, extensible, and suitable both for educational purposes and small research projects.
 
-Classe Neurone : 
-1)I membri della classe neurone dovranno essere: 
-    - un identificatore univoco
-    - il suo stato dinamico (il potenziale di membrana)
-    - parametri biologici (ad esempio, la soglia di attivazione, il tempo refrattario, ecc.)
-2)I metodi della classe neurone dovranno essere:
-    - un metodo di update del singolo neurone che aggiorna il suo stato in base all'input totale ricevuto 
+---
 
-Classe ReteNeurale :
-1)I membri della classe ReteNeurale dovranno essere:
-    - una lista di neuroni
-    - una matrice di connessioni (o una lista di adiacenza) 
-    che rappresenta le sinapsi tra i neuroni, con i loro pesi e segni associati
-    - lista di input associati a ciascun neurone 
-2)I metodi della classe ReteNeurale dovranno essere:
-    - un metodo per aggiungere neuroni alla rete
-    - un metodo per connettere i neuroni tra loro, specificando il peso e il segno della connessione
-    - un metodo per simulare l'andamento della rete nel tempo, ad esempio step() : 
-        - calcola l'input totale per ogni neurone basato sullo step precedente 
-        - aggiorna lo stato di ogni neurone (update() per ogni neurone)in base all'input totale e alle regole di attivazione
-        - catturo l'output di ogni neurone (ad esempio, se ha superato la soglia di attivazione) e lo uso come input per i neuroni connessi nel passo successivo
- 
-In futuro si potra fare la classe sinapsi per rappresentare le connessioni tra i neuroni, con parametri come la forza sinaptica, il ritardo di trasmissione, facilitazione o depressione sinaptica 
-Per ora sarà rappresentata dal grafo stesso, cioè dalla lista di adiacenza dei neuroni : 
-- peso e segno associato a ogni connessione dei neuroni.
+## Library Structure
 
-Quindi idealmente : 
+```text
+Neurone.hpp      -> neuron models
+Sinapsi.hpp      -> synaptic models
+Rete.hpp         -> network topology
+Simulazione.hpp  -> simulation engine
+Input.hpp        -> external stimuli
+UnitaSI.hpp      -> physical units
+```
 
-ReteNeurale rete; // creazione della rete neurale
+## Example
 
-vector<Neurone> neuroni; // creazione dei neuroni
+- coming soon
 
-vector<vector<double>> connessioni; // creazione delle connessioni tra i neuroni ? --> fare una classe Connessioni con il suo metodo per aggiungere connesioni --> non mi piace preferisco gestire la connessione tramite la classe rete 
+A minimal simulation consists of:
 
-vector<double> input; // creazione degli input 
+1. Creating a network.
+2. Adding neurons.
+3. Connecting neurons through synapses.
+4. Creating a simulation object.
+5. Adding external inputs.
+6. Running the simulation.
 
-//inizializzazione dei neuroni tramite costruttore
+## Installation
 
-//inizializzazione delle connessioni tra i neuroni tramite il metodo di connessione della rete
+HeaderRN is distributed as a header-only library.
 
-// inizializzazione degli input associati a ciascun neurone a tempo t = 0
+Clone the repository:
 
-// inizializzazione della rete 
+```bash
+git clone https://github.com/Tiziano02/HeaderRN.git
+```
+Include the headers in your project and compile with a C++17 compatible compiler.
 
-// simulazione del comportamento dinamico dei neuroni nel tempo
+## Roadmap
 
-- metodo step() della variabile rete per t che va da 0 a T (tempo totale della simulazione) 
+Future developments include:
 
+- [ ] Transmission delays
+- [ ] Synaptic plasticity
+- [ ] Sparse connectivity
+- [ ] Additional neuron models
+- [ ] Performance optimizations
+- [ ] Large-scale simulations
+
+A complete roadmap is available in TODO.md.
+
+## License

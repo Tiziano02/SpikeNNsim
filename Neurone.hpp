@@ -23,13 +23,13 @@ public:
     
 // costrutture di default e con parametri per inizializzare i neuroni con i parametri biologici e lo stato dinamico iniziale
     Neurone(int id) : id_(id), V_(-65.0 * mV), Vth_(-50.0 * mV), Vrest_(-65.0 * mV), Vreset_(-70.0 * mV),
-                      R_(1.0 * M * Ohm), C_(100.0 * p * F), tau_(R_ *C_), tauR_(5.0 * mS), tempoRR_(0.0 * mS), fired(false) {}
+                      R_(1.0 * M * Ohm), C_(100.0 * p * F), tau_(R_ *C_), tauR_(5.0 * ms), tempoRR_(0.0 * ms), fired(false) {}
 
                       
     // costruttore per inizializzare i neuroni con i parametri biologici e lo stato dinamico iniziale
     Neurone(int id, double V_0, double V_th, double V_rest, double V_reset, double R, double C, double tauR)
         : id_(id), V_(V_0), Vth_(V_th), Vrest_(V_rest), Vreset_(V_reset), R_(R), C_(C),tau_(R*C) ,tauR_(tauR),
-          tempoRR_(0.0 * mS), fired(false) {}
+          tempoRR_(0.0 * ms), fired(false) {}
 
     // Metodi della classe Neurone
     void update(double correnteTotale, double dt)

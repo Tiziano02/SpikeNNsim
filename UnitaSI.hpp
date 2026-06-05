@@ -36,8 +36,9 @@ const double p = 1e-12;                     // pico
 
 // unità più comode 
 const double mV = m * Volt;                 // millivolt
-const double mS = m * s;                    // millisecondo
-
+const double ms = m * s;                    // millisecondo
+const double ps = p * s;                    // picosecondo
+const double Mohm = M *Ohm;                 // megaOhm 
 // parametri utili per la simulazione
 
 

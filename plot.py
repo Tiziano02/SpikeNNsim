@@ -1,135 +1,168 @@
-import matplotlib.pyplot as plt
 import numpy as np
+import matplotlib.pyplot as plt
 
-# ==========================================================
-# LOAD DATA
-# ==========================================================
+# ============================================================
+# CARICAMENTO DATI
+# ============================================================
 
-pot_data = np.loadtxt("potenziali.txt")
-fire_data = np.loadtxt("firing.txt")
-syn_data = np.loadtxt("sinapsi.txt")
+potenziali = np.loadtxt("potenziali.txt")
+firing = np.loadtxt("firing.txt")
+sinapsi = np.loadtxt("sinapsi.txt")
 
-# ==========================================================
-# EXTRACT DATA
-# ==========================================================
+# ============================================================
+# TEMPO
+# ============================================================
 
-# time in seconds -> ms
-time = pot_data[:, 0] * 1000.0
+time = potenziali[:, 0]
 
-# membrane potentials in Volt -> mV
-potentials = pot_data[:, 1:] * 1000.0
+# ============================================================
+# DATI NEURONI
+# ============================================================
 
-# spikes
-spikes = fire_data[:, 1:]
+# colonne 1: = neuroni
 
-# synaptic currents in A -> nA
-synapses = syn_data[:, 1:] * 1e9
+V_matrix = potenziali[:, 1:]
+spike_matrix = firing[:, 1:]
+I_matrix = sinapsi[:, 1:]
 
-# fix dimensions if only one neuron/synapse
-if potentials.ndim == 1:
-    potentials = potentials[:, np.newaxis]
+# numero neuroni
+N = V_matrix.shape[1]
 
-if spikes.ndim == 1:
-    spikes = spikes[:, np.newaxis]
+# ============================================================
+# POTENZIALE MEDIO
+# ============================================================
 
-if synapses.ndim == 1:
-    synapses = synapses[:, np.newaxis]
+V_mean = np.mean(V_matrix, axis=1)
 
-n_neurons = spikes.shape[1]
-n_synapses = synapses.shape[1]
+# ============================================================
+# FIRING RATE MEDIO
+# ============================================================
 
-# ==========================================================
-# BUILD RASTER DATA
-# ==========================================================
+dt = time[1] - time[0]
+
+# spike per timestep
+spikes_per_step = np.sum(spike_matrix, axis=1)
+
+# firing rate istantaneo (Hz)
+firing_rate = spikes_per_step / N / (dt / 1000.0)
+
+# smoothing
+window = 50
+
+kernel = np.ones(window) / window
+
+firing_rate_smooth = np.convolve(
+    firing_rate,
+    kernel,
+    mode='same'
+)
+
+# ============================================================
+# RASTER PLOT
+# ============================================================
 
 spike_times = []
+spike_neurons = []
 
-for neuron_idx in range(n_neurons):
+n_steps = len(time)
 
-    neuron_spikes = time[spikes[:, neuron_idx] == 1]
+for t_idx in range(n_steps):
 
-    spike_times.append(neuron_spikes)
+    for neuron_id in range(N):
 
-# ==========================================================
-# FIGURE
-# ==========================================================
+        if spike_matrix[t_idx, neuron_id] > 0:
 
-fig, axes = plt.subplots(
-    4,
+            spike_times.append(time[t_idx])
+            spike_neurons.append(neuron_id)
+
+# ============================================================
+# PLOT
+# ============================================================
+
+fig, axs = plt.subplots(
+    6,
     1,
-    figsize=(14, 12),
-    sharex=True
+    figsize=(16, 14)
 )
 
-# ==========================================================
-# 1) RASTER PLOT
-# ==========================================================
+# ============================================================
+# 1) Raster plot
+# ============================================================
 
-axes[0].eventplot(
+axs[0].scatter(
     spike_times,
-    colors='black',
-    lineoffsets=np.arange(n_neurons),
-    linelengths=0.8
+    spike_neurons,
+    s=2,
+    color='black'
 )
 
-axes[0].set_title("Ring network raster plot")
-axes[0].set_ylabel("Neuron")
-axes[0].set_yticks(np.arange(n_neurons))
+axs[0].set_title("Raster plot")
+axs[0].set_ylabel("Neuron")
 
-# ==========================================================
-# 2) MEMBRANE POTENTIALS
-# ==========================================================
+# ============================================================
+# 2) Potenziali di membrana
+# ============================================================
 
-for i in range(n_neurons):
+for nid in range(N):
+    axs[1].plot(time, V_matrix[:, nid])
 
-    axes[1].plot(
-        time,
-        potentials[:, i],
-        linewidth=1
+axs[1].set_title("Membrane potentials")
+axs[1].set_ylabel("V (mV)")
+
+# ============================================================
+# 3) Spike trains
+# ============================================================
+
+for nid in range(N):
+
+    spikes_n = []
+
+    for t_idx in range(n_steps):
+
+        if spike_matrix[t_idx, nid] > 0:
+            spikes_n.append(time[t_idx])
+
+    axs[2].vlines(
+        spikes_n,
+        nid + 0.5,
+        nid + 1.5
     )
 
-axes[1].set_title("Membrane potentials")
-axes[1].set_ylabel("Potential (mV)")
-axes[1].grid(True, alpha=0.3)
+axs[2].set_title("Spike trains")
+axs[2].set_ylabel("Neuron")
 
-# ==========================================================
-# 3) SPIKE TRAINS
-# ==========================================================
+# ============================================================
+# 4) Correnti sinaptiche
+# ============================================================
 
-for i in range(n_neurons):
+for nid in range(N):
+    axs[3].plot(time, I_matrix[:, nid])
 
-    spike_signal = spikes[:, i]
+axs[3].set_title("Synaptic currents")
+axs[3].set_ylabel("I (nA)")
 
-    axes[2].plot(
-        time,
-        spike_signal + i * 1.2,
-        linewidth=1
-    )
+# ============================================================
+# 5) Potenziale medio
+# ============================================================
 
-axes[2].set_title("Spike trains")
-axes[2].set_ylabel("Neuron index")
-axes[2].grid(True, alpha=0.3)
+axs[4].plot(time, V_mean)
 
-# ==========================================================
-# 4) SYNAPTIC CURRENTS
-# ==========================================================
+axs[4].set_title("Mean membrane potential")
+axs[4].set_ylabel("<V> (mV)")
 
-for i in range(n_synapses):
+# ============================================================
+# 6) Firing rate medio
+# ============================================================
 
-    axes[3].plot(
-        time,
-        synapses[:, i],
-        linewidth=1
-    )
+axs[5].plot(time, firing_rate_smooth)
 
-axes[3].set_title("Synaptic currents")
-axes[3].set_ylabel("Current (nA)")
-axes[3].set_xlabel("Time (ms)")
-axes[3].grid(True, alpha=0.3)
+axs[5].set_title("Population firing rate")
+axs[5].set_ylabel("Rate (Hz)")
+axs[5].set_xlabel("Time (ms)")
 
-# ==========================================================
+# ============================================================
 # LAYOUT
-# ==========================================================
+# ============================================================
 
 plt.tight_layout()
 plt.show()

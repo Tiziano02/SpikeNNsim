@@ -5,7 +5,27 @@
 #include "UnitaSI.hpp"
 
 #include <iostream>
+#include <random>
 #include <vector>
+
+double rumoreGaussiano(double media, double deviazioneStandard) {
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+
+    std::normal_distribution<double> distribuzione(media, deviazioneStandard);
+
+    return distribuzione(gen);
+}
+
+double rumoreUniforme(double centro, double ampiezza) {
+
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+
+    std::uniform_real_distribution<double> distribuzione(centro - ampiezza, centro + ampiezza);
+
+    return distribuzione(gen);
+}
 
 int main() {
 
@@ -13,93 +33,109 @@ int main() {
     // PARAMETRI RETE
     // =========================================================
 
-    const int N = 20;
+    const int N = 5000;
 
-    // =========================================================
-    // CREAZIONE RETE
-    // =========================================================
+    const int Ne = N * 0.8;
+    const int Ni = N * 0.2;
+
+    // Neurone eccitatorio (tipo piramidale)
+    const double eV_rest = -65.0 * mV;
+    const double eV_reset = -65.0 * mV;
+    const double eV_th = -50.0 * mV;
+    const double eR = 100 * Mohm;
+    const double eC = 200 * p * F;
+    const double eTau_m = eR * eC;
+    const double eTau_ref = 3.5 * ms;
+
+    // neurone inibitorio (interneuroni fast-spiking)
+    const double iV_rest = -65.0 * mV;
+    const double iV_reset = -65.0 * mV;
+    const double iV_th = -50.0 * mV;
+    const double iR = 50 * Mohm;
+    const double iC = 200 * p * F;
+    const double iTau_m = iR * iC;
+    const double iTau_ref = 0.5 * ms;
 
     Rete rete;
 
-    // creo i neuroni
+    // creo i neuroni eccitatori e inibitori
     for (int i = 0; i < N; ++i) {
-
-        Neurone neurone(
-            i,                // id
-            -65.0 * mV,       // V iniziale
-            -50.0 * mV,       // soglia
-            -65.0 * mV,       // riposo
-            -70.0 * mV,       // reset
-            1.0 * M * Ohm,    // resistenza
-            100.0 * p * F,    // capacità
-            5.0 * mS          // refrattario
-        );
-
-        rete.aggiungiNeurone(neurone);
+        double V_0 = eV_reset + rumoreGaussiano(0, 2 * mV);
+        // std :: cout << "Potenziale iniziale : " << V_0 << " = " << eV_reset << " + " << V_0-eV_reset << "\n";
+        if (i < Ne) {
+            Neurone neurone(i, V_0, eV_th, eV_rest, eV_reset, eR, eC, eTau_ref);
+            rete.aggiungiNeurone(neurone);
+        } else {
+            Neurone neurone(i, V_0, iV_th, iV_rest, iV_reset, iR, iC, iTau_ref);
+            rete.aggiungiNeurone(neurone);
+        }
     }
 
-    // =========================================================
-    // CONNESSIONI RING
-    // =========================================================
+    // sinapsi eccitatorie
+    const double eWeight = +0.2;
+    const double eIpeak = 0.1 * n * A;
+    const double eTau_syn = 5 * ms;
+
+    // sinapsi inibitorie
+    const double iWeight = -1.0;
+    const double iIpeak = 0.1 * n * A;
+    const double iTau_syn = 10 * ms;
 
     for (int i = 0; i < N; ++i) {
-
-        int next = (i + 1) % N;
-
-        Sinapsi s(
-            1.0,              // peso
-            18.0 * n * A,     // Ipeak
-            i,                // pre
-            next,             // post
-            5.0 * mS          // tau sinaptica
-        );
-
-        rete.connettiNeuroni(s);
+        for (int j = 0; j < N; j++) {
+            double pCorrente = rumoreUniforme(0.5, 0.5);
+            if (pCorrente < 0.2) {
+                if (i < Ne) {
+                    Sinapsi s(eWeight, eIpeak, i, j, eTau_syn);
+                    rete.connettiNeuroni(s);
+                } else {
+                    Sinapsi s(iWeight, iIpeak, i, j, iTau_syn);
+                    rete.connettiNeuroni(s);
+                }
+            }
+        }
     }
 
-    // =========================================================
-    // PARAMETRI SIMULAZIONE
-    // =========================================================
-
-    double dt = 0.1 * mS;
-    double T  = 500.0 * mS;
+    // dati simulazione
+    double dt = 0.1 * ms;
+    double T = 500.0 * ms;
 
     Simulazione sim(rete, dt, T);
 
-    // =========================================================
-    // INPUT ESTERNO
-    // =========================================================
-    // Stimolo SOLO il neurone 0
-    // per innescare l'onda nel ring
+    // input esterno 
 
-    int nSteps = static_cast<int>(T / dt);
+    int stepTotali = static_cast<int>(T / dt);
 
-    std::vector<double> inputN0(nSteps, 0.0);
+    std::vector<Input> inputEsterno;
 
-    // impulso iniziale
-    for (int i = 10; i < 80; ++i) {
-        inputN0[i] = 25.0 * n * A;
+    double inputCorrente = 0.0;
+    for(int l=0;l< N; l++){    
+        Input i;
+        std::vector<double> v;
+        i.id = l;
+       
+        if (l < Ne)
+            inputCorrente = 0.15 * n*A + rumoreGaussiano(0,0.02*n*A);
+        else
+            inputCorrente = 0.30 * n * A + rumoreGaussiano(0,0.02*n*A);
+           
+        for(int k=0;k<stepTotali;k++)
+            v.push_back(inputCorrente);
+
+        i.valori = v;
+        v.clear();
+        inputEsterno.push_back(i);
     }
 
-    Input in0;
-    in0.id = 0;
-    in0.valori = inputN0;
+    sim.aggiungiInputEsterni(inputEsterno);
 
-    std::vector<Input> inputs = {in0};
-
-    sim.aggiungiInputEsterni(inputs);
 
     // =========================================================
     // AVVIO SIMULAZIONE
     // =========================================================
 
-    sim.avviaSimulazione(
-        "potenziali.txt",
-        "firing.txt",
-        "sinapsi.txt"
-    );
+    sim.avviaSimulazione("potenziali.txt", "firing.txt", "sinapsi.txt");
 
     std::cout << "Simulazione completata.\n";
-
     return 0;
 }
