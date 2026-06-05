@@ -95,3 +95,7 @@ Future developments include:
 A complete roadmap is available in TODO.md.
 
 ## License
+
+This project is distributed under the MIT License.
+
+See [LICENSE](LICENSE) for details.
