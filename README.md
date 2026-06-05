@@ -19,12 +19,16 @@ Its design is guided by three main principles:
 ## Features
 
 Current features include:
+## Features
 
+Current features include:
 
-- Leaky Integrate-and-Fire neurons
+- Leaky Integrate-and-Fire (LIF) neurons
+- Absolute refractory period
 - Current-based synapses with exponential decay
-- Time-dependent external inputs
-- Custom network topologies
+- Excitatory and inhibitory synaptic connections
+- Arbitrary network topologies
+- Time-dependent external stimuli
 - Explicit physical units system
 - Time-domain simulations
 - Data export for post-processing
