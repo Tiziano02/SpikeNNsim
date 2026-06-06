@@ -14,7 +14,7 @@
  * V viene resettato a Vreset e inizia il periodo refrattario assoluto di durata tauR,
  * durante il quale la dinamica è bloccata.
  *
- * Parametri biologici di default (costruttore a un argomento):
+ * Parametri biologici di default (costruttore con solo ID):
  *   Vrest  = -65 mV,  Vth = -50 mV,  Vreset = -70 mV
  *   R = 1 MOhm,  C = 100 pF  ->  tau = 100 ms
  *   tauR = 5 ms
@@ -22,7 +22,7 @@
  * Metodi pubblici:
  *   update(I, dt)   — avanza lo stato del neurone di un passo dt
  *     
- * -Metodi getter:
+ * Metodi getter:
  *   hasFired()      — true se il neurone ha sparato nell'ultimo step
  *   getPotential()  — restituisce V corrente [V]
  *   getId()         — restituisce l'ID del neurone
