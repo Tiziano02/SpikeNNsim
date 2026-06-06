@@ -3,107 +3,131 @@
 
 #include "Rete.hpp"
 
-// Implementazione dei metodi della classe ReteNeurale
-
-// metodi per gestire la rete neurale
+/*
+ * aggiungiNeurone — aggiunge un neurone alla rete.
+ *
+ * Aggiunge il neurone a neuroni_, registra il suo ID nella mappa idToIndex_
+ * e aggiunge una entry a zero nel buffer inputTotale_.
+ * Se un neurone con lo stesso ID esiste già, stampa un errore e non lo aggiunge.
+ */
 void Rete::aggiungiNeurone(const Neurone &neurone) {
-    if (hasNeurone(neurone.getId()) == false) {
-        neuroni_.push_back(neurone);                       // aggiunge il neurone alla lista
-        idToIndex_[neurone.getId()] = neuroni_.size() - 1; // aggiunge ID alla mappa
-        inputTotale_.push_back(0.0);                       // aggiunge un nuovo input totale associato al nuovo neurone
-    } else {
-        std::cerr << "hai inserito due neuroni con lo stesso ID\n";
+    if (hasNeurone(neurone.getId())) {
+        std::cerr << "[Rete] errore: neurone con ID " << neurone.getId() << " già presente.\n";
+        return;
     }
-}
-void Rete::connettiNeuroni(const Sinapsi &s) {
-    if (hasNeurone(s.getIdPre()) && hasNeurone(s.getIdPost())) // verifica che entrambi i neuroni esistano (perche mappa ha ID unici)
-        sinapsi_.push_back(s);                                             // inserisco la connessione da id1 a id2 con il peso specificato
-    else
-        std::cerr << "uno dei due neuroni che vuoi connettere non esistono\n";
+    neuroni_.push_back(neurone);
+    idToIndex_[neurone.getId()] = neuroni_.size() - 1;
+    inputTotale_.push_back(0.0);
 }
 
+/*
+ * connettiNeuroni — aggiunge una sinapsi alla rete.
+ *
+ * Verifica che entrambi i neuroni (pre e post) esistano nella rete.
+ * Imposta gli indici diretti indexPre_ e indexPost_ direttamente sulla sinapsi
+ * originale tramite i setter, poi la aggiunge a sinapsi_.
+ * Gli indici diretti evitano il lookup sulla mappa ad ogni step in step().
+ */
+void Rete::connettiNeuroni(Sinapsi &s) {
+    if (!hasNeurone(s.getIdPre()) || !hasNeurone(s.getIdPost())) {
+        std::cerr << "[Rete] errore: uno o entrambi i neuroni (pre=" << s.getIdPre() << ", post=" << s.getIdPost() << ") non esistono nella rete.\n";
+        return;
+    }
+    s.setIndexPre(idToIndex_[s.getIdPre()]);
+    s.setIndexPost(idToIndex_[s.getIdPost()]);
+    sinapsi_.push_back(s);
+}
 
-// metodo evoluzione della rete
+/*
+ * step — avanza lo stato dell'intera rete di un passo dt.
+ *
+ * Sequenza (l'ordine è importante per la correttezza causale):
+ *  1. Reset del buffer inputTotale_ a zero.
+ *  2. Aggiornamento di tutte le sinapsi: usano il flag hasFired() dei neuroni
+ *     relativo al passo precedente. Usa indexPre_ per accesso diretto senza lookup.
+ *  3. Accumulo delle correnti sinaptiche in inputTotale_. Usa indexPost_ per
+ *     accesso diretto senza lookup.
+ *  4. Aggiunta delle correnti esterne a inputTotale_.
+ *  5. Aggiornamento di ogni neurone con la corrente totale afferente.
+ *
+ * Nota: uno spike emesso al passo t aggiorna la sinapsi a partire dal passo t+1
+ * (latenza minima di un passo). Questo è il comportamento causale corretto.
+ */
 void Rete::step(double dt, const std::vector<InputCorrente> &inputEsterni) {
 
-    // reset input totale prima di calcolare il nuovo stato della rete
     std::fill(inputTotale_.begin(), inputTotale_.end(), 0.0);
 
-    // update sinapsi usando la classe
-    for (size_t i = 0; i < sinapsi_.size(); ++i)
-        sinapsi_[i].update(dt, neuroni_[idToIndex_[sinapsi_[i].getIdPre()]].hasFired()); // aggiorna la sinapsi in base al firing del neurone pre-sinaptico
-
-    // aggiungi il contributo di tutte le sinapsi al potenziale del neurone post-sinaptico
-    for (size_t cor = 0; cor < sinapsi_.size(); ++cor) {
-        size_t post = idToIndex_[sinapsi_[cor].getIdPost()];
-        inputTotale_[post] += sinapsi_[cor].getCurrent();
+    // Per ogni sinapsi: aggiorna la corrente in base allo spike pre-sinaptico,
+    // poi accumula immediatamente il contributo nel buffer del neurone post-sinaptico.
+    // I due passi sono uniti in un solo loop perché update() legge hasFired() del
+    // passo precedente, che non viene modificato dalla funzione step.
+    for (auto &syn : sinapsi_) {
+        syn.update(dt, neuroni_[syn.getIndexPre()].hasFired());
+        inputTotale_[syn.getIndexPost()] += syn.getCurrent();
     }
 
-    // aggiungo gli input esterni
-    for (size_t i = 0; i < inputEsterni.size(); ++i) {
-        size_t idx = idToIndex_[inputEsterni[i].id];
-        inputTotale_[idx] += inputEsterni[i].valoreCorrente;
-    }
+    for (const auto &inp : inputEsterni)
+        inputTotale_[idToIndex_[inp.id]] += inp.valoreCorrente;
 
-    // aggiorno lo stato di ogni neurone
-    for (size_t i = 0; i < neuroni_.size(); ++i) {
+    for (size_t i = 0; i < neuroni_.size(); ++i)
         neuroni_[i].update(inputTotale_[i], dt);
-    }
 }
 
-// metodi getter
+/*
+ * getPotenziali — restituisce il potenziale di membrana di tutti i neuroni [V].
+ */
 std::vector<double> Rete::getPotenziali() const {
-
     std::vector<double> potenziali;
     potenziali.reserve(neuroni_.size());
-
-    for (const auto &neurone : neuroni_)
-        potenziali.push_back(neurone.getPotential());
-
+    for (const auto &n : neuroni_)
+        potenziali.push_back(n.getPotential());
     return potenziali;
 }
-std::vector<double> Rete::getSinapsi() const {
 
-    std::vector<double> sinapsi;
-    sinapsi.reserve(sinapsi_.size());
-
-    for (const auto &s : sinapsi_)
-        sinapsi.push_back(s.getCurrent());
-
-    return sinapsi;
-}
+/*
+ * getFiringStates — restituisce il vettore di firing (1 = spike, 0 = no) per tutti i neuroni.
+ */
 std::vector<int> Rete::getFiringStates() const {
-
-    std::vector<int> firingStates;
-    firingStates.reserve(neuroni_.size());
-
-    for (const auto &neurone : neuroni_)
-        firingStates.push_back(neurone.hasFired() ? 1 : 0); // 1 se ha sparato, 0 altrimenti
-
-    return firingStates;
+    std::vector<int> states;
+    states.reserve(neuroni_.size());
+    for (const auto &n : neuroni_)
+        states.push_back(n.hasFired() ? 1 : 0);
+    return states;
 }
 
-// metodi log
+/*
+ * getSinapsi — restituisce la corrente sinaptica corrente di tutte le sinapsi [A].
+ */
+std::vector<double> Rete::getSinapsi() const {
+    std::vector<double> correnti;
+    correnti.reserve(sinapsi_.size());
+    for (const auto &s : sinapsi_)
+        correnti.push_back(s.getCurrent());
+    return correnti;
+}
+
+/*
+ * salvaStatoRete — scrive lo stato corrente della rete su tre file di output.
+ *
+ * Formato di ogni riga: time  val1  val2  ...  valN
+ * Scrive direttamente dai contenitori originali senza allocare vettori temporanei.
+ */
 void Rete::salvaStatoRete(std::ofstream &filePotenziali, std::ofstream &fileFiring, std::ofstream &fileSinapsi, double time) {
 
-    std::vector<double> potenziali = getPotenziali();
-    std::vector<int> spikes = getFiringStates();
-    std::vector<double> sinapsi = getSinapsi();
+    filePotenziali << time;
+    for (const auto &n : neuroni_)
+        filePotenziali << ' ' << n.getPotential();
+    filePotenziali << '\n';
 
-    filePotenziali << time << " ";
-    for (double v : potenziali)
-        filePotenziali << v << " ";
-    filePotenziali << "\n";
+    fileFiring << time;
+    for (const auto &n : neuroni_)
+        fileFiring << ' ' << (n.hasFired() ? 1 : 0);
+    fileFiring << '\n';
 
-    fileFiring << time << " ";
-    for (int f : spikes)
-        fileFiring << f << " ";
-    fileFiring << "\n";
-
-    fileSinapsi << time << " ";
-    for (double s : sinapsi)
-        fileSinapsi << s << " ";
-    fileSinapsi << "\n";
+    fileSinapsi << time;
+    for (const auto &s : sinapsi_)
+        fileSinapsi << ' ' << s.getCurrent();
+    fileSinapsi << '\n';
 }
 
 #endif // RETEIMP_HPP
