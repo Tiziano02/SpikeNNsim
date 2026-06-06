@@ -3,32 +3,87 @@
 
 #include "UnitaSI.hpp"
 
-class Sinapsi
-{
-private:
-    double peso_; // forza della sinapsi, positiva per eccitatoria, negativa per inibitoria --> [-1,+1] --> in futuro si può fare tipoEccitatoria con A positiva e tipoInibitoria con A negativa e il peso --> [0,1] 
-    double Ipeak_; // modulo corrente generata da uno spike pre-sinaptico per peso unitario 
-    int idPre_, idPost_;  // ID del neurone pre-sinaptico e post-sinaptico
-    double Isyn_; // corrente sinaptica che contribuisce al potenziale del neurone post-sinaptico
-    double tau_; // tempo di decadimento della corrente sinaptica
+/*
+ * Sinapsi — connessione current-based con decadimento esponenziale.
+ *
+ * Modello matematico:
+ *   dI_syn/dt = -I_syn / tau
+ *
+ * Ad ogni spike pre-sinaptico la corrente riceve un incremento istantaneo:
+ *   I_syn -> I_syn + peso * Ipeak
+ *
+ * Il segno di peso determina il tipo di sinapsi:
+ *   peso > 0  ->  eccitatoria  (corrente depolarizzante)
+ *   peso < 0  ->  inibitoria   (corrente iperpolarizzante)
+ *
+ * Parametri:
+ *   peso        peso sinaptico, range consigliato [-1, +1]
+ *   Ipeak       corrente di picco per peso unitario [A]
+ *   idPre       ID del neurone pre-sinaptico
+ *   idPost      ID del neurone post-sinaptico
+ *   indexPre_   indice del neurone pre-sinaptico in neuroni_ (settato da Rete)
+ *   indexPost_  indice del neurone post-sinaptico in neuroni_ (settato da Rete)
+ *   tau         costante di tempo del decadimento [s]
+ *
+ * Metodi publici:
+ *   update(dt, preFired)    — avanza lo stato della sinapsi di un passo dt
+ *   setIndexPre(idx)        — imposta l'indice del neurone pre-sinaptico
+ *   setIndexPost(idx)       — imposta l'indice del neurone post-sinaptico
+ *   getCurrent()            — restituisce I_syn corrente [A]
+ *   getIdPre()              — restituisce l'ID del neurone pre-sinaptico
+ *   getIdPost()             — restituisce l'ID del neurone post-sinaptico
+ *   getIndexPre()           — restituisce l'indice del neurone pre-sinaptico
+ *   getIndexPost()          — restituisce l'indice del neurone post-sinaptico
+ */
+class Sinapsi {
 
-public:
-    Sinapsi(double peso, double Ipeak, int idPre, int idPost, double tau) : peso_(peso), Ipeak_(Ipeak), idPre_(idPre), idPost_(idPost), Isyn_(0.0) ,tau_(tau) {};
-    
-    // metodo update
-    void update(double dt, bool preFired) {
-        if (preFired) {
-            Isyn_ += peso_ * Ipeak_;   
-        }
-        Isyn_ += dt *  (-Isyn_ /tau_); // decadimento della corrente sinaptica nel tempo
-    }
+  private:
+    int idPre_, idPost_;
+    size_t indexPre_, indexPost_;
+    double peso_;
+    double Ipeak_;
+    double Isyn_;
+    double tau_;
 
+  public:
+    Sinapsi(double peso, double Ipeak, int idPre, int idPost, double tau) : idPre_(idPre), idPost_(idPost), indexPre_(0), indexPost_(0), peso_(peso), Ipeak_(Ipeak), Isyn_(0.0), tau_(tau) {}
+
+    // metodi operativi
+    void update(double dt, bool preFired);
+
+    // metodi setter
+    void setIndexPre(size_t idx) { indexPre_ = idx; }
+    void setIndexPost(size_t idx) { indexPost_ = idx; }
+
+    // metodi getter
     double getCurrent() const { return Isyn_; }
     int getIdPre() const { return idPre_; }
     int getIdPost() const { return idPost_; }
-    
+    size_t getIndexPre() const { return indexPre_; }
+    size_t getIndexPost() const { return indexPost_; }
+
     ~Sinapsi() = default;
 };
 
-#endif // SINAPSI_HPP
+/*
+ * update — avanza lo stato della sinapsi di un passo dt.
+ *
+ * Sequenza:
+ *  1. Se il neurone pre-sinaptico ha sparato: aggiunge l'impulso peso * Ipeak.
+ *  2. Decadimento esponenziale con Eulero in avanti:
+ *       I_syn(t+dt) = I_syn(t) + dt * (-I_syn(t) / tau)
+ *
+ * Nota sull'ordine impulso/decadimento: nello stesso step in cui arriva lo
+ * spike, l'impulso viene aggiunto e poi immediatamente decresce di un dt.
+ * Fisicamente sarebbe più corretto far partire il decadimento dal passo
+ * successivo, ma l'errore introdotto è dell'ordine dt * Ipeak / tau,
+ * trascurabile per dt << tau.
+ */
+void Sinapsi::update(double dt, bool preFired) {
+    if (preFired)
+        Isyn_ += peso_ * Ipeak_;
 
+    Isyn_ += dt * (-Isyn_ / tau_);
+}
+
+#endif // SINAPSI_HPP
