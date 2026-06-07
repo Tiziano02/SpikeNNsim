@@ -81,11 +81,15 @@ void Simulazione::aggiungiInputEsterni(const std::vector<Input> &inputEsterno) {
 /*
  * avviaSimulazione — esegue il loop principale e salva i risultati su file.
  *
+ * I file vengono aperti in formato binario (std::ios::binary). Prima di iniziare
+ * l'integrazione, viene scritto un header iniziale di 32 bit per ciascun file
+ * contenente il numero totale di colonne (tempo + dati) utile per il parsing.
+ *
  * Sequenza ad ogni step:
- *  1. Estrae il valore corrente di ogni input esterno.
- *  2. Chiama Rete::step(dt, inputEsterniCorrente).
- *  3. Aggiorna il tempo: time += dt.
- *  4. Salva lo stato della rete sui tre file di output.
+ * 1. Estrae il valore corrente di ogni input esterno.
+ * 2. Chiama Rete::step(dt, inputEsterniCorrente).
+ * 3. Aggiorna il tempo: time += dt.
+ * 4. Salva lo stato della rete sui tre file di output in binario.
  *
  * Il vettore inputEsterniCorrente è pre-allocato prima del loop per evitare
  * allocazioni dinamiche durante la simulazione.
@@ -100,14 +104,22 @@ void Simulazione::avviaSimulazione(const std::string &filenameV, const std::stri
     for (const auto &inp : inputEsterni_)
         inputEsterniCorrente.push_back({inp.id, 0.0});
 
-    std::ofstream filePotenziali(filenameV);
-    std::ofstream fileFiring(filenameF);
-    std::ofstream fileSinapsi(filenameS);
+    std::ofstream filePotenziali(filenameV, std::ios::binary | std::ios::out);
+    std::ofstream fileFiring(filenameF, std::ios::binary | std::ios::out);
+    std::ofstream fileSinapsi(filenameS, std::ios::binary | std::ios::out);
 
     if (!filePotenziali.is_open() || !fileFiring.is_open() || !fileSinapsi.is_open()) {
         std::cerr << "[Simulazione] errore: impossibile aprire i file di output.\n";
         return;
     }
+
+    int32_t colsV = rete_.getPotenziali().size() + 1;
+    int32_t colsF = rete_.getFiringStates().size() + 1;
+    int32_t colsS = rete_.getSinapsi().size() + 1;
+
+    filePotenziali.write(reinterpret_cast<const char *>(&colsV), sizeof(int32_t));
+    fileFiring.write(reinterpret_cast<const char *>(&colsF), sizeof(int32_t));
+    fileSinapsi.write(reinterpret_cast<const char *>(&colsS), sizeof(int32_t));
 
     for (; stepCorrente_ < stepTotali_; ++stepCorrente_) {
         for (size_t i = 0; i < inputEsterniCorrente.size(); ++i)
@@ -116,7 +128,7 @@ void Simulazione::avviaSimulazione(const std::string &filenameV, const std::stri
         rete_.step(dt_, inputEsterniCorrente);
         time += dt_;
 
-        rete_.salvaStatoRete(filePotenziali, fileFiring, fileSinapsi, time);
+        //rete_.salvaStatoRete(filePotenziali, fileFiring, fileSinapsi, time);
     }
 }
 

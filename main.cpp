@@ -144,7 +144,7 @@ int main() {
 
 
     // rete e neuroni
-    const int N = 50;
+    const int N = 50000;
     Rete rete(N);
 
 
@@ -181,6 +181,6 @@ int main() {
 
     sim.aggiungiInputEsterni(inputEsterno);
 
-    sim.avviaSimulazione("potenziali.txt", "firing.txt", "sinapsi.txt");
+    sim.avviaSimulazione("potenziali.bin", "firing.bin", "sinapsi.bin");
 
 }

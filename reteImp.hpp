@@ -109,25 +109,36 @@ std::vector<double> Rete::getSinapsi() const {
 /*
  * salvaStatoRete — scrive lo stato corrente della rete su tre file di output.
  *
- * Formato di ogni riga: time  val1  val2  ...  valN
- * Scrive direttamente dai contenitori originali senza allocare vettori temporanei.
+ * I dati sono salvati in formato puramente binario per massimizzare le prestazioni
+ * di I/O. Per garantire coerenza durante il parsing (matrice omogenea), tutti i 
+ * valori, inclusi i flag booleani di firing, vengono salvati come double a 64 bit.
+ *
+ * Sequenza di scrittura per step temporale:
+ * 1. Scrittura del tempo corrente su ciascun file.
+ * 2. Scrittura dei dati dei neuroni o delle sinapsi relativi a quel tempo.
+ *
+ * Scrive direttamente dai contenitori originali usando file.write()
+ * senza allocare vettori temporanei.
  */
 void Rete::salvaStatoRete(std::ofstream &filePotenziali, std::ofstream &fileFiring, std::ofstream &fileSinapsi, double time) {
 
-    filePotenziali << time;
-    for (const auto &n : neuroni_)
-        filePotenziali << ' ' << n.getPotential();
-    filePotenziali << '\n';
+    filePotenziali.write(reinterpret_cast<const char*>(&time), sizeof(double));
+    for (const auto &n : neuroni_) {
+        double v = n.getPotential();
+        filePotenziali.write(reinterpret_cast<const char*>(&v), sizeof(double));
+    }
 
-    fileFiring << time;
-    for (const auto &n : neuroni_)
-        fileFiring << ' ' << (n.hasFired() ? 1 : 0);
-    fileFiring << '\n';
+    fileFiring.write(reinterpret_cast<const char*>(&time), sizeof(double));
+    for (const auto &n : neuroni_) {
+        double fired = n.hasFired() ? 1.0 : 0.0;
+        fileFiring.write(reinterpret_cast<const char*>(&fired), sizeof(double));
+    }
 
-    fileSinapsi << time;
-    for (const auto &s : sinapsi_)
-        fileSinapsi << ' ' << s.getCurrent();
-    fileSinapsi << '\n';
+    fileSinapsi.write(reinterpret_cast<const char*>(&time), sizeof(double));
+    for (const auto &s : sinapsi_) {
+        double c = s.getCurrent();
+        fileSinapsi.write(reinterpret_cast<const char*>(&c), sizeof(double));
+    }
 }
 
 #endif // RETEIMP_HPP

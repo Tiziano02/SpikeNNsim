@@ -18,12 +18,15 @@ compile_commands.json
 *.a
 *.so
 *.dylib
+*.dSYM
 
 # macOS
 .DS_Store
 
 # VS Code
 .vscode/
+.clang-format
+
 
 # Temporary files
 *.tmp
@@ -31,6 +34,8 @@ compile_commands.json
 
 # Simulation outputs
 *.txt
+*.bin
+*.gz
 
 # Swap files (per vim)
 *.swp
