@@ -142,33 +142,31 @@ int main() {
 
     */
 
-
     // rete e neuroni
     const int N = 50000;
     Rete rete(N);
 
-
-    // sinapsi 
+    // sinapsi
     for (int i = 0; i < N - 1; ++i) {
-        Sinapsi s(1, 20 *n * A,i,i+1,5 * ms);
+        Sinapsi s(1, 20 * n * A, i, i + 1, 5 * ms);
         rete.connettiNeuroni(s);
     }
 
-    Sinapsi s(1, 20 * n*A, N-1,0, 5 * ms);
+    Sinapsi s(1, 20 * n * A, N - 1, 0, 5 * ms);
     rete.connettiNeuroni(s);
-    
+
     // simulazione
     double dt = 0.1 * ms;
     double T = 500.0 * ms;
 
-    Simulazione sim(rete, dt, T); 
-    
-    // input esterno 
+    Simulazione sim(rete, dt, T);
+
+    // input esterno
     int stepTotali = static_cast<int>(T / dt);
 
     std::vector<Input> inputEsterno;
 
-    std::vector<double> stimolo(stepTotali,0.0);
+    std::vector<double> stimolo(stepTotali, 0.0);
 
     std::fill(stimolo.begin() + 300, stimolo.begin() + 300 + 10, 20 * n * A);
 
@@ -182,5 +180,4 @@ int main() {
     sim.aggiungiInputEsterni(inputEsterno);
 
     sim.avviaSimulazione("potenziali.bin", "firing.bin", "sinapsi.bin");
-
 }
