@@ -1,168 +1,48 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-# ============================================================
-# CARICAMENTO DATI
-# ============================================================
+def plot_simulazione():
+    # Caricamento dei dati (assumendo il formato: tempo, val1, val2, ... valN)
+    try:
+        potenziali = np.loadtxt('potenziali.txt')
+        firing = np.loadtxt('firing.txt')
+        sinapsi = np.loadtxt('sinapsi.txt')
+    except OSError as e:
+        print(f"Errore nel caricamento dei file: {e}")
+        return
 
-potenziali = np.loadtxt("potenziali.txt")
-firing = np.loadtxt("firing.txt")
-sinapsi = np.loadtxt("sinapsi.txt")
+    # Estrazione del tempo (prima colonna)
+    time = potenziali[:, 0]
 
-# ============================================================
-# TEMPO
-# ============================================================
+    fig, axes = plt.subplots(3, 1, figsize=(12, 12), sharex=True)
 
-time = potenziali[:, 0]
+    # 1. Raster Plot (Firing)
+    # firing[:, 1:] contiene gli stati (0 o 1) per ogni neurone
+    neuroni_firing = firing[:, 1:]
+    axes[0].set_title("Raster Plot (Spike)")
+    for i in range(neuroni_firing.shape[1]):
+        spike_times = time[neuroni_firing[:, i] == 1]
+        axes[0].scatter(spike_times, np.ones_like(spike_times) * i, s=1, color='black', marker='|')
+    axes[0].set_ylabel("ID Neurone")
 
-# ============================================================
-# DATI NEURONI
-# ============================================================
+    # 2. Andamento Potenziali di Membrana
+    axes[1].set_title("Potenziali di Membrana")
+    # Plottiamo solo alcuni neuroni per evitare di sovraccaricare il grafico
+    for i in range(1, potenziali.shape[1]): 
+        axes[1].plot(time, potenziali[:, i], label=f'N{i-1}')
+    axes[1].set_ylabel("Potenziale [V]")
+    axes[1].legend(loc='upper right', fontsize='small')
 
-# colonne 1: = neuroni
+    # 3. Correnti Sinaptiche
+    axes[2].set_title("Correnti Sinaptiche")
+    for i in range(1, sinapsi.shape[1]):
+        axes[2].plot(time, sinapsi[:, i], label=f'S{i-1}')
+    axes[2].set_ylabel("Corrente [A]")
+    axes[2].set_xlabel("Tempo [s]")
+    axes[2].legend(loc='upper right', fontsize='small')
 
-V_matrix = potenziali[:, 1:]
-spike_matrix = firing[:, 1:]
-I_matrix = sinapsi[:, 1:]
+    plt.tight_layout()
+    plt.show()
 
-# numero neuroni
-N = V_matrix.shape[1]
-
-# ============================================================
-# POTENZIALE MEDIO
-# ============================================================
-
-V_mean = np.mean(V_matrix, axis=1)
-
-# ============================================================
-# FIRING RATE MEDIO
-# ============================================================
-
-dt = time[1] - time[0]
-
-# spike per timestep
-spikes_per_step = np.sum(spike_matrix, axis=1)
-
-# firing rate istantaneo (Hz)
-firing_rate = spikes_per_step / N / (dt / 1000.0)
-
-# smoothing
-window = 50
-
-kernel = np.ones(window) / window
-
-firing_rate_smooth = np.convolve(
-    firing_rate,
-    kernel,
-    mode='same'
-)
-
-# ============================================================
-# RASTER PLOT
-# ============================================================
-
-spike_times = []
-spike_neurons = []
-
-n_steps = len(time)
-
-for t_idx in range(n_steps):
-
-    for neuron_id in range(N):
-
-        if spike_matrix[t_idx, neuron_id] > 0:
-
-            spike_times.append(time[t_idx])
-            spike_neurons.append(neuron_id)
-
-# ============================================================
-# PLOT
-# ============================================================
-
-fig, axs = plt.subplots(
-    6,
-    1,
-    figsize=(16, 14)
-)
-
-# ============================================================
-# 1) Raster plot
-# ============================================================
-
-axs[0].scatter(
-    spike_times,
-    spike_neurons,
-    s=2,
-    color='black'
-)
-
-axs[0].set_title("Raster plot")
-axs[0].set_ylabel("Neuron")
-
-# ============================================================
-# 2) Potenziali di membrana
-# ============================================================
-
-for nid in range(N):
-    axs[1].plot(time, V_matrix[:, nid])
-
-axs[1].set_title("Membrane potentials")
-axs[1].set_ylabel("V (mV)")
-
-# ============================================================
-# 3) Spike trains
-# ============================================================
-
-for nid in range(N):
-
-    spikes_n = []
-
-    for t_idx in range(n_steps):
-
-        if spike_matrix[t_idx, nid] > 0:
-            spikes_n.append(time[t_idx])
-
-    axs[2].vlines(
-        spikes_n,
-        nid + 0.5,
-        nid + 1.5
-    )
-
-axs[2].set_title("Spike trains")
-axs[2].set_ylabel("Neuron")
-
-# ============================================================
-# 4) Correnti sinaptiche
-# ============================================================
-
-for nid in range(N):
-    axs[3].plot(time, I_matrix[:, nid])
-
-axs[3].set_title("Synaptic currents")
-axs[3].set_ylabel("I (nA)")
-
-# ============================================================
-# 5) Potenziale medio
-# ============================================================
-
-axs[4].plot(time, V_mean)
-
-axs[4].set_title("Mean membrane potential")
-axs[4].set_ylabel("<V> (mV)")
-
-# ============================================================
-# 6) Firing rate medio
-# ============================================================
-
-axs[5].plot(time, firing_rate_smooth)
-
-axs[5].set_title("Population firing rate")
-axs[5].set_ylabel("Rate (Hz)")
-axs[5].set_xlabel("Time (ms)")
-
-# ============================================================
-# LAYOUT
-# ============================================================
-
-plt.tight_layout()
-plt.show()
+if __name__ == "__main__":
+    plot_simulazione()

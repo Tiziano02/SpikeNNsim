@@ -29,11 +29,12 @@ double rumoreUniforme(double centro, double ampiezza) {
 
 int main() {
 
+    /*
     // =========================================================
     // PARAMETRI RETE
     // =========================================================
 
-    const int N = 5000;
+    const int N = 50;
 
     const int Ne = N * 0.8;
     const int Ni = N * 0.2;
@@ -102,23 +103,23 @@ int main() {
 
     Simulazione sim(rete, dt, T);
 
-    // input esterno 
+    // input esterno
 
     int stepTotali = static_cast<int>(T / dt);
 
     std::vector<Input> inputEsterno;
 
     double inputCorrente = 0.0;
-    for(int l=0;l< N; l++){    
+    for(int l=0;l< N; l++){
         Input i;
         std::vector<double> v;
         i.id = l;
-       
+
         if (l < Ne)
             inputCorrente = 0.15 * n*A + rumoreGaussiano(0,0.02*n*A);
         else
             inputCorrente = 0.30 * n * A + rumoreGaussiano(0,0.02*n*A);
-           
+
         for(int k=0;k<stepTotali;k++)
             v.push_back(inputCorrente);
 
@@ -138,4 +139,48 @@ int main() {
 
     std::cout << "Simulazione completata.\n";
     return 0;
+
+    */
+
+
+    // rete e neuroni
+    const int N = 50;
+    Rete rete(N);
+
+
+    // sinapsi 
+    for (int i = 0; i < N - 1; ++i) {
+        Sinapsi s(1, 20 *n * A,i,i+1,5 * ms);
+        rete.connettiNeuroni(s);
+    }
+
+    Sinapsi s(1, 20 * n*A, N-1,0, 5 * ms);
+    rete.connettiNeuroni(s);
+    
+    // simulazione
+    double dt = 0.1 * ms;
+    double T = 500.0 * ms;
+
+    Simulazione sim(rete, dt, T); 
+    
+    // input esterno 
+    int stepTotali = static_cast<int>(T / dt);
+
+    std::vector<Input> inputEsterno;
+
+    std::vector<double> stimolo(stepTotali,0.0);
+
+    std::fill(stimolo.begin() + 300, stimolo.begin() + 300 + 10, 20 * n * A);
+
+    Input i;
+
+    i.id = 0;
+    i.valori = stimolo;
+
+    inputEsterno.push_back(i);
+
+    sim.aggiungiInputEsterni(inputEsterno);
+
+    sim.avviaSimulazione("potenziali.txt", "firing.txt", "sinapsi.txt");
+
 }
