@@ -77,20 +77,18 @@ void Rete::step(double dt, const std::vector<InputCorrente> &inputEsterni) {
 }
 
 /*
- * getPotenziali — restituisce il potenziale di membrana di tutti i neuroni [V].
+ * getPotenziali — restituisce puntatore a vetto cone il potenziale di membrana di tutti i neuroni [V].
  */
-std::vector<double> Rete::getStatoNeuroni() const { return statoNeuroni_; }
-
+const std::vector<double> &Rete::getPointerStatoNeuroni() const { return statoNeuroni_; }
 /*
  * getStatoFiring — restituisce il vettore di firing (1 = spike, 0 = no) per tutti i neuroni.
  */
-std::vector<double> Rete::getStatoFiring() const { return statoFiring_; }
+const std::vector<double> &Rete::getPointerStatoFiring() const { return statoFiring_; }
 
 /*
  * getStatoSinapsi — restituisce la corrente sinaptica corrente di tutte le sinapsi [A].
  */
-std::vector<double> Rete::getStatoSinapsi() const { return statoSinapsi_; }
-
+const std::vector<double> &Rete::getPointerStatoSinapsi() const { return statoSinapsi_; }
 /*
  * salvaStatoRete — scrive lo stato corrente della rete su tre file di output.
  *
@@ -107,14 +105,13 @@ std::vector<double> Rete::getStatoSinapsi() const { return statoSinapsi_; }
  */
 void Rete::aggiornaStatoRete() {
 
-    for(size_t i=0; i < neuroni_.size();i++){
+    for (size_t i = 0; i < neuroni_.size(); i++) {
         statoNeuroni_[i] = neuroni_[i].getPotential();
         statoFiring_[i] = neuroni_[i].hasFired() ? 1.0 : 0.0;
     }
-    
-    for(size_t i=0; i < sinapsi_.size();i++)
-        statoSinapsi_[i] = sinapsi_[i].getCurrent();
 
+    for (size_t i = 0; i < sinapsi_.size(); i++)
+        statoSinapsi_[i] = sinapsi_[i].getCurrent();
 }
 
 #endif // RETEIMP_HPP

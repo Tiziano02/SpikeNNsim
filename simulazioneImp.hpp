@@ -3,7 +3,6 @@
 
 #include "Simulazione.hpp"
 
-
 /*
  * aggiungiInputEsterni — associa gli input esterni alla simulazione.
  *
@@ -31,17 +30,17 @@ void Simulazione::aggiungiInputEsterni(const std::vector<Input> &inputEsterno) {
  *
  * I file vengono aperti in formato binario (std::ios::binary).Viene scritto un header iniziale di
  * 4 byte per ciascun file contenente il numero totale di colonne (tempo + dati) utile per il parsing.
- * 
- * 
+ *
+ *
  * Sequenza :
  * 1. Apre i file e controlla se ci sono errori
  * 1. Ricava il numero di colonne e crea l'header per i tre file di output
  * 3. Controllo la RAM a disposizione della macchina (dovrei fare i casi Windows e Linux)
  * 5. Calcolo grandezza buffer (RAM a disposizione e tipologia di macchina, byte per time step)
  * 6. Imposto il buffer della simulazione (attributo)
- * 
- * Potrebbero essre divise in due funzioni : creazioneHeader e inizializzazioneBuffer ? 
- * 
+ *
+ * Potrebbero essre divise in due funzioni : creazioneHeader e inizializzazioneBuffer ?
+ *
  */
 void Simulazione::inizializzaOutput() {
 
@@ -64,8 +63,7 @@ void Simulazione::inizializzaOutput() {
     fileFiring_.write(reinterpret_cast<const char *>(&colsF), sizeof(int32_t));
     fileSinapsi_.write(reinterpret_cast<const char *>(&colsS), sizeof(int32_t));
 
-
-    //creazione del buffer
+    // creazione del buffer
 
     bytesPerStepV_ = static_cast<size_t>(colsV) * sizeof(double);
     bytesPerStepF_ = static_cast<size_t>(colsF) * sizeof(double);
@@ -91,19 +89,75 @@ void Simulazione::inizializzaOutput() {
 }
 
 /*
- * loadBuffer — carica lo stato della rete nel buffer, se è pieno scrive, svuota il buffer e scrive nel file.
+ * flushBuffer - scrive sui file il contenuto dei buffer e poi svuota il buffer
  *
- * 
- * 
- * 
- * 
- * 
+ *
+ *
  */
-void loadBuffer(){
+void Simulazione::flushBuffer() {
 
+    // scrivo i buffer sui file
+    filePotenziali_.write(bufferV_.data(), posizioneBuffer_ * bytesPerStepV_);
+    fileFiring_.write(bufferF_.data(), posizioneBuffer_ * bytesPerStepF_);
+    fileSinapsi_.write(bufferS_.data(), posizioneBuffer_ * bytesPerStepS_);
 
+    // azzero i buffer
+    fill(bufferV_.begin(), bufferV_.end(), '0');
+    fill(bufferF_.begin(), bufferF_.end(), '0');
+    fill(bufferS_.begin(), bufferS_.end(), '0');
+}
 
+/*
+ * loadStatoRete — carica lo stato della rete nel buffer
+ *
+ * Se è il buffer è pieno prima chiamo flushBuffer, che svuota il buffer e scrive nel file,
+ * e poi scrive sul buffer pulito.
+ *
+ *  siccome lo stato della rete sono vettori di double, mente il buffer sono in char devo fare prima una
+ *  conversione. l'offset serve per capire a che punto del buffer sono arrivato
+ *
+ */
+void Simulazione::loadStatoRete(double time) {
 
+    if (posizioneBuffer_ == stepsPerFlush_) {
+        flushBuffer();
+        posizioneBuffer_ = 0;
+    }
+
+    // a che punto sono nel buffer ? --> quanti byte ho inserito fino ad ora nel buffer ? questo funziona perche 1 char = 1 bit ?
+    size_t offsetV = posizioneBuffer_ * bytesPerStepV_;
+    size_t offsetF = posizioneBuffer_ * bytesPerStepF_;
+    size_t offsetS = posizioneBuffer_ * bytesPerStepS_;
+
+    const char *src = reinterpret_cast<const char *>(&time); // conversione da double a char della variabile tempo
+
+    std::copy(src, src + sizeof(time), bufferV_.begin() + offsetV); // inserisco il tempo
+    std::copy(src, src + sizeof(time), bufferF_.begin() + offsetF);
+    std::copy(src, src + sizeof(time), bufferS_.begin() + offsetS);
+
+    offsetV += sizeof(time); // non so se è corretta
+    offsetF += sizeof(time);
+    offsetS += sizeof(time);
+
+    // 1. Calcolo quanti BYTE totali occupano gli array
+    size_t byteNeuroni = bytesPerStepV_ - sizeof(time);
+    size_t byteFiring = bytesPerStepF_ - sizeof(time);
+    size_t byteSinapsi = bytesPerStepS_ - sizeof(time);
+
+    // 2. Copia in blocco dello stato dei Neuroni
+    // Prendo il puntatore all'inizio dell'array e lo converto in puntatore a char
+    const char *srcV = reinterpret_cast<const char *>(rete_.getPointerStatoNeuroni().data());
+    std::copy(srcV, srcV + byteNeuroni, bufferV_.begin() + offsetV);
+
+    // 3. Copia in blocco dello stato di Firing
+    const char *srcF = reinterpret_cast<const char *>(rete_.getPointerStatoFiring().data());
+    std::copy(srcF, srcF + byteFiring, bufferF_.begin() + offsetF);
+
+    // 4. Copia in blocco dello stato delle Sinapsi
+    const char *srcS = reinterpret_cast<const char *>(rete_.getPointerStatoSinapsi().data());
+    std::copy(srcS, srcS + byteSinapsi, bufferS_.begin() + offsetS);
+
+    posizioneBuffer_++;
 }
 
 /*
@@ -149,11 +203,9 @@ void Simulazione::avviaSimulazione(const std::string &filenameV, const std::stri
         time += dt_;
 
         rete_.aggiornaStatoRete();
-        
-        //inserisciStatoNelBuffer();
-        //flushBuffer();
+
+        loadStatoRete(time); // in realtà gestisce tutto l'output : salva sul buffer, se piengo chiama flushBuffer che svuota il buffer e scrive su file
     }
 }
-
 
 #endif // SIMULAZIONEIMP_HPP

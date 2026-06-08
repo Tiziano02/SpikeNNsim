@@ -63,8 +63,9 @@ class Simulazione {
     size_t stepsPerFlush_ = 0;
 
     void inizializzaOutput();
-    void loadBuffer();
-
+    void loadStatoRete(double time);
+    void flushBuffer();
+    
   public:
     Simulazione(const Rete &rete, double dt, double T) : rete_(rete), dt_(dt), T_(T), stepCorrente_(0), stepTotali_(static_cast<int>(std::round(T / dt))) {}
 

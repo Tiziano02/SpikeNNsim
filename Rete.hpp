@@ -18,7 +18,7 @@
  *   - un vettore di sinapsi (ogni sinapsi contiene già i riferimenti ai neuroni pre e post)
  *   - una mappa ID -> indice per accesso rapido ai neuroni
  *   - un buffer di correnti afferenti pre-allocato, riusato ad ogni step
- *   - vettori di stato della rete : statoNeuroni, statoFiring e statoSinapsi 
+ *   - vettori di stato della rete : statoNeuroni, statoFiring e statoSinapsi
  *
  * La scelta di una lista di sinapsi invece di una matrice di adiacenza
  * semplifica l'aggiunta futura di delay e plasticità sinaptica.
@@ -34,9 +34,9 @@
  *   salvaStatoRete(fV, fF, fS, t) — scrive lo stato corrente sui file di output
  *
  * Metodi getter:
- *   getPotenziali()    — restituisce il vettore statoNeuroni 
- *   getFiringStates()  — restituisce il vettore statoFiring 
- *   getSinapsi()       — restituisce il vettore statoSinaspi 
+ *   getPotenziali()    — restituisce il vettore statoNeuroni
+ *   getFiringStates()  — restituisce il vettore statoFiring
+ *   getSinapsi()       — restituisce il vettore statoSinaspi
  *
  * Metodi di controllo:
  *   hasNeurone(id)     — true se un neurone con quell'ID esiste nella rete
@@ -68,9 +68,13 @@ class Rete {
     void aggiornaStatoRete();
 
     // metodi getter
-    std::vector<double> getStatoNeuroni() const;
-    std::vector<double> getStatoFiring() const;
-    std::vector<double> getStatoSinapsi() const;
+    // std::vector<double> getStatoNeuroni() const;
+    // std::vector<double> getStatoFiring() const;
+    // std::vector<double> getStatoSinapsi() const;
+
+    const std::vector<double> &getPointerStatoNeuroni() const;
+    const std::vector<double> &getPointerStatoFiring() const;
+    const std::vector<double> &getPointerStatoSinapsi() const;
 
     size_t getNumNeuroni() const { return neuroni_.size(); }
     size_t getNumSinapsi() const { return sinapsi_.size(); }
