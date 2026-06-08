@@ -46,6 +46,25 @@ class Simulazione {
     int stepCorrente_;
     int stepTotali_;
 
+    // attributi per I/O
+    std::ofstream filePotenziali_;
+    std::ofstream fileFiring_;
+    std::ofstream fileSinapsi_;
+    std::string fileNameV_;
+    std::string fileNameF_;
+    std::string fileNameS_;
+    std::vector<char> bufferV_;
+    std::vector<char> bufferF_;
+    std::vector<char> bufferS_;
+    size_t bytesPerStepV_ = 0;
+    size_t bytesPerStepF_ = 0;
+    size_t bytesPerStepS_ = 0;
+    size_t posizioneBuffer_ = 0;
+    size_t stepsPerFlush_ = 0;
+
+    void inizializzaOutput();
+    void loadBuffer();
+
   public:
     Simulazione(const Rete &rete, double dt, double T) : rete_(rete), dt_(dt), T_(T), stepCorrente_(0), stepTotali_(static_cast<int>(std::round(T / dt))) {}
 
@@ -55,81 +74,5 @@ class Simulazione {
 
     ~Simulazione() = default;
 };
-
-/*
- * aggiungiInputEsterni — associa gli input esterni alla simulazione.
- *
- * Validazione:
- *  - ogni Input deve avere dimensione uguale a stepTotali_
- *  - ogni ID deve corrispondere a un neurone esistente nella rete
- * Se un input non supera la validazione, l'intera operazione viene annullata.
- */
-void Simulazione::aggiungiInputEsterni(const std::vector<Input> &inputEsterno) {
-    for (const auto &inp : inputEsterno) {
-        if (static_cast<int>(inp.valori.size()) != stepTotali_) {
-            std::cerr << "[Simulazione] errore: input per neurone " << inp.id << " ha dimensione " << inp.valori.size() << " ma stepTotali = " << stepTotali_ << ".\n";
-            return;
-        }
-        if (!rete_.hasNeurone(inp.id)) {
-            std::cerr << "[Simulazione] errore: neurone ID " << inp.id << " non trovato nella rete.\n";
-            return;
-        }
-    }
-    inputEsterni_ = inputEsterno;
-}
-
-/*
- * avviaSimulazione — esegue il loop principale e salva i risultati su file.
- *
- * I file vengono aperti in formato binario (std::ios::binary). Prima di iniziare
- * l'integrazione, viene scritto un header iniziale di 32 bit per ciascun file
- * contenente il numero totale di colonne (tempo + dati) utile per il parsing.
- *
- * Sequenza ad ogni step:
- * 1. Estrae il valore corrente di ogni input esterno.
- * 2. Chiama Rete::step(dt, inputEsterniCorrente).
- * 3. Aggiorna il tempo: time += dt.
- * 4. Salva lo stato della rete sui tre file di output in binario.
- *
- * Il vettore inputEsterniCorrente è pre-allocato prima del loop per evitare
- * allocazioni dinamiche durante la simulazione.
- * I file vengono chiusi automaticamente alla distruzione degli ofstream.
- */
-void Simulazione::avviaSimulazione(const std::string &filenameV, const std::string &filenameF, const std::string &filenameS) {
-    double time = 0.0;
-    stepCorrente_ = 0;
-
-    std::vector<InputCorrente> inputEsterniCorrente;
-    inputEsterniCorrente.reserve(inputEsterni_.size());
-    for (const auto &inp : inputEsterni_)
-        inputEsterniCorrente.push_back({inp.id, 0.0});
-
-    std::ofstream filePotenziali(filenameV, std::ios::binary | std::ios::out);
-    std::ofstream fileFiring(filenameF, std::ios::binary | std::ios::out);
-    std::ofstream fileSinapsi(filenameS, std::ios::binary | std::ios::out);
-
-    if (!filePotenziali.is_open() || !fileFiring.is_open() || !fileSinapsi.is_open()) {
-        std::cerr << "[Simulazione] errore: impossibile aprire i file di output.\n";
-        return;
-    }
-
-    int32_t colsV = rete_.getPotenziali().size() + 1;
-    int32_t colsF = rete_.getFiringStates().size() + 1;
-    int32_t colsS = rete_.getSinapsi().size() + 1;
-
-    filePotenziali.write(reinterpret_cast<const char *>(&colsV), sizeof(int32_t));
-    fileFiring.write(reinterpret_cast<const char *>(&colsF), sizeof(int32_t));
-    fileSinapsi.write(reinterpret_cast<const char *>(&colsS), sizeof(int32_t));
-
-    for (; stepCorrente_ < stepTotali_; ++stepCorrente_) {
-        for (size_t i = 0; i < inputEsterniCorrente.size(); ++i)
-            inputEsterniCorrente[i].valoreCorrente = inputEsterni_[i].valori[stepCorrente_];
-
-        rete_.step(dt_, inputEsterniCorrente);
-        time += dt_;
-
-        //rete_.salvaStatoRete(filePotenziali, fileFiring, fileSinapsi, time);
-    }
-}
 
 #endif // SIMULAZIONE_HPP

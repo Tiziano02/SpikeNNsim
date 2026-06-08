@@ -18,6 +18,8 @@ void Rete::aggiungiNeurone(const Neurone &neurone) {
     neuroni_.push_back(neurone);
     idToIndex_[neurone.getId()] = neuroni_.size() - 1;
     inputTotale_.push_back(0.0);
+    statoNeuroni_.push_back(neurone.getPotential());
+    statoFiring_.push_back(0.0);
 }
 
 /*
@@ -36,6 +38,7 @@ void Rete::connettiNeuroni(Sinapsi &s) {
     s.setIndexPre(idToIndex_[s.getIdPre()]);
     s.setIndexPost(idToIndex_[s.getIdPost()]);
     sinapsi_.push_back(s);
+    statoSinapsi_.push_back(s.getCurrent());
 }
 
 /*
@@ -76,41 +79,23 @@ void Rete::step(double dt, const std::vector<InputCorrente> &inputEsterni) {
 /*
  * getPotenziali — restituisce il potenziale di membrana di tutti i neuroni [V].
  */
-std::vector<double> Rete::getPotenziali() const {
-    std::vector<double> potenziali;
-    potenziali.reserve(neuroni_.size());
-    for (const auto &n : neuroni_)
-        potenziali.push_back(n.getPotential());
-    return potenziali;
-}
+std::vector<double> Rete::getStatoNeuroni() const { return statoNeuroni_; }
 
 /*
- * getFiringStates — restituisce il vettore di firing (1 = spike, 0 = no) per tutti i neuroni.
+ * getStatoFiring — restituisce il vettore di firing (1 = spike, 0 = no) per tutti i neuroni.
  */
-std::vector<int> Rete::getFiringStates() const {
-    std::vector<int> states;
-    states.reserve(neuroni_.size());
-    for (const auto &n : neuroni_)
-        states.push_back(n.hasFired() ? 1 : 0);
-    return states;
-}
+std::vector<double> Rete::getStatoFiring() const { return statoFiring_; }
 
 /*
- * getSinapsi — restituisce la corrente sinaptica corrente di tutte le sinapsi [A].
+ * getStatoSinapsi — restituisce la corrente sinaptica corrente di tutte le sinapsi [A].
  */
-std::vector<double> Rete::getSinapsi() const {
-    std::vector<double> correnti;
-    correnti.reserve(sinapsi_.size());
-    for (const auto &s : sinapsi_)
-        correnti.push_back(s.getCurrent());
-    return correnti;
-}
+std::vector<double> Rete::getStatoSinapsi() const { return statoSinapsi_; }
 
 /*
  * salvaStatoRete — scrive lo stato corrente della rete su tre file di output.
  *
  * I dati sono salvati in formato puramente binario per massimizzare le prestazioni
- * di I/O. Per garantire coerenza durante il parsing (matrice omogenea), tutti i 
+ * di I/O. Per garantire coerenza durante il parsing (matrice omogenea), tutti i
  * valori, inclusi i flag booleani di firing, vengono salvati come double a 64 bit.
  *
  * Sequenza di scrittura per step temporale:
@@ -120,25 +105,16 @@ std::vector<double> Rete::getSinapsi() const {
  * Scrive direttamente dai contenitori originali usando file.write()
  * senza allocare vettori temporanei.
  */
-void Rete::salvaStatoRete(std::ofstream &filePotenziali, std::ofstream &fileFiring, std::ofstream &fileSinapsi, double time) {
+void Rete::aggiornaStatoRete() {
 
-    filePotenziali.write(reinterpret_cast<const char*>(&time), sizeof(double));
-    for (const auto &n : neuroni_) {
-        double v = n.getPotential();
-        filePotenziali.write(reinterpret_cast<const char*>(&v), sizeof(double));
+    for(size_t i=0; i < neuroni_.size();i++){
+        statoNeuroni_[i] = neuroni_[i].getPotential();
+        statoFiring_[i] = neuroni_[i].hasFired() ? 1.0 : 0.0;
     }
+    
+    for(size_t i=0; i < sinapsi_.size();i++)
+        statoSinapsi_[i] = sinapsi_[i].getCurrent();
 
-    fileFiring.write(reinterpret_cast<const char*>(&time), sizeof(double));
-    for (const auto &n : neuroni_) {
-        double fired = n.hasFired() ? 1.0 : 0.0;
-        fileFiring.write(reinterpret_cast<const char*>(&fired), sizeof(double));
-    }
-
-    fileSinapsi.write(reinterpret_cast<const char*>(&time), sizeof(double));
-    for (const auto &s : sinapsi_) {
-        double c = s.getCurrent();
-        fileSinapsi.write(reinterpret_cast<const char*>(&c), sizeof(double));
-    }
 }
 
 #endif // RETEIMP_HPP

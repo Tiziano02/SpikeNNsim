@@ -18,6 +18,7 @@
  *   - un vettore di sinapsi (ogni sinapsi contiene già i riferimenti ai neuroni pre e post)
  *   - una mappa ID -> indice per accesso rapido ai neuroni
  *   - un buffer di correnti afferenti pre-allocato, riusato ad ogni step
+ *   - vettori di stato della rete : statoNeuroni, statoFiring e statoSinapsi 
  *
  * La scelta di una lista di sinapsi invece di una matrice di adiacenza
  * semplifica l'aggiunta futura di delay e plasticità sinaptica.
@@ -33,9 +34,9 @@
  *   salvaStatoRete(fV, fF, fS, t) — scrive lo stato corrente sui file di output
  *
  * Metodi getter:
- *   getPotenziali()    — potenziali di membrana di tutti i neuroni [V]
- *   getFiringStates()  — stati di firing (0/1) di tutti i neuroni
- *   getSinapsi()       — correnti sinaptiche di tutte le sinapsi [A]
+ *   getPotenziali()    — restituisce il vettore statoNeuroni 
+ *   getFiringStates()  — restituisce il vettore statoFiring 
+ *   getSinapsi()       — restituisce il vettore statoSinaspi 
  *
  * Metodi di controllo:
  *   hasNeurone(id)     — true se un neurone con quell'ID esiste nella rete
@@ -47,6 +48,10 @@ class Rete {
     std::vector<Sinapsi> sinapsi_;              // connessioni sinaptiche
     std::vector<double> inputTotale_;           // buffer correnti afferenti, dimensione = neuroni_.size()
     std::unordered_map<int, size_t> idToIndex_; // mappa ID -> indice in neuroni_, lookup O(1)
+
+    std::vector<double> statoNeuroni_;
+    std::vector<double> statoFiring_;
+    std::vector<double> statoSinapsi_;
 
   public:
     Rete() = default;
@@ -60,12 +65,15 @@ class Rete {
     void aggiungiNeurone(const Neurone &neurone);
     void connettiNeuroni(Sinapsi &s);
     void step(double dt, const std::vector<InputCorrente> &inputEsterni);
-    void salvaStatoRete(std::ofstream &filePotenziali, std::ofstream &fileFiring, std::ofstream &fileSinapsi, double time);
+    void aggiornaStatoRete();
 
     // metodi getter
-    std::vector<double> getPotenziali() const;
-    std::vector<int> getFiringStates() const;
-    std::vector<double> getSinapsi() const;
+    std::vector<double> getStatoNeuroni() const;
+    std::vector<double> getStatoFiring() const;
+    std::vector<double> getStatoSinapsi() const;
+
+    size_t getNumNeuroni() const { return neuroni_.size(); }
+    size_t getNumSinapsi() const { return sinapsi_.size(); }
 
     // metodi di controllo
     bool hasNeurone(int id) const { return idToIndex_.count(id) > 0; }

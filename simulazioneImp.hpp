@@ -1,0 +1,159 @@
+#ifndef SIMULAZIONEIMP_HPP
+#define SIMULAZIONEIMP_HPP
+
+#include "Simulazione.hpp"
+
+
+/*
+ * aggiungiInputEsterni — associa gli input esterni alla simulazione.
+ *
+ * Validazione:
+ *  - ogni Input deve avere dimensione uguale a stepTotali_
+ *  - ogni ID deve corrispondere a un neurone esistente nella rete
+ * Se un input non supera la validazione, l'intera operazione viene annullata.
+ */
+void Simulazione::aggiungiInputEsterni(const std::vector<Input> &inputEsterno) {
+    for (const auto &inp : inputEsterno) {
+        if (static_cast<int>(inp.valori.size()) != stepTotali_) {
+            std::cerr << "[Simulazione] errore: input per neurone " << inp.id << " ha dimensione " << inp.valori.size() << " ma stepTotali = " << stepTotali_ << ".\n";
+            return;
+        }
+        if (!rete_.hasNeurone(inp.id)) {
+            std::cerr << "[Simulazione] errore: neurone ID " << inp.id << " non trovato nella rete.\n";
+            return;
+        }
+    }
+    inputEsterni_ = inputEsterno; // questa cosa qui va fatta dai metodi setter ? Oppure un metodo setter è un metodo che fa questa cosa qui ma fuori dalla classe e quindi per essere sicuro di modificare un attributo privato lo faccio tramite un metodo setter che è molto espicito
+}
+
+/*
+ * inizializzaOutput — apre i file, scrive l'header e allora il buffer della simulazione.
+ *
+ * I file vengono aperti in formato binario (std::ios::binary).Viene scritto un header iniziale di
+ * 4 byte per ciascun file contenente il numero totale di colonne (tempo + dati) utile per il parsing.
+ * 
+ * 
+ * Sequenza :
+ * 1. Apre i file e controlla se ci sono errori
+ * 1. Ricava il numero di colonne e crea l'header per i tre file di output
+ * 3. Controllo la RAM a disposizione della macchina (dovrei fare i casi Windows e Linux)
+ * 5. Calcolo grandezza buffer (RAM a disposizione e tipologia di macchina, byte per time step)
+ * 6. Imposto il buffer della simulazione (attributo)
+ * 
+ * Potrebbero essre divise in due funzioni : creazioneHeader e inizializzazioneBuffer ? 
+ * 
+ */
+void Simulazione::inizializzaOutput() {
+
+    // Apertura file e creazione dell'header
+
+    filePotenziali_.open(fileNameV_, std::ios::binary | std::ios::out);
+    fileFiring_.open(fileNameF_, std::ios::binary | std::ios::out);
+    fileSinapsi_.open(fileNameS_, std::ios::binary | std::ios::out);
+
+    if (!filePotenziali_.is_open() || !fileFiring_.is_open() || !fileSinapsi_.is_open()) {
+        std::cerr << "[Simulazione] errore: impossibile aprire i file di output.\n";
+        return;
+    }
+
+    int32_t colsV = static_cast<int32_t>(rete_.getNumNeuroni() + 1);
+    int32_t colsF = static_cast<int32_t>(rete_.getNumNeuroni() + 1);
+    int32_t colsS = static_cast<int32_t>(rete_.getNumSinapsi() + 1);
+
+    filePotenziali_.write(reinterpret_cast<const char *>(&colsV), sizeof(int32_t));
+    fileFiring_.write(reinterpret_cast<const char *>(&colsF), sizeof(int32_t));
+    fileSinapsi_.write(reinterpret_cast<const char *>(&colsS), sizeof(int32_t));
+
+
+    //creazione del buffer
+
+    bytesPerStepV_ = static_cast<size_t>(colsV) * sizeof(double);
+    bytesPerStepF_ = static_cast<size_t>(colsF) * sizeof(double);
+    bytesPerStepS_ = static_cast<size_t>(colsS) * sizeof(double);
+
+    size_t ramDisponibile = 512ULL * 1024 * 1024 /* detection */;
+    size_t bufferTarget = ramDisponibile / 10 / 3; // 10% della RAM diviso 3 buffer
+
+    size_t stepsPerFlushV = bufferTarget / bytesPerStepV_; // quanti step interi entrano
+    size_t stepsPerFlushF = bufferTarget / bytesPerStepF_; // quanti step interi entrano
+    size_t stepsPerFlushS = bufferTarget / bytesPerStepS_; // quanti step interi entrano
+
+    stepsPerFlush_ = std::min({stepsPerFlushV, stepsPerFlushF, stepsPerFlushS});
+
+    // i buffer hanno dimensioni diverse ma si riempiono tutti allo stesso step
+    size_t bufferSizeV = stepsPerFlush_ * bytesPerStepV_;
+    size_t bufferSizeF = stepsPerFlush_ * bytesPerStepF_;
+    size_t bufferSizeS = stepsPerFlush_ * bytesPerStepS_;
+
+    bufferV_.resize(bufferSizeV);
+    bufferF_.resize(bufferSizeF);
+    bufferS_.resize(bufferSizeS);
+}
+
+/*
+ * loadBuffer — carica lo stato della rete nel buffer, se è pieno scrive, svuota il buffer e scrive nel file.
+ *
+ * 
+ * 
+ * 
+ * 
+ * 
+ */
+void loadBuffer(){
+
+
+
+
+}
+
+/*
+ * avviaSimulazione — esegue il loop principale e salva i risultati su file.
+ *
+ * I file vengono aperti in formato binario (std::ios::binary). Prima di iniziare
+ * l'integrazione, viene scritto un header iniziale di 32 bit per ciascun file
+ * contenente il numero totale di colonne (tempo + dati) utile per il parsing.
+ *
+ * Sequenza ad ogni step:
+ * 1. inizializza il tempo della simulazione e il passo attuale a zero
+ * 2. Estrae il valore corrente di ogni input esterno.
+ * 3. Crea l'header per i tre file di output inserendo nei primi 4 byte il numero di collone
+ * 4. Chiama Rete::step(dt, inputEsterniCorrente).
+ * 5. Aggiorna il tempo trascorso nella simulazione: time += dt.
+ * 6. Salva lo stato della rete sui tre file di output in binario.
+ *
+ * Il vettore inputEsterniCorrente è pre-allocato prima del loop per evitare
+ * allocazioni dinamiche durante la simulazione.
+ * I file vengono chiusi automaticamente alla distruzione degli ofstream.
+ */
+void Simulazione::avviaSimulazione(const std::string &filenameV, const std::string &filenameF, const std::string &filenameS) {
+    double time = 0.0;
+    stepCorrente_ = 0;
+    // setter privato per chiarezza ?
+    fileNameV_ = filenameV;
+    fileNameF_ = filenameF;
+    fileNameS_ = filenameS;
+
+    // questa parte va insierita in un metodo privato che prepara l'input esterno
+    std::vector<InputCorrente> inputEsterniCorrente;
+    inputEsterniCorrente.reserve(inputEsterni_.size());
+    for (const auto &inp : inputEsterni_)
+        inputEsterniCorrente.push_back({inp.id, 0.0});
+
+    inizializzaOutput();
+
+    for (; stepCorrente_ < stepTotali_; ++stepCorrente_) {
+        for (size_t i = 0; i < inputEsterniCorrente.size(); ++i)
+            inputEsterniCorrente[i].valoreCorrente = inputEsterni_[i].valori[stepCorrente_];
+
+        rete_.step(dt_, inputEsterniCorrente);
+        time += dt_;
+
+        rete_.aggiornaStatoRete();
+        
+        //inserisciStatoNelBuffer();
+        //flushBuffer();
+    }
+}
+
+
+#endif // SIMULAZIONEIMP_HPP
