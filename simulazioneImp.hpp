@@ -69,7 +69,7 @@ void Simulazione::inizializzaOutput() {
     bytesPerStepF_ = static_cast<size_t>(colsF) * sizeof(double);
     bytesPerStepS_ = static_cast<size_t>(colsS) * sizeof(double);
 
-    size_t ramDisponibile = 512ULL * 1024 * 1024 /* detection */;
+    size_t ramDisponibile = getAvailableRAM(); /* detection */;
     size_t bufferTarget = ramDisponibile / 10 / 3; // 10% della RAM diviso 3 buffer
 
     size_t stepsPerFlushV = bufferTarget / bytesPerStepV_; // quanti step interi entrano
@@ -86,6 +86,11 @@ void Simulazione::inizializzaOutput() {
     bufferV_.resize(bufferSizeV);
     bufferF_.resize(bufferSizeF);
     bufferS_.resize(bufferSizeS);
+
+    // Piccolo log a console per farti vedere quanta RAM sta usando effettivamente (utile per il profiling!)
+    std::cout << "[Simulazione] RAM allocata per i 3 buffer: " 
+              << (bufferSizeV + bufferSizeF + bufferSizeS) / (1024 * 1024) << " MB (" 
+              << stepsPerFlush_ << " step per flush)\n";
 }
 
 /*
@@ -94,24 +99,21 @@ void Simulazione::inizializzaOutput() {
  *
  *
  */
-void Simulazione::flushBuffer() {
+void Simulazione::writeFile() {
 
     // scrivo i buffer sui file
     filePotenziali_.write(bufferV_.data(), posizioneBuffer_ * bytesPerStepV_);
     fileFiring_.write(bufferF_.data(), posizioneBuffer_ * bytesPerStepF_);
     fileSinapsi_.write(bufferS_.data(), posizioneBuffer_ * bytesPerStepS_);
 
-    // azzero i buffer
-    fill(bufferV_.begin(), bufferV_.end(), '0');
-    fill(bufferF_.begin(), bufferF_.end(), '0');
-    fill(bufferS_.begin(), bufferS_.end(), '0');
+    posizioneBuffer_ = 0;
 }
 
 /*
  * loadStatoRete — carica lo stato della rete nel buffer
  *
- * Se è il buffer è pieno prima chiamo flushBuffer, che svuota il buffer e scrive nel file,
- * e poi scrive sul buffer pulito.
+ * Se è il buffer è pieno prima chiamo writeFile, che scrive sul file la parte di buffer corretta e poi 
+ * mette la poszione del buffer a zero 
  *
  *  siccome lo stato della rete sono vettori di double, mente il buffer sono in char devo fare prima una
  *  conversione. l'offset serve per capire a che punto del buffer sono arrivato
@@ -119,10 +121,8 @@ void Simulazione::flushBuffer() {
  */
 void Simulazione::loadStatoRete(double time) {
 
-    if (posizioneBuffer_ == stepsPerFlush_) {
-        flushBuffer();
-        posizioneBuffer_ = 0;
-    }
+    if (posizioneBuffer_ == stepsPerFlush_)
+        writeFile();
 
     // a che punto sono nel buffer ? --> quanti byte ho inserito fino ad ora nel buffer ? questo funziona perche 1 char = 1 bit ?
     size_t offsetV = posizioneBuffer_ * bytesPerStepV_;
@@ -206,6 +206,10 @@ void Simulazione::avviaSimulazione(const std::string &filenameV, const std::stri
 
         loadStatoRete(time); // in realtà gestisce tutto l'output : salva sul buffer, se piengo chiama flushBuffer che svuota il buffer e scrive su file
     }
+    if (posizioneBuffer_ > 0)
+    writeFile();
 }
+
+
 
 #endif // SIMULAZIONEIMP_HPP

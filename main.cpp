@@ -29,12 +29,12 @@ double rumoreUniforme(double centro, double ampiezza) {
 
 int main() {
 
-    /*
+    
     // =========================================================
     // PARAMETRI RETE
     // =========================================================
 
-    const int N = 50;
+    const int N = 5000;
 
     const int Ne = N * 0.8;
     const int Ni = N * 0.2;
@@ -135,13 +135,13 @@ int main() {
     // AVVIO SIMULAZIONE
     // =========================================================
 
-    sim.avviaSimulazione("potenziali.txt", "firing.txt", "sinapsi.txt");
+    sim.avviaSimulazione("potenziali.bin", "firing.bin", "sinapsi.bin");
 
     std::cout << "Simulazione completata.\n";
     return 0;
 
-    */
-
+    
+    /*
     // rete e neuroni
     const int N = 50000;
     Rete rete(N);
@@ -157,7 +157,7 @@ int main() {
 
     // simulazione
     double dt = 0.1 * ms;
-    double T = 500.0 * ms;
+    double T = 5000.0 * ms;
 
     Simulazione sim(rete, dt, T);
 
@@ -180,4 +180,6 @@ int main() {
     sim.aggiungiInputEsterni(inputEsterno);
 
     sim.avviaSimulazione("potenziali.bin", "firing.bin", "sinapsi.bin");
+
+    */
 }

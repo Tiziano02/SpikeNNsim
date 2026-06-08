@@ -2,9 +2,11 @@
 #define SIMULAZIONE_HPP
 
 #include "Input.hpp"
+#include "Utility.hpp"
 #include "Rete.hpp"
 #include "UnitaSI.hpp"
 #include <cmath>
+#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -64,8 +66,8 @@ class Simulazione {
 
     void inizializzaOutput();
     void loadStatoRete(double time);
-    void flushBuffer();
-    
+    void writeFile();
+
   public:
     Simulazione(const Rete &rete, double dt, double T) : rete_(rete), dt_(dt), T_(T), stepCorrente_(0), stepTotali_(static_cast<int>(std::round(T / dt))) {}
 
@@ -75,5 +77,7 @@ class Simulazione {
 
     ~Simulazione() = default;
 };
+
+#include "simulazioneImp.hpp"
 
 #endif // SIMULAZIONE_HPP
