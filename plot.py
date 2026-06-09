@@ -48,8 +48,8 @@ def plot_risultati():
 
     # --- 1. Grafico Potenziali di Membrana ---
     # Per non intasare il grafico, disegniamo solo i primi 5 neuroni
-    num_neuroni_da_disegnare = min(5, pot_membrana.shape[1])
-    for i in range(num_neuroni_da_disegnare):
+    # num_neuroni_da_disegnare = min(5, pot_membrana.shape[1])
+    for i in range(pot_membrana.shape[1]):
         # Moltiplichiamo per 1000 per convertire da Volt a milliVolt per leggibilità
         ax1.plot(tempi_v, pot_membrana[:, i] * 1000, label=f'Neurone {i}')
     
@@ -74,7 +74,7 @@ def plot_risultati():
 
     # --- 3. Grafico Correnti Sinaptiche ---
     if tempi_s is not None and sinapsi is not None and sinapsi.shape[1] > 0:
-        num_sinapsi_da_disegnare = min(5, sinapsi.shape[1])
+        num_sinapsi_da_disegnare = min(10, sinapsi.shape[1])
         for i in range(num_sinapsi_da_disegnare):
             # Convertiamo da Ampere a nanoAmpere (nA) o picoAmpere (pA) in base alla scala
             ax3.plot(tempi_s, sinapsi[:, i] * 1e9, label=f'Sinapsi {i}')

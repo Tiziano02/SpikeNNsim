@@ -69,34 +69,36 @@ void Simulazione::inizializzaOutput() {
     bytesPerStepF_ = static_cast<size_t>(colsF) * sizeof(double);
     bytesPerStepS_ = static_cast<size_t>(colsS) * sizeof(double);
 
-    size_t ramDisponibile = getAvailableRAM(); /* detection */;
+    size_t ramDisponibile = getAvailableRAM(); /* detection --> scritta interamente da gemini, da controllare ma sembra funzionare*/
+
     size_t bufferTarget = ramDisponibile / 10 / 3; // 10% della RAM diviso 3 buffer
+    
+    // quanti step interi di simulazione entrano nel buffer ? 
+    size_t stepsPerFlushV = bufferTarget / bytesPerStepV_; 
+    size_t stepsPerFlushF = bufferTarget / bytesPerStepF_; 
+    size_t stepsPerFlushS = bufferTarget / bytesPerStepS_; 
 
-    size_t stepsPerFlushV = bufferTarget / bytesPerStepV_; // quanti step interi entrano
-    size_t stepsPerFlushF = bufferTarget / bytesPerStepF_; // quanti step interi entrano
-    size_t stepsPerFlushS = bufferTarget / bytesPerStepS_; // quanti step interi entrano
+    size_t stepsPerFlush = std::min({stepsPerFlushV, stepsPerFlushF, stepsPerFlushS});
 
-    stepsPerFlush_ = std::min({stepsPerFlushV, stepsPerFlushF, stepsPerFlushS});
+    // non allocare più del necessario
+    stepsPerFlush_ = std::min(stepsPerFlush, static_cast<size_t>(stepTotali_));
 
     // i buffer hanno dimensioni diverse ma si riempiono tutti allo stesso step
     size_t bufferSizeV = stepsPerFlush_ * bytesPerStepV_;
     size_t bufferSizeF = stepsPerFlush_ * bytesPerStepF_;
     size_t bufferSizeS = stepsPerFlush_ * bytesPerStepS_;
 
+    // imposto la dimensione dei tre buffer
     bufferV_.resize(bufferSizeV);
     bufferF_.resize(bufferSizeF);
     bufferS_.resize(bufferSizeS);
 
-    // Piccolo log a console per farti vedere quanta RAM sta usando effettivamente (utile per il profiling!)
-    std::cout << "[Simulazione] RAM allocata per i 3 buffer: " 
-              << (bufferSizeV + bufferSizeF + bufferSizeS) / (1024 * 1024) << " MB (" 
-              << stepsPerFlush_ << " step per flush)\n";
+    // Piccolo log a console per vedere quanta RAM sta usando effettivamente (utile per il profiling temporale)
+    std::cout << "[Simulazione] RAM allocata per i 3 buffer: " << (bufferSizeV + bufferSizeF + bufferSizeS) / (1024 * 1024) << " MB (" << stepsPerFlush_ << " step per flush)\n";
 }
 
 /*
  * flushBuffer - scrive sui file il contenuto dei buffer e poi svuota il buffer
- *
- *
  *
  */
 void Simulazione::writeFile() {
@@ -106,17 +108,19 @@ void Simulazione::writeFile() {
     fileFiring_.write(bufferF_.data(), posizioneBuffer_ * bytesPerStepF_);
     fileSinapsi_.write(bufferS_.data(), posizioneBuffer_ * bytesPerStepS_);
 
+    // rimetto l'indice nella posizione zero così da sovrascrivere, senza svuotarlo, il buffer.  
+    // non crea problemi perchè quando scrivo su disco utilizzo la poszioneBuffer_ 
     posizioneBuffer_ = 0;
 }
 
 /*
  * loadStatoRete — carica lo stato della rete nel buffer
  *
- * Se è il buffer è pieno prima chiamo writeFile, che scrive sul file la parte di buffer corretta e poi 
- * mette la poszione del buffer a zero 
+ * Se è il buffer è pieno prima chiamo writeFile, che scrive sul file la parte di buffer corretta e poi
+ * mette la poszione del buffer a zero
  *
- *  siccome lo stato della rete sono vettori di double, mente il buffer sono in char devo fare prima una
- *  conversione. l'offset serve per capire a che punto del buffer sono arrivato
+ * siccome lo stato della rete sono vettori di double, mente il buffer sono in char devo fare prima una
+ * conversione. l'offset serve per capire a che punto del buffer sono arrivato
  *
  */
 void Simulazione::loadStatoRete(double time) {
@@ -124,18 +128,21 @@ void Simulazione::loadStatoRete(double time) {
     if (posizioneBuffer_ == stepsPerFlush_)
         writeFile();
 
-    // a che punto sono nel buffer ? --> quanti byte ho inserito fino ad ora nel buffer ? questo funziona perche 1 char = 1 bit ?
+    // a che punto sono nel buffer ? 
     size_t offsetV = posizioneBuffer_ * bytesPerStepV_;
     size_t offsetF = posizioneBuffer_ * bytesPerStepF_;
     size_t offsetS = posizioneBuffer_ * bytesPerStepS_;
 
-    const char *src = reinterpret_cast<const char *>(&time); // conversione da double a char della variabile tempo
-
-    std::copy(src, src + sizeof(time), bufferV_.begin() + offsetV); // inserisco il tempo
+    // conversione da double a char della variabile tempo
+    const char *src = reinterpret_cast<const char *>(&time);
+    
+    // inserisco il tempo nei tre buffer 
+    std::copy(src, src + sizeof(time), bufferV_.begin() + offsetV); 
     std::copy(src, src + sizeof(time), bufferF_.begin() + offsetF);
     std::copy(src, src + sizeof(time), bufferS_.begin() + offsetS);
-
-    offsetV += sizeof(time); // non so se è corretta
+    
+    // sposto l'offset dei byte del tempo
+    offsetV += sizeof(time); 
     offsetF += sizeof(time);
     offsetS += sizeof(time);
 
@@ -144,19 +151,20 @@ void Simulazione::loadStatoRete(double time) {
     size_t byteFiring = bytesPerStepF_ - sizeof(time);
     size_t byteSinapsi = bytesPerStepS_ - sizeof(time);
 
-    // 2. Copia in blocco dello stato dei Neuroni
+    // 2. copio, in blocco, lo stato della rete (neuroni, firing e sinapsi)
+    
     // Prendo il puntatore all'inizio dell'array e lo converto in puntatore a char
     const char *srcV = reinterpret_cast<const char *>(rete_.getPointerStatoNeuroni().data());
     std::copy(srcV, srcV + byteNeuroni, bufferV_.begin() + offsetV);
 
-    // 3. Copia in blocco dello stato di Firing
+     
     const char *srcF = reinterpret_cast<const char *>(rete_.getPointerStatoFiring().data());
     std::copy(srcF, srcF + byteFiring, bufferF_.begin() + offsetF);
 
-    // 4. Copia in blocco dello stato delle Sinapsi
     const char *srcS = reinterpret_cast<const char *>(rete_.getPointerStatoSinapsi().data());
     std::copy(srcS, srcS + byteSinapsi, bufferS_.begin() + offsetS);
 
+    // ho copiato nel buffer uno step, avanzo di possizione.
     posizioneBuffer_++;
 }
 
@@ -182,6 +190,7 @@ void Simulazione::loadStatoRete(double time) {
 void Simulazione::avviaSimulazione(const std::string &filenameV, const std::string &filenameF, const std::string &filenameS) {
     double time = 0.0;
     stepCorrente_ = 0;
+    
     // setter privato per chiarezza ?
     fileNameV_ = filenameV;
     fileNameF_ = filenameF;
@@ -207,9 +216,7 @@ void Simulazione::avviaSimulazione(const std::string &filenameV, const std::stri
         loadStatoRete(time); // in realtà gestisce tutto l'output : salva sul buffer, se piengo chiama flushBuffer che svuota il buffer e scrive su file
     }
     if (posizioneBuffer_ > 0)
-    writeFile();
+        writeFile();
 }
-
-
 
 #endif // SIMULAZIONEIMP_HPP
