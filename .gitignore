@@ -47,3 +47,6 @@ __pycache__/
 # Data output
 data/
 plots/
+
+#Developer notes
+NOTES.md
