@@ -8,17 +8,13 @@ HeaderRN was originally developed as a personal project to understand how spikin
 
 Instead of relying on existing simulation frameworks, the goal was to build the fundamental components from scratch, including neurons, synapses, network topology and simulation management.
 
-The project later evolved into a reusable framework aimed at experimentation, education and future computational neuroscience applications.
-
 Its design is guided by three main principles:
 
 - clarity and educational value;
 - simplicity of use;
 - extensibility toward more advanced neural models.
 
-## Features
 
-Current features include:
 ## Features
 
 Current features include:
@@ -46,7 +42,7 @@ The main components of a simulation are represented by dedicated classes:
 - `Simulazione`
 - `Input`
 
-This separation aims to keep the code readable, extensible, and suitable both for educational purposes and small research projects.
+This separation aims to keep the code readable and extensible. 
 
 ---
 
@@ -91,10 +87,12 @@ Future developments include:
 
 - [ ] Transmission delays
 - [ ] Synaptic plasticity
-- [ ] Sparse connectivity
 - [ ] Additional neuron models
-- [ ] Performance optimizations
-- [ ] Large-scale simulations
+- [ ] Relative refractory period
+- [ ] Adjacency list for network topology
+- [ ] External complete framework for data-analisy  
+- [ ] Change external input class in to "on-the-fly" process
+- [ ] Imitation of classical article about SNN
 
 A complete roadmap is available in TODO.md.
 
