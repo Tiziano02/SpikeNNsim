@@ -46,6 +46,3 @@ output/
 __pycache__/
 *.pyc
 plots/
-
-# File privati dello sviluppatore (NON finiscono su GitHub)
-docs/NOTES.md
