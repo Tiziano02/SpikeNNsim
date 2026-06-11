@@ -2,11 +2,11 @@
 #define SIMULAZIONE_HPP
 
 #include "Input.hpp"
-#include "Utility.hpp"
 #include "Rete.hpp"
 #include "UnitaSI.hpp"
-#include <cmath>
+#include "Utility.hpp"
 #include <algorithm>
+#include <cmath>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -35,8 +35,8 @@
  *   stepTotali_    numero totale di step = round(T/dt)
  *
  * Metodi operativi:
- *   aggiungiInputEsterni(inputs)              — associa gli input esterni alla simulazione
- *   avviaSimulazione(filenameV, filenameF, filenameS) — esegue la simulazione e salva i risultati
+ *   aggiungiInputEsterni(inputs)                       — associa gli input esterni alla simulazione
+ *   avviaSimulazione(filenameV, filenameF, filenameS)  — esegue la simulazione e salva i risultati
  */
 class Simulazione {
 
