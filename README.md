@@ -90,8 +90,8 @@ Future developments include:
 - [ ] Additional neuron models
 - [ ] Relative refractory period
 - [ ] Adjacency list for network topology
-- [ ] Framework for data analyst  
-- [ ] Change external input class in to "on-the-fly" process
+- [ ] complete the framework for data analysis  
+- [ ] Changing external input class in to "on-the-fly" process
 - [ ] Imitation of classical article about SNN
 
 A complete roadmap is available in TODO.md.
