@@ -7,7 +7,6 @@ cmake-build-release/
 CMakeFiles/
 CMakeCache.txt
 cmake_install.cmake
-Makefile
 compile_commands.json
 
 # Compiled files
@@ -18,24 +17,27 @@ compile_commands.json
 *.a
 *.so
 *.dylib
-*.dSYM
+*.dSYM/
+
+# Eseguibili del nostro Makefile
+simulatore
+simulatore_*
 
 # macOS
 .DS_Store
 
 # VS Code
 .vscode/
-.clang-format
-
 
 # Temporary files
 *.tmp
 *.log
 
-# Simulation outputs
-*.txt
+# Simulation outputs (ignora tutti i risultati)
+output/
 *.bin
 *.gz
+*.jsongz
 
 # Swap files (per vim)
 *.swp
@@ -43,10 +45,7 @@ compile_commands.json
 # Python cache (per plotting/scripts futuri)
 __pycache__/
 *.pyc
-
-# Data output
-data/
 plots/
 
-#Developer notes
-NOTES.md
+# File privati dello sviluppatore (NON finiscono su GitHub)
+docs/NOTES.md
