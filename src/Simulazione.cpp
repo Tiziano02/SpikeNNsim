@@ -1,7 +1,10 @@
-#ifndef SIMULAZIONEIMP_HPP
-#define SIMULAZIONEIMP_HPP
-
 #include "Simulazione.hpp"
+#include <algorithm>
+#include <cmath>
+#include <fstream>
+#include <iostream>
+#include <string>
+#include <vector>
 
 /*
  * aggiungiInputEsterni — associa gli input esterni alla simulazione.
@@ -46,9 +49,9 @@ void Simulazione::inizializzaOutput() {
 
     // Apertura file e creazione dell'header
 
-    filePotenziali_.open(fileNameV_, std::ios::binary | std::ios::out);
-    fileFiring_.open(fileNameF_, std::ios::binary | std::ios::out);
-    fileSinapsi_.open(fileNameS_, std::ios::binary | std::ios::out);
+    filePotenziali_.open("output/" + fileNameV_, std::ios::binary | std::ios::out);
+    fileFiring_.open("output/" + fileNameF_, std::ios::binary | std::ios::out);
+    fileSinapsi_.open("output/" + fileNameS_, std::ios::binary | std::ios::out);
 
     if (!filePotenziali_.is_open() || !fileFiring_.is_open() || !fileSinapsi_.is_open()) {
         std::cerr << "[Simulazione] errore: impossibile aprire i file di output.\n";
@@ -72,11 +75,11 @@ void Simulazione::inizializzaOutput() {
     size_t ramDisponibile = getAvailableRAM(); /* detection --> scritta interamente da gemini, da controllare ma sembra funzionare*/
 
     size_t bufferTarget = ramDisponibile / 10 / 3; // 10% della RAM diviso 3 buffer
-    
-    // quanti step interi di simulazione entrano nel buffer ? 
-    size_t stepsPerFlushV = bufferTarget / bytesPerStepV_; 
-    size_t stepsPerFlushF = bufferTarget / bytesPerStepF_; 
-    size_t stepsPerFlushS = bufferTarget / bytesPerStepS_; 
+
+    // quanti step interi di simulazione entrano nel buffer ?
+    size_t stepsPerFlushV = bufferTarget / bytesPerStepV_;
+    size_t stepsPerFlushF = bufferTarget / bytesPerStepF_;
+    size_t stepsPerFlushS = bufferTarget / bytesPerStepS_;
 
     size_t stepsPerFlush = std::min({stepsPerFlushV, stepsPerFlushF, stepsPerFlushS});
 
@@ -108,8 +111,8 @@ void Simulazione::writeFile() {
     fileFiring_.write(bufferF_.data(), posizioneBuffer_ * bytesPerStepF_);
     fileSinapsi_.write(bufferS_.data(), posizioneBuffer_ * bytesPerStepS_);
 
-    // rimetto l'indice nella posizione zero così da sovrascrivere, senza svuotarlo, il buffer.  
-    // non crea problemi perchè quando scrivo su disco utilizzo la poszioneBuffer_ 
+    // rimetto l'indice nella posizione zero così da sovrascrivere, senza svuotarlo, il buffer.
+    // non crea problemi perchè quando scrivo su disco utilizzo la poszioneBuffer_
     posizioneBuffer_ = 0;
 }
 
@@ -128,21 +131,21 @@ void Simulazione::loadStatoRete(double time) {
     if (posizioneBuffer_ == stepsPerFlush_)
         writeFile();
 
-    // a che punto sono nel buffer ? 
+    // a che punto sono nel buffer ?
     size_t offsetV = posizioneBuffer_ * bytesPerStepV_;
     size_t offsetF = posizioneBuffer_ * bytesPerStepF_;
     size_t offsetS = posizioneBuffer_ * bytesPerStepS_;
 
     // conversione da double a char della variabile tempo
     const char *src = reinterpret_cast<const char *>(&time);
-    
-    // inserisco il tempo nei tre buffer 
-    std::copy(src, src + sizeof(time), bufferV_.begin() + offsetV); 
+
+    // inserisco il tempo nei tre buffer
+    std::copy(src, src + sizeof(time), bufferV_.begin() + offsetV);
     std::copy(src, src + sizeof(time), bufferF_.begin() + offsetF);
     std::copy(src, src + sizeof(time), bufferS_.begin() + offsetS);
-    
+
     // sposto l'offset dei byte del tempo
-    offsetV += sizeof(time); 
+    offsetV += sizeof(time);
     offsetF += sizeof(time);
     offsetS += sizeof(time);
 
@@ -152,12 +155,11 @@ void Simulazione::loadStatoRete(double time) {
     size_t byteSinapsi = bytesPerStepS_ - sizeof(time);
 
     // 2. copio, in blocco, lo stato della rete (neuroni, firing e sinapsi)
-    
+
     // Prendo il puntatore all'inizio dell'array e lo converto in puntatore a char
     const char *srcV = reinterpret_cast<const char *>(rete_.getPointerStatoNeuroni().data());
     std::copy(srcV, srcV + byteNeuroni, bufferV_.begin() + offsetV);
 
-     
     const char *srcF = reinterpret_cast<const char *>(rete_.getPointerStatoFiring().data());
     std::copy(srcF, srcF + byteFiring, bufferF_.begin() + offsetF);
 
@@ -190,7 +192,7 @@ void Simulazione::loadStatoRete(double time) {
 void Simulazione::avviaSimulazione(const std::string &filenameV, const std::string &filenameF, const std::string &filenameS) {
     double time = 0.0;
     stepCorrente_ = 0;
-    
+
     // setter privato per chiarezza ?
     fileNameV_ = filenameV;
     fileNameF_ = filenameF;
@@ -218,5 +220,3 @@ void Simulazione::avviaSimulazione(const std::string &filenameV, const std::stri
     if (posizioneBuffer_ > 0)
         writeFile();
 }
-
-#endif // SIMULAZIONEIMP_HPP

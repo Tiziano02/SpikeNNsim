@@ -46,3 +46,6 @@ output/
 __pycache__/
 *.pyc
 plots/
+
+# Profiling directory
+profiles/

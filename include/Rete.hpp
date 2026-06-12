@@ -4,11 +4,9 @@
 #include "Input.hpp"
 #include "Neurone.hpp"
 #include "Sinapsi.hpp"
-#include <fstream>
-#include <iostream>
-#include <string>
-#include <unordered_map>
+
 #include <vector>
+#include <map>
 
 /*
  * Rete — contenitore della topologia e motore di evoluzione della rete neurale.
@@ -84,7 +82,5 @@ class Rete {
 
     ~Rete() = default;
 };
-
-#include "reteImp.hpp"
 
 #endif // RETE_HPP

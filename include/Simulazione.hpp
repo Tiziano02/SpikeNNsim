@@ -5,12 +5,9 @@
 #include "Rete.hpp"
 #include "UnitaSI.hpp"
 #include "Utility.hpp"
-#include <algorithm>
-#include <cmath>
+
 #include <fstream>
-#include <iostream>
-#include <string>
-#include <vector>
+
 
 /*
  * Simulazione — coordina la rete, gli input esterni e l'output su file.
@@ -44,7 +41,6 @@ class Simulazione {
     Rete rete_;
     std::vector<Input> inputEsterni_;
     double dt_;
-    double T_;
     int stepCorrente_;
     int stepTotali_;
 
@@ -69,15 +65,17 @@ class Simulazione {
     void writeFile();
 
   public:
-    Simulazione(const Rete &rete, double dt, double T) : rete_(rete), dt_(dt), T_(T), stepCorrente_(0), stepTotali_(static_cast<int>(std::round(T / dt))) {}
+    Simulazione(const Rete &rete, double dt, double T) : rete_(rete), dt_(dt), stepCorrente_(0), stepTotali_(static_cast<int>(std::round(T / dt))) {}
 
     // metodi operativi
     void aggiungiInputEsterni(const std::vector<Input> &inputEsterno);
     void avviaSimulazione(const std::string &filenameV, const std::string &filenameF, const std::string &filenameS);
 
+    //metodi getter 
+    double getTempoTotale() const { return stepTotali_ * dt_; }
+
     ~Simulazione() = default;
 };
 
-#include "simulazioneImp.hpp"
 
 #endif // SIMULAZIONE_HPP

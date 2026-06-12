@@ -2,6 +2,7 @@
 #define INPUT_HPP
 
 #include <cmath>
+#include <vector>
 /*
  * inputEsterno - struttura e comportamenti di un qualsiasi Input esterno
  *
@@ -23,7 +24,7 @@
  * InputEsterno - Struttura base per qualsiasi input di corrente esogeno.
  * Utilizza il pattern NVI (Non-Virtual Interface): l'interfaccia pubblica
  * gestisce l'intervallo temporale, delegando la matematica alle classi figlie.
- */
+ 
 class InputEsterno {
   protected:
     double tStart_, tEnd_;
@@ -42,11 +43,11 @@ class InputEsterno {
     }
   
 };
-
+*/
 
 /*
  * InputCostante - Inietta una corrente fissa I_ per tutta la durata dell'intervallo
- */
+ 
 class InputCostante : public InputEsterno {
   private:
     double I_;
@@ -61,11 +62,11 @@ class InputCostante : public InputEsterno {
         return I_; 
     }
 };
-
+*/
 
 /*
  * InputSinusoidale - Inietta una corrente oscillante
- */
+
 class InputSinusoidale : public InputEsterno {
   private:
     double ampiezza_, freq_;
@@ -80,7 +81,7 @@ class InputSinusoidale : public InputEsterno {
         return ampiezza_ * std::sin(freq_ * t); 
     }
 };
-
+ */
 
 /*
  * Input — stimolo esterno applicato a un neurone per l'intera simulazione.
@@ -91,12 +92,12 @@ class InputSinusoidale : public InputEsterno {
  *
  * La lunghezza di valori deve coincidere con stepTotali della Simulazione.
  * Il controllo è eseguito in Simulazione::aggiungiInputEsterni().
-
+*/
 struct Input {
     int id;
     std::vector<double> valori;
 };
-*/
+
 
 /*
  * InputCorrente — snapshot dell'input esterno al passo temporale corrente.
@@ -107,10 +108,10 @@ struct Input {
  * Attributi:
  *   id             ID del neurone destinatario
  *   valoreCorrente corrente istantanea [A] nello step corrente
-
+*/
 struct InputCorrente {
     int id;
     double valoreCorrente;
 };
-*/
+
 #endif // INPUT_HPP

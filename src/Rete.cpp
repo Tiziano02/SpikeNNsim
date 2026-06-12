@@ -1,7 +1,11 @@
-#ifndef RETEIMP_HPP
-#define RETEIMP_HPP
-
 #include "Rete.hpp"
+#include <fstream>
+#include <iostream>
+#include <string>
+#include <unordered_map>
+#include <vector>
+
+
 
 /*
  * aggiungiNeurone — aggiunge un neurone alla rete.
@@ -113,5 +117,3 @@ void Rete::aggiornaStatoRete() {
     for (size_t i = 0; i < sinapsi_.size(); i++)
         statoSinapsi_[i] = sinapsi_[i].getCurrent();
 }
-
-#endif // RETEIMP_HPP

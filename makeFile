@@ -1,51 +1,63 @@
 CXX = clang++
-BASE_FLAGS = -std=c++14 -Wall
+BASE_FLAGS = -std=c++14 -Wall -Iinclude
 TARGET = simulatore
 
-SRCS = $(wildcard *.cpp)
-OBJS = $(SRCS:.cpp=.o)
+SRCS = $(wildcard src/*.cpp)
 
-# ---------------------------------------------------------
-# REGOLA DI DEFAULT (Scrivi solo "make")
-# ---------------------------------------------------------
+# Definisco le cartelle di destinazione per i file .o
+BUILD_DIR = build
+REL_DIR = $(BUILD_DIR)/release
+DBG_DIR = $(BUILD_DIR)/debug
+SMP_DIR = $(BUILD_DIR)/samply
+
+# Converto i nomi da src/file.cpp a build/.../file.o
+REL_OBJS = $(patsubst src/%.cpp, $(REL_DIR)/%.o, $(SRCS))
+DBG_OBJS = $(patsubst src/%.cpp, $(DBG_DIR)/%.o, $(SRCS))
+SMP_OBJS = $(patsubst src/%.cpp, $(SMP_DIR)/%.o, $(SRCS))
+
+# Target di default
 all: release
 
-# ---------------------------------------------------------
-# CONFIGURAZIONI
-# ---------------------------------------------------------
-
-# 1. RELEASE: Massima velocità
+# --- COMPILAZIONE NORMALE (RELEASE) ---
 release: CXXFLAGS = $(BASE_FLAGS) -O3
-release: clean_objs $(TARGET)
+release: $(TARGET)
 
-# 2. DEBUG: Stampe a schermo attive e zero ottimizzazione
-debug: CXXFLAGS = $(BASE_FLAGS) -O0 -g -DDEBUG_ABILITATO
-debug: clean_objs $(TARGET)_debug
+$(TARGET): $(REL_OBJS)
+	$(CXX) $(CXXFLAGS) -o $(TARGET) $(REL_OBJS)
 
-# 3. SAMPLY (FIREFOX PROFILER): Ottimizzato, ma con simboli e frame pointer!
-samply: CXXFLAGS = $(BASE_FLAGS) -O3 -g -fno-omit-frame-pointer -fno-inline
-samply: clean_objs $(TARGET)_samply
-
-# ---------------------------------------------------------
-# COMPILAZIONE
-# ---------------------------------------------------------
-$(TARGET): $(OBJS)
-	$(CXX) $(CXXFLAGS) -o $(TARGET) $(OBJS)
-
-$(TARGET)_debug: $(OBJS)
-	$(CXX) $(CXXFLAGS) -o $(TARGET)_debug $(OBJS)
-
-$(TARGET)_samply: $(OBJS)
-	$(CXX) $(CXXFLAGS) -o $(TARGET)_samply $(OBJS)
-
-%.o: %.cpp
+$(REL_DIR)/%.o: src/%.cpp | $(REL_DIR)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-# ---------------------------------------------------------
-# PULIZIA
-# ---------------------------------------------------------
-clean_objs:
-	rm -f *.o
 
+# --- COMPILAZIONE DEBUG ---
+debug: CXXFLAGS = $(BASE_FLAGS) -O0 -g -DDEBUG_ABILITATO
+debug: $(TARGET)_debug
+
+$(TARGET)_debug: $(DBG_OBJS)
+	$(CXX) $(CXXFLAGS) -o $(TARGET)_debug $(DBG_OBJS)
+
+$(DBG_DIR)/%.o: src/%.cpp | $(DBG_DIR)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+
+# --- COMPILAZIONE PROFILER (SAMPLY) ---
+samply: CXXFLAGS = $(BASE_FLAGS) -O3 -g -fno-omit-frame-pointer -fno-inline
+samply: $(TARGET)_samply
+
+$(TARGET)_samply: $(SMP_OBJS)
+	$(CXX) $(CXXFLAGS) -o $(TARGET)_samply $(SMP_OBJS)
+
+$(SMP_DIR)/%.o: src/%.cpp | $(SMP_DIR)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+
+# --- CREAZIONE CARTELLE AUTOMATICA ---
+$(REL_DIR) $(DBG_DIR) $(SMP_DIR):
+	mkdir -p $@
+
+
+# --- PULIZIA TOTALE ---
 clean:
-	rm -f *.o $(TARGET) $(TARGET)_debug $(TARGET)_samply
+	rm -rf $(BUILD_DIR) $(TARGET) $(TARGET)_debug $(TARGET)_samply
+
+.PHONY: all release debug samply clean
