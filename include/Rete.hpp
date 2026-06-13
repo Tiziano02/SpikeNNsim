@@ -6,7 +6,7 @@
 #include "Sinapsi.hpp"
 
 #include <vector>
-#include <map>
+#include <unordered_map>
 
 /*
  * Rete — contenitore della topologia e motore di evoluzione della rete neurale.
