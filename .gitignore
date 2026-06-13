@@ -34,7 +34,8 @@ simulatore_*
 *.log
 
 # Simulation outputs (ignora tutti i risultati)
-output/
+output/*
+!output/.gitkeep
 *.bin
 *.gz
 *.jsongz
