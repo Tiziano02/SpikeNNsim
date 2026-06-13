@@ -16,7 +16,7 @@ double rumoreGaussiano(double media, double deviazioneStandard) {
 
     return distribuzione(gen);
 }
-
+/*
 double rumoreUniforme(double centro, double ampiezza) {
 
     static std::random_device rd;
@@ -26,7 +26,7 @@ double rumoreUniforme(double centro, double ampiezza) {
 
     return distribuzione(gen);
 }
-
+*/
 int main() {
 
 
