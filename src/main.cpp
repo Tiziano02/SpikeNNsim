@@ -29,7 +29,19 @@ double rumoreUniforme(double centro, double ampiezza) {
 
 int main() {
 
+    // Questo cout normale viene stampato SEMPRE (sia in debug che in release)
+    std::cout << "--- Avvio del Simulatore HeaderRN ---" << std::endl;
 
+    // --- BLOCCO DI DEBUG ---
+    #ifdef DEBUG_ABILITATO
+        std::cout << "\n[DEBUG] Modalita' Debug ATTIVA!" << std::endl;
+        std::cout << "[DEBUG] Sto testando i cout condizionali." << std::endl;
+        // Qui puoi stampare variabili di controllo, stati dei neuroni, ecc.
+    #endif
+    // -----------------------
+
+    // Il resto del tuo codice...
+    std::cout << "--- Simulazione completata ---" << std::endl;
     
     // =========================================================
     // PARAMETRI RETE
