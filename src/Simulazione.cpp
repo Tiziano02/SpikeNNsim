@@ -6,26 +6,97 @@
 #include <string>
 #include <vector>
 
-/*
- * aggiungiInputEsterni — associa gli input esterni alla simulazione.
- *
- * Validazione:
- *  - ogni Input deve avere dimensione uguale a stepTotali_
- *  - ogni ID deve corrispondere a un neurone esistente nella rete
- * Se un input non supera la validazione, l'intera operazione viene annullata.
- */
-void Simulazione::aggiungiInputEsterni(const std::vector<Input> &inputEsterno) {
-    for (const auto &inp : inputEsterno) {
-        if (static_cast<int>(inp.valori.size()) != stepTotali_) {
-            std::cerr << "[Simulazione] errore: input per neurone " << inp.id << " ha dimensione " << inp.valori.size() << " ma stepTotali = " << stepTotali_ << ".\n";
-            return;
-        }
-        if (!rete_.hasNeurone(inp.id)) {
-            std::cerr << "[Simulazione] errore: neurone ID " << inp.id << " non trovato nella rete.\n";
-            return;
+/*INPUT ESTERNI*/
+template <typename tipologiaParametri> bool Simulazione::controlloParametri(std::vector<int> &listaID, std::vector<tipologiaParametri> &listaPSarametri) {
+    if (listaID.size() != listaPSarametri.size()) {
+        std::cerr << "[Simulazione] errore: id.size() (" << listaID.size() << ") != parametri.size() (" << listaPSarametri.size() << ").\n";
+        return;
+    }
+
+    for (size_t i = 0; i < listaID.size(); ++i) {
+        if (!rete_.hasNeurone(listaID[i])) {
+            std::cerr << "[Simulazione] errore: neurone ID " << listaID[i] << " non trovato nella rete.\n";
+            return; // nessuna modifica è stata fatta finora
         }
     }
-    inputEsterni_ = inputEsterno; // questa cosa qui va fatta dai metodi setter ? Oppure un metodo setter è un metodo che fa questa cosa qui ma fuori dalla classe e quindi per essere sicuro di modificare un attributo privato lo faccio tramite un metodo setter che è molto espicito
+};
+
+// aggiungo input esterno costante
+/*
+ * 0. controllo dimensioni parametri passati ed esistenza di tutti gli ID
+ * 1. aggiungo liste dei parametri al database
+ * 2. aggiungo riga nel registro degli stimoli
+ */
+void Simulazione::iniettaStimoloCostante(std::vector<int> &listaID, std::vector<parametriStimoloCostante> &listaParametri) {
+
+    // controllo he tutti gli id passati esistono
+    controlloParametri(listaID, listaParametri);
+
+    databaseStimoloCostante_.reserve(databaseStimoloCostante_.size() + listaParametri.size());
+
+    registroStimoli_.reserve(registroStimoli_.size() + listaParametri.size());
+
+    for (size_t i = 0; i < listaID.size(); i++) {
+        databaseStimoloCostante_.push_back(listaParametri[i]);
+
+        rigaRegistroStimolo tmp_rigaRegistro;
+        tmp_rigaRegistro.id = listaID[i];
+        tmp_rigaRegistro.indexNeurone = rete_.getIndex(listaID[i]);
+        tmp_rigaRegistro.rigaDB = registroStimoli_.size() - 1;
+        tmp_rigaRegistro.tipo = Tipo_stimolo::Costante;
+
+        registroStimoli_.push_back(tmp_rigaRegistro);
+    }
+}
+
+// aggiungo input esterno costante
+/*
+ * 0. controllo dimensioni parametri passati ed esistenza di tutti gli ID
+ * 1. aggiungo liste dei parametri al database
+ * 2. aggiungo riga nel registro degli stimoli
+ */
+void Simulazione::iniettaStimoloSeno(std::vector<int> &listaID, std::vector<parametriStimoloSeno> &listaParametri) {
+
+    // controllo he tutti gli id passati esistono
+    controlloParametri(listaID, listaParametri);
+
+    databaseStimoloSeno_.reserve(databaseStimoloSeno_.size() + listaParametri.size());
+
+    registroStimoli_.reserve(registroStimoli_.size() + listaParametri.size());
+
+    for (size_t i = 0; i < listaID.size(); i++) {
+        databaseStimoloSeno_.push_back(listaParametri[i]);
+
+        rigaRegistroStimolo tmp_rigaRegistro;
+        tmp_rigaRegistro.id = listaID[i];
+        tmp_rigaRegistro.indexNeurone = rete_.getIndex(listaID[i]);
+        tmp_rigaRegistro.rigaDB = registroStimoli_.size() - 1;
+        tmp_rigaRegistro.tipo = Tipo_stimolo::Costante;
+        tmp_rigaRegistro.stepStart = static_cast<int>(std::round(listaParametri[i].timeStart / dt_));
+        tmp_rigaRegistro.stepEnd = static_cast<int>(std::round(listaParametri[i].timeEnd / dt_));
+
+        registroStimoli_.push_back(tmp_rigaRegistro);
+    }
+}
+
+void Simulazione::valutaStimoli(double t) {
+
+    for (const auto &v : registroStimoli_) {
+        if (stepCorrente_ < v.stepStart || stepCorrente_ > v.stepEnd) // perchè controllo deve essere su step sarebbe più logico farlo sul tempo
+            continue;                                                 // --> no dovrei "settare" 0.0 ?
+        double valore = 0.0;
+        switch (v.tipo) {
+        case Tipo_stimolo::Costante:
+            valore = databaseStimoloCostante_[v.rigaDB].ampiezza;
+            break;
+        case Tipo_stimolo::Sinusoidale: {
+            const auto &p = databaseStimoloSeno_[v.rigaDB];
+            valore = p.ampiezza * std::sin(p.frequenza * t + p.fase);
+            break;
+        }
+        }
+        rete_.setStimolo(v.indexNeurone, valore);
+    }
 }
 
 /*
@@ -193,25 +264,21 @@ void Simulazione::avviaSimulazione(const std::string &filenameV, const std::stri
     double time = 0.0;
     stepCorrente_ = 0;
 
-    // setter privato per chiarezza ?
+    // setter privato per chiarezza ? --> fare funzione : "setFilename"
     fileNameV_ = filenameV;
     fileNameF_ = filenameF;
     fileNameS_ = filenameS;
 
-    // questa parte va insierita in un metodo privato che prepara l'input esterno
-    std::vector<InputCorrente> inputEsterniCorrente;
-    inputEsterniCorrente.reserve(inputEsterni_.size());
-    for (const auto &inp : inputEsterni_)
-        inputEsterniCorrente.push_back({inp.id, 0.0});
-
-    inizializzaOutput();
+    inizializzaOutput(); // --> sarebbe da dividere in due : (apertura file e creazione header) e (creazione buffere)
 
     for (; stepCorrente_ < stepTotali_; ++stepCorrente_) {
-        for (size_t i = 0; i < inputEsterniCorrente.size(); ++i)
-            inputEsterniCorrente[i].valoreCorrente = inputEsterni_[i].valori[stepCorrente_];
 
-        rete_.step(dt_, inputEsterniCorrente);
-        time += dt_;
+        // set/inizializzazione/valutare stimolo al tempo t (time)
+
+        valutaStimoli(time);
+
+        rete_.step(dt_);
+        time += dt_; // si dovrebbe spostare alla fine di questo ciclo ? 
 
         rete_.aggiornaStatoRete();
 

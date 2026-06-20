@@ -5,8 +5,8 @@
 #include "Neurone.hpp"
 #include "Sinapsi.hpp"
 
-#include <vector>
 #include <unordered_map>
+#include <vector>
 
 /*
  * Rete — contenitore della topologia e motore di evoluzione della rete neurale.
@@ -42,8 +42,9 @@
 class Rete {
 
   private:
-    std::vector<Neurone> neuroni_;              // neuroni della rete
-    std::vector<Sinapsi> sinapsi_;              // connessioni sinaptiche
+    std::vector<Neurone> neuroni_; // neuroni della rete
+    std::vector<Sinapsi> sinapsi_; // connessioni sinaptiche
+    std::vector<double> stimoli_;
     std::vector<double> inputTotale_;           // buffer correnti afferenti, dimensione = neuroni_.size()
     std::unordered_map<int, size_t> idToIndex_; // mappa ID -> indice in neuroni_, lookup O(1)
 
@@ -62,20 +63,20 @@ class Rete {
     // metodi operativi
     void aggiungiNeurone(const Neurone &neurone);
     void connettiNeuroni(Sinapsi &s);
-    void step(double dt, const std::vector<InputCorrente> &inputEsterni);
+    void step(double dt);
     void aggiornaStatoRete();
 
-    // metodi getter
-    // std::vector<double> getStatoNeuroni() const;
-    // std::vector<double> getStatoFiring() const;
-    // std::vector<double> getStatoSinapsi() const;
+    // metodi setter
+    void setStimolo(size_t i, double value) { stimoli_[i] = value; }
 
+    // metodi getter
     const std::vector<double> &getPointerStatoNeuroni() const;
     const std::vector<double> &getPointerStatoFiring() const;
     const std::vector<double> &getPointerStatoSinapsi() const;
 
     size_t getNumNeuroni() const { return neuroni_.size(); }
     size_t getNumSinapsi() const { return sinapsi_.size(); }
+    size_t getIndex(int id) const { return idToIndex_.at(id); }
 
     // metodi di controllo
     bool hasNeurone(int id) const { return idToIndex_.count(id) > 0; }

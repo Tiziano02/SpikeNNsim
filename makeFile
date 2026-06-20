@@ -1,5 +1,5 @@
 CXX = clang++
-BASE_FLAGS = -std=c++14 -Wall -Iinclude
+BASE_FLAGS = -std=c++23 -Wall -Iinclude
 TARGET = simulatore
 
 SRCS = $(wildcard src/*.cpp)

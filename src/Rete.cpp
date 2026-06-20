@@ -3,14 +3,11 @@
 #include <iostream>
 #include <string>
 
-
-
-
 /*
  * aggiungiNeurone — aggiunge un neurone alla rete.
  *
  * Aggiunge il neurone a neuroni_, registra il suo ID nella mappa idToIndex_
- * e aggiunge una entry a zero nel buffer inputTotale_.
+ * e aggiunge una entry a zero nel buffer inputTotale e stimoli_.
  * Se un neurone con lo stesso ID esiste già, stampa un errore e non lo aggiunge.
  */
 void Rete::aggiungiNeurone(const Neurone &neurone) {
@@ -21,6 +18,7 @@ void Rete::aggiungiNeurone(const Neurone &neurone) {
     neuroni_.push_back(neurone);
     idToIndex_[neurone.getId()] = neuroni_.size() - 1;
     inputTotale_.push_back(0.0);
+    stimoli_.push_back(0.0);
     statoNeuroni_.push_back(neurone.getPotential());
     statoFiring_.push_back(0.0);
 }
@@ -59,7 +57,7 @@ void Rete::connettiNeuroni(Sinapsi &s) {
  * Nota: uno spike emesso al passo t aggiorna la sinapsi a partire dal passo t+1
  * (latenza minima di un passo). Questo è il comportamento causale corretto.
  */
-void Rete::step(double dt, const std::vector<InputCorrente> &inputEsterni) {
+void Rete::step(double dt) {
 
     std::fill(inputTotale_.begin(), inputTotale_.end(), 0.0);
 
@@ -72,11 +70,13 @@ void Rete::step(double dt, const std::vector<InputCorrente> &inputEsterni) {
         inputTotale_[syn.getIndexPost()] += syn.getCurrent();
     }
 
-    for (const auto &inp : inputEsterni)
-        inputTotale_[idToIndex_[inp.id]] += inp.valoreCorrente;
+    for (size_t i = 0; i < neuroni_.size(); ++i) {
+        // aggiungo gli stimoli all'input totale
+        inputTotale_[i] += stimoli_[i];
 
-    for (size_t i = 0; i < neuroni_.size(); ++i)
+        // avanzamento dinamica di tutti i neuroni
         neuroni_[i].update(inputTotale_[i], dt);
+    }
 }
 
 /*
