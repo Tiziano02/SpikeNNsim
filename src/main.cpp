@@ -177,20 +177,20 @@ int main() {
     // input esterno
     int stepTotali = static_cast<int>(T / dt);
 
-    std::vector<Input> inputEsterno;
+    //std::vector<Input> inputEsterno;
 
     std::vector<double> stimolo(stepTotali, 0.0);
 
     std::fill(stimolo.begin() + 300, stimolo.begin() + 300 + 1, 20 * n * A);
 
-    Input i;
+    //Input i;
 
-    i.id = 0;
-    i.valori = stimolo;
+    //i.id = 0;
+    //i.valori = stimolo;
 
-    inputEsterno.push_back(i);
+    //inputEsterno.push_back(i);
 
-    sim.aggiungiInputEsterni(inputEsterno);
+    //sim.aggiungiInputEsterni(inputEsterno);
 
     sim.avviaSimulazione("potenziali.bin", "firing.bin", "sinapsi.bin");
 

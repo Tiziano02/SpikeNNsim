@@ -8,7 +8,7 @@
 
 #include <fstream>
 #include <memory>
-
+#include <cmath>
 /*
  * Simulazione — coordina la rete, gli input esterni e l'output su file.
  *
@@ -73,7 +73,65 @@ class Simulazione {
     void writeFile();
 
     // metodi interi per gli stimoli
-    template <typename tipologiaParametri> bool controlloParametri(std::vector<int> &listID, std::vector<tipologiaParametri> &listaParametri);
+    template <typename tipologiaStimolo> bool controlloParametri(std::vector<int> &listaID, std::vector<tipologiaStimolo> &listaPSarametri) {
+        if (listaID.size() != listaPSarametri.size()) {
+            std::cerr << "[Simulazione] errore: id.size() (" << listaID.size() << ") != parametri.size() (" << listaPSarametri.size() << ").\n";
+            return false;
+        }
+
+        for (size_t i = 0; i < listaID.size(); ++i) {
+            if (!rete_.hasNeurone(listaID[i])) {
+                std::cerr << "[Simulazione] errore: neurone ID " << listaID[i] << " non trovato nella rete.\n";
+                return false; // nessuna modifica è stata fatta finora
+            }
+        }
+        return true;
+    };
+
+    // PRECONDIZIONE: il chiamante deve aver già validato listaID/listaParametri con controlloParametri().
+    // Questo metodo non rivalida per evitare il doppio controllo.
+    template <typename tipologiaStimolo> void aggiungiStimolo(std::vector<int> &listaID, std::vector<tipologiaStimolo> &listaParametri) {
+
+        // Riserviamo spazio nel registro generale degli stimoli
+        registroStimoli_.reserve(registroStimoli_.size() + listaParametri.size());
+
+        // 1. Fase di instradamento basata sul TIPO passatoci a tempo di compilazione
+        // Usiamo 'if constexpr' così il compilatore genera solo il codice corretto per quel tipo!
+        if constexpr (std::is_same_v<tipologiaStimolo, parametriStimoloCostante>) {
+            databaseStimoloCostante_.reserve(databaseStimoloCostante_.size() + listaParametri.size());
+        } else if constexpr (std::is_same_v<tipologiaStimolo, parametriStimoloSeno>) {
+            databaseStimoloSeno_.reserve(databaseStimoloSeno_.size() + listaParametri.size());
+        }
+
+        // 2. Loop unico di inserimento
+        for (size_t i = 0; i < listaID.size(); i++) {
+
+            size_t indiceAssegnatoDB = 0;
+            Tipo_stimolo tipoAssegnato;
+
+            // Gestione differenziata dei database e dei tipi
+            if constexpr (std::is_same_v<tipologiaStimolo, parametriStimoloCostante>) {
+                databaseStimoloCostante_.push_back(listaParametri[i]);
+                indiceAssegnatoDB = databaseStimoloCostante_.size() - 1;
+                tipoAssegnato = Tipo_stimolo::Costante;
+            } else if constexpr (std::is_same_v<tipologiaStimolo, parametriStimoloSeno>) {
+                databaseStimoloSeno_.push_back(listaParametri[i]);
+                indiceAssegnatoDB = databaseStimoloSeno_.size() - 1;
+                tipoAssegnato = Tipo_stimolo::Sinusoidale;
+            }
+
+            // 3. Popolamento della riga del registro (Identica per tutti!)
+            rigaRegistroStimolo tmp_rigaRegistro;
+            tmp_rigaRegistro.id = listaID[i];
+            tmp_rigaRegistro.indexNeurone = rete_.getIndex(listaID[i]);
+            tmp_rigaRegistro.rigaDB = indiceAssegnatoDB; // <--- Dinamico e corretto!
+            tmp_rigaRegistro.tipo = tipoAssegnato;       // <--- Dinamico e corretto!
+            tmp_rigaRegistro.stepStart = static_cast<int>(std::round(listaParametri[i].timeStart / dt_));
+            tmp_rigaRegistro.stepEnd = static_cast<int>(std::round(listaParametri[i].timeEnd / dt_));
+
+            registroStimoli_.push_back(tmp_rigaRegistro);
+        }
+    }
 
   public:
     Simulazione(const Rete &rete, double dt, double T) : rete_(rete), dt_(dt), stepCorrente_(0), stepTotali_(static_cast<int>(std::round(T / dt))) {}

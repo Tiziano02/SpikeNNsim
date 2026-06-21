@@ -1,25 +1,12 @@
 #include "Simulazione.hpp"
 #include <algorithm>
-#include <cmath>
+//#include <cmath>
 #include <fstream>
 #include <iostream>
 #include <string>
 #include <vector>
 
 /*INPUT ESTERNI*/
-template <typename tipologiaParametri> bool Simulazione::controlloParametri(std::vector<int> &listaID, std::vector<tipologiaParametri> &listaPSarametri) {
-    if (listaID.size() != listaPSarametri.size()) {
-        std::cerr << "[Simulazione] errore: id.size() (" << listaID.size() << ") != parametri.size() (" << listaPSarametri.size() << ").\n";
-        return;
-    }
-
-    for (size_t i = 0; i < listaID.size(); ++i) {
-        if (!rete_.hasNeurone(listaID[i])) {
-            std::cerr << "[Simulazione] errore: neurone ID " << listaID[i] << " non trovato nella rete.\n";
-            return; // nessuna modifica è stata fatta finora
-        }
-    }
-};
 
 // aggiungo input esterno costante
 /*
@@ -30,23 +17,12 @@ template <typename tipologiaParametri> bool Simulazione::controlloParametri(std:
 void Simulazione::iniettaStimoloCostante(std::vector<int> &listaID, std::vector<parametriStimoloCostante> &listaParametri) {
 
     // controllo he tutti gli id passati esistono
-    controlloParametri(listaID, listaParametri);
-
-    databaseStimoloCostante_.reserve(databaseStimoloCostante_.size() + listaParametri.size());
-
-    registroStimoli_.reserve(registroStimoli_.size() + listaParametri.size());
-
-    for (size_t i = 0; i < listaID.size(); i++) {
-        databaseStimoloCostante_.push_back(listaParametri[i]);
-
-        rigaRegistroStimolo tmp_rigaRegistro;
-        tmp_rigaRegistro.id = listaID[i];
-        tmp_rigaRegistro.indexNeurone = rete_.getIndex(listaID[i]);
-        tmp_rigaRegistro.rigaDB = registroStimoli_.size() - 1;
-        tmp_rigaRegistro.tipo = Tipo_stimolo::Costante;
-
-        registroStimoli_.push_back(tmp_rigaRegistro);
+    if (!controlloParametri(listaID, listaParametri)) {
+        return;
     }
+
+    // aggiorno database e registro
+    aggiungiStimolo(listaID, listaParametri);
 }
 
 // aggiungo input esterno costante
@@ -58,32 +34,21 @@ void Simulazione::iniettaStimoloCostante(std::vector<int> &listaID, std::vector<
 void Simulazione::iniettaStimoloSeno(std::vector<int> &listaID, std::vector<parametriStimoloSeno> &listaParametri) {
 
     // controllo he tutti gli id passati esistono
-    controlloParametri(listaID, listaParametri);
+    if (!controlloParametri(listaID, listaParametri)) {
+        return;
+    };
 
-    databaseStimoloSeno_.reserve(databaseStimoloSeno_.size() + listaParametri.size());
-
-    registroStimoli_.reserve(registroStimoli_.size() + listaParametri.size());
-
-    for (size_t i = 0; i < listaID.size(); i++) {
-        databaseStimoloSeno_.push_back(listaParametri[i]);
-
-        rigaRegistroStimolo tmp_rigaRegistro;
-        tmp_rigaRegistro.id = listaID[i];
-        tmp_rigaRegistro.indexNeurone = rete_.getIndex(listaID[i]);
-        tmp_rigaRegistro.rigaDB = registroStimoli_.size() - 1;
-        tmp_rigaRegistro.tipo = Tipo_stimolo::Costante;
-        tmp_rigaRegistro.stepStart = static_cast<int>(std::round(listaParametri[i].timeStart / dt_));
-        tmp_rigaRegistro.stepEnd = static_cast<int>(std::round(listaParametri[i].timeEnd / dt_));
-
-        registroStimoli_.push_back(tmp_rigaRegistro);
-    }
+    // aggiorno database e registro
+    aggiungiStimolo(listaID, listaParametri);
 }
 
+// Simulazione.cpp
 void Simulazione::valutaStimoli(double t) {
-
+    rete_.resetStimoli();
     for (const auto &v : registroStimoli_) {
-        if (stepCorrente_ < v.stepStart || stepCorrente_ > v.stepEnd) // perchè controllo deve essere su step sarebbe più logico farlo sul tempo
-            continue;                                                 // --> no dovrei "settare" 0.0 ?
+        if (stepCorrente_ < v.stepStart || stepCorrente_ > v.stepEnd)
+            continue;
+
         double valore = 0.0;
         switch (v.tipo) {
         case Tipo_stimolo::Costante:
@@ -95,7 +60,7 @@ void Simulazione::valutaStimoli(double t) {
             break;
         }
         }
-        rete_.setStimolo(v.indexNeurone, valore);
+        rete_.addStimolo(v.indexNeurone, valore);
     }
 }
 
@@ -278,7 +243,7 @@ void Simulazione::avviaSimulazione(const std::string &filenameV, const std::stri
         valutaStimoli(time);
 
         rete_.step(dt_);
-        time += dt_; // si dovrebbe spostare alla fine di questo ciclo ? 
+        time += dt_; // si dovrebbe spostare alla fine di questo ciclo ? NO --> salvo direttamente per time = dt
 
         rete_.aggiornaStatoRete();
 

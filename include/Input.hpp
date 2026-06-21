@@ -1,3 +1,8 @@
+#ifndef INPUT_HPP
+#define INPUT_HPP
+
+#include <iostream>
+
 // struct per chi utilizza il framework
 struct parametriStimoloCostante {
     double timeStart;
@@ -25,3 +30,5 @@ struct rigaRegistroStimolo {
     double stepStart;
     double stepEnd;
 };
+
+#endif

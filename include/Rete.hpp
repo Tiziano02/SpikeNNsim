@@ -67,7 +67,8 @@ class Rete {
     void aggiornaStatoRete();
 
     // metodi setter
-    void setStimolo(size_t i, double value) { stimoli_[i] = value; }
+    void resetStimoli() { std::fill(stimoli_.begin(), stimoli_.end(), 0.0); }
+    void addStimolo(size_t i, double value) { stimoli_[i] += value; }
 
     // metodi getter
     const std::vector<double> &getPointerStatoNeuroni() const;
