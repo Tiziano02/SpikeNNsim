@@ -1,12 +1,12 @@
-# HeaderRN
+# SpikeNNsim
 
-HeaderRN is a C++ framework for simulating spiking neural networks.
+SpikeNNsim is a C++ framework for simulating spiking neural networks.
 
 The library follows a classic compiled-library structure: declarations in `.hpp` header files, implementations in separate `.cpp` source files.
 
 The library provides a modular architecture for building networks of neurons and synapses, running time-domain simulations, and exporting data for external analysis.
 
-HeaderRN was originally developed as a personal project to understand how spiking neural network simulations work at a low level.
+SpikeNNsim was originally developed as a personal project to understand how spiking neural network simulations work at a low level.
 
 Instead of relying on existing simulation frameworks, the goal was to build the fundamental components from scratch, including neurons, synapses, network topology and simulation management.
 
@@ -34,7 +34,7 @@ Current features include:
 
 ## Design Philosophy
 
-HeaderRN follows a simple object-oriented design.
+SpikeNNsim follows a simple object-oriented design.
 
 The main components of a simulation are represented by dedicated classes:
 
@@ -114,8 +114,8 @@ Stimuli are evaluated on-the-fly at each simulation step; no pre-allocated value
 Clone the repository and compile with a C++17 compatible compiler:
 
 ```bash
-git clone https://github.com/Tiziano02/HeaderRN.git
-cd HeaderRN
+git clone https://github.com/Tiziano02/SpikeNNsim.git
+cd SpikeNNsim
 make
 ```
 
