@@ -8,7 +8,7 @@
 
 /*INPUT ESTERNI*/
 
-// aggiungo input esterno costante
+// aggiungo stimolo di tipo costante
 /*
  * 0. controllo dimensioni parametri passati ed esistenza di tutti gli ID
  * 1. aggiungo liste dei parametri al database
@@ -25,7 +25,7 @@ void Simulazione::iniettaStimoloCostante(std::vector<int> &listaID, std::vector<
     aggiungiStimolo(listaID, listaParametri);
 }
 
-// aggiungo input esterno costante
+// aggiungo stimolo di tipo seno
 /*
  * 0. controllo dimensioni parametri passati ed esistenza di tutti gli ID
  * 1. aggiungo liste dei parametri al database
@@ -121,7 +121,13 @@ void Simulazione::inizializzaOutput() {
 
     // non allocare più del necessario
     stepsPerFlush_ = std::min(stepsPerFlush, static_cast<size_t>(stepTotali_));
-
+    
+    // 
+    if (stepsPerFlush_ == 0) {
+        std::cerr << "[Simulazione] Warning: RAM disponibile insufficiente o non rilevata. "
+                  << "Forzo stepsPerFlush a 1 per evitare il crash.\n";
+        stepsPerFlush_ = 1;
+    }
     // i buffer hanno dimensioni diverse ma si riempiono tutti allo stesso step
     size_t bufferSizeV = stepsPerFlush_ * bytesPerStepV_;
     size_t bufferSizeF = stepsPerFlush_ * bytesPerStepF_;

@@ -1,7 +1,10 @@
 CXX = clang++
-BASE_FLAGS = -std=c++23 -Wall -Iinclude
-TARGET = simulatore
+BASE_FLAGS = -std=c++23 -Wall -Wextra -Iinclude -I.
 
+# GENERALIZZAZIONE CORRETTA: Estrae il nome puro della cartella corrente
+TARGET := $(notdir $(patsubst %/,%,$(CURDIR)))
+
+# Cerca tutti i file .cpp dentro src/
 SRCS = $(wildcard src/*.cpp)
 
 # Definisco le cartelle di destinazione per i file .o
@@ -10,10 +13,12 @@ REL_DIR = $(BUILD_DIR)/release
 DBG_DIR = $(BUILD_DIR)/debug
 SMP_DIR = $(BUILD_DIR)/samply
 
-# Converto i nomi da src/file.cpp a build/.../file.o
+# Converte src/file.cpp in build/.../file.o
 REL_OBJS = $(patsubst src/%.cpp, $(REL_DIR)/%.o, $(SRCS))
 DBG_OBJS = $(patsubst src/%.cpp, $(DBG_DIR)/%.o, $(SRCS))
 SMP_OBJS = $(patsubst src/%.cpp, $(SMP_DIR)/%.o, $(SRCS))
+
+.PHONY: all release debug samply clean
 
 # Target di default
 all: release
@@ -55,9 +60,6 @@ $(SMP_DIR)/%.o: src/%.cpp | $(SMP_DIR)
 $(REL_DIR) $(DBG_DIR) $(SMP_DIR):
 	mkdir -p $@
 
-
 # --- PULIZIA TOTALE ---
 clean:
 	rm -rf $(BUILD_DIR) $(TARGET) $(TARGET)_debug $(TARGET)_samply
-
-.PHONY: all release debug samply clean
