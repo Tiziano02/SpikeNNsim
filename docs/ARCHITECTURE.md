@@ -8,13 +8,16 @@ The goal is to provide an overview of the framework design without entering impl
 
 # Design Overview
 
-HeaderRN is organized around five main concepts:
+HeaderRN follows a classic compiled-library structure: declarations in `.hpp` header files, implementations in separate `.cpp` source files.
+
+The framework is organized around four main components:
 
 * `Neurone`
 * `Sinapsi`
 * `Rete`
 * `Simulazione`
-* `Input`
+
+External stimuli are not a separate class but are defined through parameter structs (`parametriStimoloCostante`, `parametriStimoloSeno`) declared in `Input.hpp` and managed internally by `Simulazione`.
 
 Each component has a single well-defined responsibility.
 
@@ -33,7 +36,7 @@ Current implementation:
 * Leaky Integrate-and-Fire (LIF) model
 * Absolute refractory period
 * Explicit biological parameters
-* State update through numerical integration
+* State update through numerical integration (forward Euler)
 
 ### Responsibilities
 
@@ -99,11 +102,12 @@ The synapse does not know:
 - global network structure
 - simulation management
 - external inputs
+
 ---
 
 ## Rete
 
-The `Rete` class stores the network structure.
+The `Rete` class stores the network structure and advances its dynamics step by step.
 
 The network is represented as:
 
@@ -125,6 +129,8 @@ The network is responsible for:
 - storing neurons
 - storing synaptic connections
 - managing connectivity
+- advancing the network state by one time step (`step`)
+- accumulating afferent currents (synaptic + external stimuli) into an internal buffer
 
 ### Knows
 
@@ -141,42 +147,7 @@ The network does not know:
 - simulation duration
 - output files
 - data analysis
-
----
-
-## Input
-
-The `Input` class represents external stimuli applied to neurons.
-
-Inputs may vary over time and can be assigned independently to different neurons.
-
-This allows the simulation of:
-
-* transient stimuli
-* constant currents
-* arbitrary time-dependent signals
-
-### Responsibilities
-
-The input object is responsible for:
-
-- storing an external stimulus
-- associating the stimulus with a target neuron
-
-### Knows
-
-The input knows:
-
-- target neuron id
-- stimulus values
-
-### Does Not Know
-
-The input does not know:
-
-- network topology
-- neuron dynamics
-- simulation logic
+- stimulus definitions
 
 ---
 
@@ -189,10 +160,18 @@ The `Simulazione` class coordinates the simulation process.
 The simulation is responsible for:
 
 - managing simulation time
-- updating network dynamics
-- applying external inputs
-- storing simulation outputs
+- evaluating and applying external stimuli at each step
+- advancing network dynamics
+- buffering and writing simulation outputs to binary files
 
+### External Stimuli
+
+Stimuli are injected before running the simulation via:
+
+- `iniettaStimoloCostante` — constant current over a time window
+- `iniettaStimoloSeno` — sinusoidal current over a time window
+
+Stimuli are stored in an internal registry and evaluated on-the-fly at each step. No pre-allocated value arrays are needed.
 
 ### Knows
 
@@ -200,8 +179,8 @@ The simulation knows:
 
 - the network
 - the simulation parameters
-- the external inputs
-- output destinations
+- the stimulus registry
+- output destinations and buffer state
 
 ### Does Not Know
 
@@ -220,9 +199,21 @@ A simulation typically follows the sequence below:
 2. Add neurons to the network.
 3. Create synaptic connections.
 4. Create a simulation object.
-5. Define external inputs.
+5. Define and inject external stimuli.
 6. Run the simulation.
 7. Export simulation data.
+
+---
+
+# Output Format
+
+Simulation data is exported to three binary files:
+
+- membrane potentials (one value per neuron per step)
+- firing states (1.0 = spike, 0.0 = no spike, one per neuron per step)
+- synaptic currents (one value per synapse per step)
+
+Each file begins with a 4-byte `int32` header containing the number of columns (time + data). All values are stored as `double` (64-bit). Output is buffered in memory and flushed to disk in blocks to minimize I/O overhead.
 
 ---
 
@@ -248,5 +239,7 @@ The current architecture was designed to support future additions, including:
 * alternative neuron models
 * sparse network optimizations
 * large-scale simulations
+* multiple simulation runs on the same object
+* additional stimulus types (stochastic, arbitrary waveforms)
 
 These extensions can be introduced while preserving the existing high-level structure.
