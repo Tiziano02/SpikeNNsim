@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes the high-level architecture of HeaderRN and the interaction between its main components.
+This document describes the high-level architecture of SpikeNNsim and the interaction between its main components.
 
 The goal is to provide an overview of the framework design without entering implementation details.
 
@@ -8,7 +8,7 @@ The goal is to provide an overview of the framework design without entering impl
 
 # Design Overview
 
-HeaderRN follows a classic compiled-library structure: declarations in `.hpp` header files, implementations in separate `.cpp` source files.
+SpikeNNsim follows a classic compiled-library structure: declarations in `.hpp` header files, implementations in separate `.cpp` source files.
 
 The framework is organized around four main components:
 
