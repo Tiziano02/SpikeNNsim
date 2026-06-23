@@ -12,13 +12,17 @@
 - [ ] Synaptic plasticity (STDP)
 - [ ] Conductance-based synapses
 - [ ] Synaptic transmission delays
+- [ ] Lazy Evaluation / Event-Driven Update
+
+## Network
+
+- [ ] Connettività Spaziale/Distanza-Dipendente:  Introdurre coordinate spaziali (x,y,z) per i neuroni
 
 ## Inputs
 
 - [ ] Stochastic inputs
-- [ ] "on-the-fly" calculate inputs
 - [ ] Background noise generators
-- [ ] Multiple external inputs per neuron
+
 
 ## Simulation
 
