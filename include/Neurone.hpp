@@ -41,11 +41,16 @@ class Neurone {
     double tauR_;    // durata periodo refrattario assoluto [s]
     double tempoRR_; // tempo refrattario rimanente [s]
     bool fired_;     // true se il neurone ha sparato nell'ultimo step
+    char tipoIntegratore_; // tipo di integratore da utilizzare: 'E' = Eulero in avanti, 'R' = Runge-Kutta 4
+
+    // metodi privati di integrazione
+    void euleroInAvanti(double correnteTotale, double dt);
+    void rungeKutta(double correnteTotale, double dt);
 
   public:
-    Neurone(int id) : id_(id), V_(-65.0 * mV), Vth_(-50.0 * mV), Vrest_(-65.0 * mV), Vreset_(-70.0 * mV), R_(1.0 * Mohm), C_(100.0 * p * F), tau_(R_ * C_), tauR_(5.0 * ms), tempoRR_(0.0), fired_(false) {}
+    Neurone(int id, char tipoIntegratore = 'E') : id_(id), V_(-65.0 * mV), Vth_(-50.0 * mV), Vrest_(-65.0 * mV), Vreset_(-70.0 * mV), R_(1.0 * Mohm), C_(100.0 * p * F), tau_(R_ * C_), tauR_(5.0 * ms), tempoRR_(0.0), fired_(false), tipoIntegratore_(tipoIntegratore) {}
 
-    Neurone(int id, double V_0, double V_th, double V_rest, double V_reset, double R, double C, double tauR) : id_(id), V_(V_0), Vth_(V_th), Vrest_(V_rest), Vreset_(V_reset), R_(R), C_(C), tau_(R * C), tauR_(tauR), tempoRR_(0.0), fired_(false) {}
+    Neurone(int id, double V_0, double V_th, double V_rest, double V_reset, double R, double C, double tauR, char tipoIntegratore = 'E') : id_(id), V_(V_0), Vth_(V_th), Vrest_(V_rest), Vreset_(V_reset), R_(R), C_(C), tau_(R * C), tauR_(tauR), tempoRR_(0.0), fired_(false), tipoIntegratore_(tipoIntegratore) {}
 
     void update(double correnteTotale, double dt);
 

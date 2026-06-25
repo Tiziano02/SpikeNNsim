@@ -33,7 +33,7 @@ int main() {
     std::cout << "=========================================================" << std::endl;
 
     // 1. Parametri di Scala della Rete
-    const int N = 15000; 
+    const int N = 150; 
     const int Ne = static_cast<int>(N * 0.8);
     //const int Ni = N - Ne;
 

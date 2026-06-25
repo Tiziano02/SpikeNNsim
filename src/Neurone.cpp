@@ -15,6 +15,16 @@
  *    prima del prossimo update().
  *  - Il metodo di Eulero è stabile se dt << tau (tipicamente dt < tau/10).
  */
+void Neurone::euleroInAvanti(double correnteTotale, double dt) { V_ += (dt / tau_) * (-(V_ - Vrest_) + R_ * correnteTotale); }
+
+void Neurone::rungeKutta(double correnteTotale, double dt) {
+    double k1 = (-(V_ - Vrest_) + R_ * correnteTotale) / tau_;
+    double k2 = (-(V_ + 0.5 * dt * k1 - Vrest_) + R_ * correnteTotale) / tau_;
+    double k3 = (-(V_ + 0.5 * dt * k2 - Vrest_) + R_ * correnteTotale) / tau_;
+    double k4 = (-(V_ + dt * k3 - Vrest_) + R_ * correnteTotale) / tau_;
+    V_ += (dt / 6.0) * (k1 + 2.0 * k2 + 2.0 * k3 + k4);
+}
+
 void Neurone::update(double correnteTotale, double dt) {
     fired_ = false;
 
@@ -25,7 +35,11 @@ void Neurone::update(double correnteTotale, double dt) {
         return;
     }
 
-    V_ += (dt / tau_) * (-(V_ - Vrest_) + R_ * correnteTotale);
+    if (tipoIntegratore_ == 'E') {
+        euleroInAvanti(correnteTotale, dt);
+    } else if (tipoIntegratore_ == 'R') {
+        rungeKutta(correnteTotale, dt);
+    }
 
     if (V_ >= Vth_) {
         fired_ = true;
