@@ -7,9 +7,9 @@ import os
 # ============================================================
 # Assicurati che i file si trovino nella cartella corretta (es. "output/")
 PATH_CARTELLA = "output/" 
-FILE_POTENZIALI = os.path.join(PATH_CARTELLA, "test_potenziali.bin")
-FILE_FIRING = os.path.join(PATH_CARTELLA, "test_firing.bin")
-FILE_SINAPSI = os.path.join(PATH_CARTELLA, "test_sinapsi.bin")
+FILE_POTENZIALI = os.path.join(PATH_CARTELLA, "potenzialitest1.bin")
+FILE_FIRING = os.path.join(PATH_CARTELLA, "firingtest1.bin")
+FILE_SINAPSI = os.path.join(PATH_CARTELLA, "sinapsitest1.bin")
 
 def carica_dati_binari_con_header(filepath):
     """

@@ -31,11 +31,24 @@ int main() {
 
 
     Neurone n0(0);
-
     Rete rete;
     rete.aggiungiNeurone(n0);
 
-    
+
+    Simulazione sim(rete,0.01 * ms ,30 * ms);
+    parametriStimoloCostante p;
+    p.timeStart = 5.0 * ms; 
+    p.timeEnd = 15.0 * ms;  
+    p.ampiezza = 20.0 * n * A;
+
+    std::vector<int> v(1,0);
+    std::vector<parametriStimoloCostante> vp;
+    vp.push_back(p);
+    sim.iniettaStimoloCostante(v,vp);
+
+    sim.avviaSimulazione("potenzialitest1.bin","firingtest1.bin","sinapsitest1.bin");
+
+    std::cout << "\nFINE SIMULAZIONE \n";
 
 
 

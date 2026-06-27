@@ -1,15 +1,18 @@
 # TODO
 
+## Population and connetivity
+
+- [ ] Add neurons population
+- [ ] Add population connectivity 
+
 ## Neuron Models
 
-- [ ] Relative refractory period
 - [ ] Additional spiking neuron models
 
 ## Synapses
 
 - [ ] Synaptic plasticity (STDP)
 - [ ] Conductance-based synapses
-- [ ] Synaptic transmission delays
 - [ ] Lazy Evaluation / Event-Driven Update
 
 ## Network
@@ -19,11 +22,8 @@
 - [ ] Stochastic inputs
 - [ ] Background noise generators
 
-
 ## Simulation
-
-- [ ]  
-
+  
 ## Analysis
 
 - [ ] Python analysis toolkit

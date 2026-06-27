@@ -28,22 +28,29 @@ void Neurone::rungeKutta(double correnteTotale, double dt) {
 void Neurone::update(double correnteTotale, double dt) {
     fired_ = false;
 
+    // 1. Il decadimento della soglia 
+    Vth_ += dt * ((Vth0_ - Vth_) / tauRelative_);
+
+    // 2. Gestione Refrattarietà Assoluta
     if (tempoRR_ > 0.0) {
         tempoRR_ -= dt;
-        if (tempoRR_ < 0.0)
-            tempoRR_ = 0.0;
-        return;
+        if (tempoRR_ < 0.0) tempoRR_ = 0.0;
+        V_ = Vreset_; // mantiene il potenziale inchiodato a reset
+        return;       // Salta l'integrazione fisica: il neurone è sordo
     }
 
+    // 3. Integrazione del Potenziale (Fase normale o Refrattarietà Relativa)
     if (tipoIntegratore_ == 'E') {
         euleroInAvanti(correnteTotale, dt);
     } else if (tipoIntegratore_ == 'R') {
         rungeKutta(correnteTotale, dt);
     }
 
+    // 4. Controllo del Firing 
     if (V_ >= Vth_) {
         fired_ = true;
         V_ = Vreset_;
-        tempoRR_ = tauR_;
+        tempoRR_ = timeAbsolute_;       // Fissa il tempo assoluto
+        Vth_ = VthSpikeMax_;        // Alza la soglia al massimo istantaneamente!
     }
 }
