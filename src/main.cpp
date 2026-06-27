@@ -28,6 +28,19 @@ double rumoreUniforme(double centro, double ampiezza) {
 }
 
 int main() {
+
+
+    Neurone n0(0);
+
+    Rete rete;
+    rete.aggiungiNeurone(n0);
+
+    
+
+
+
+
+    /*
     std::cout << "=========================================================" << std::endl;
     std::cout << "--- BENCHMARK PER SAMPLY: Rete Biologica Sparsa (15k) ---" << std::endl;
     std::cout << "=========================================================" << std::endl;
@@ -108,7 +121,7 @@ int main() {
     std::cout << "=========================================================" << std::endl;
     std::cout << " COMPILATION COMPLETED " << std::endl;
     std::cout << "=========================================================" << std::endl;
-    /*
+    
     std::cout << "--- Test Ring Network (Propagazione ad Anello) ---" << std::endl;
 
     // 1. Creiamo una rete con 5 neuroni (ID da 0 a 4)

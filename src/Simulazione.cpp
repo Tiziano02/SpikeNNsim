@@ -242,6 +242,8 @@ void Simulazione::avviaSimulazione(const std::string &filenameV, const std::stri
 
     inizializzaOutput(); // --> sarebbe da dividere in due : (apertura file e creazione header) e (creazione buffere)
 
+    rete_.prepare(dt_);
+
     for (; stepCorrente_ < stepTotali_; ++stepCorrente_) {
 
         // set/inizializzazione/valutare stimolo al tempo t (time)

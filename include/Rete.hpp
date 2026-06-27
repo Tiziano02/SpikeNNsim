@@ -52,20 +52,6 @@ class Rete {
     std::vector<double> statoFiring_;
     std::vector<double> statoSinapsi_;
 
-  public:
-    Rete() = default;
-
-    Rete(int N) {
-        for (int i = 0; i < N; ++i)
-            aggiungiNeurone(Neurone(i));
-    }
-
-    // metodi operativi
-    void aggiungiNeurone(const Neurone &neurone);
-    void connettiNeuroni(Sinapsi &s);
-    void step(double dt);
-    void aggiornaStatoRete();
-
     // metodi setter
     void resetStimoli() { std::fill(stimoli_.begin(), stimoli_.end(), 0.0); }
     void addStimolo(size_t i, double value) { stimoli_[i] += value; }
@@ -82,7 +68,26 @@ class Rete {
     // metodi di controllo
     bool hasNeurone(int id) const { return idToIndex_.count(id) > 0; }
 
+    // metodi oprativi privati
+    void step(double dt);
+    void aggiornaStatoRete();
+    void prepare(double dt); // metodo per prepara dal punto di vista della simualzione gli oggetti sinapsi e neuroni
+
+  public:
+    Rete() = default;
+
+    Rete(int N) {
+        for (int i = 0; i < N; ++i)
+            aggiungiNeurone(Neurone(i));
+    }
+
+    // metodi operativi
+    void aggiungiNeurone(const Neurone &neurone);
+    void connettiNeuroni(Sinapsi &s);
+
     ~Rete() = default;
+
+    friend class Simulazione;
 };
 
 #endif // RETE_HPP

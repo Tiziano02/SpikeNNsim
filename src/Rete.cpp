@@ -57,6 +57,18 @@ void Rete::connettiNeuroni(Sinapsi &s) {
  * Nota: uno spike emesso al passo t aggiorna la sinapsi a partire dal passo t+1
  * (latenza minima di un passo). Questo è il comportamento causale corretto.
  */
+
+/*
+ * prepare - imposta le sinapsi da punto di vista della simualzione 
+ *
+ * 
+ * */
+void Rete::prepare(double dt) {
+    // SINAPSI 
+    for (auto& s : sinapsi_) {
+        s.setDelayRing(dt);
+    }
+}
 void Rete::step(double dt) {
 
     std::fill(inputTotale_.begin(), inputTotale_.end(), 0.0);
@@ -79,19 +91,6 @@ void Rete::step(double dt) {
     }
 }
 
-/*
- * getPotenziali — restituisce puntatore a vetto cone il potenziale di membrana di tutti i neuroni [V].
- */
-const std::vector<double> &Rete::getPointerStatoNeuroni() const { return statoNeuroni_; }
-/*
- * getStatoFiring — restituisce il vettore di firing (1 = spike, 0 = no) per tutti i neuroni.
- */
-const std::vector<double> &Rete::getPointerStatoFiring() const { return statoFiring_; }
-
-/*
- * getStatoSinapsi — restituisce la corrente sinaptica corrente di tutte le sinapsi [A].
- */
-const std::vector<double> &Rete::getPointerStatoSinapsi() const { return statoSinapsi_; }
 /*
  * salvaStatoRete — scrive lo stato corrente della rete su tre file di output.
  *
@@ -116,3 +115,19 @@ void Rete::aggiornaStatoRete() {
     for (size_t i = 0; i < sinapsi_.size(); i++)
         statoSinapsi_[i] = sinapsi_[i].getCurrent();
 }
+
+
+/*
+ * getPotenziali — restituisce puntatore a vetto cone il potenziale di membrana di tutti i neuroni [V].
+ */
+const std::vector<double> &Rete::getPointerStatoNeuroni() const { return statoNeuroni_; }
+/*
+ * getStatoFiring — restituisce il vettore di firing (1 = spike, 0 = no) per tutti i neuroni.
+ */
+const std::vector<double> &Rete::getPointerStatoFiring() const { return statoFiring_; }
+
+/*
+ * getStatoSinapsi — restituisce la corrente sinaptica corrente di tutte le sinapsi [A].
+ */
+const std::vector<double> &Rete::getPointerStatoSinapsi() const { return statoSinapsi_; }
+
