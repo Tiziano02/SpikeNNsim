@@ -13,53 +13,59 @@
  * Rete — contenitore della topologia e motore di evoluzione della rete neurale.
  *
  * La rete è rappresentata come:
- *   - un vettore di neuroni
- *   - un vettore di sinapsi (ogni sinapsi contiene già i riferimenti ai neuroni pre e post)
+ *   - un vettore di neuroni  (TypeNeuron  = variant<LIF, Exp>)
+ *   - un vettore di sinapsi  (TypeSyn     = variant<CurrentSyn, ConductanceSyn>)
  *   - una mappa ID -> indice per accesso rapido ai neuroni
  *   - un buffer di correnti afferenti pre-allocato, riusato ad ogni step
- *   - vettori di stato della rete : statoNeuroni, statoFiring e statoSinapsi
+ *   - vettori di stato della rete: statoNeuroni_, statoFiring_, statoSinapsi_
  *
  * La scelta di una lista di sinapsi invece di una matrice di adiacenza
  * semplifica l'aggiunta futura di delay e plasticità sinaptica.
  *
  * Costruttori:
- *   Rete()    — rete vuota
- *   Rete(N)   — N neuroni con parametri biologici di default, ID da 0 a N-1
+ *   Rete(N, typeNeurone, typeIntegratore)
+ *         — N neuroni con parametri biologici di default, ID da 0 a N-1
  *
  * Metodi operativi:
- *   aggiungiNeurone(n)            — aggiunge un neurone alla rete
- *   connettiNeuroni(s)            — aggiunge una sinapsi alla rete
- *   step(dt, inputEsterni)        — avanza lo stato della rete di un passo dt
- *   salvaStatoRete(fV, fF, fS, t) — scrive lo stato corrente sui file di output
+ *   aggiungiNeurone(id, typeIntegratore, config)
+ *   modificaIntegratoreNeurone(id, typeIntegratore)
+ *   modificaParametriNeurone(id, config)
+ *   connettiNeuroni(IDpre, IDpost, configSyn)   — aggiunge una sinapsi
+ *   modificaSinapsi(IDsin, configSyn)           — modifica una sinapsi per ID
+ *   step(dt)
+ *   aggiornaStatoRete()
  *
- * Metodi getter:
- *   getPotenziali()    — restituisce il vettore statoNeuroni
- *   getFiringStates()  — restituisce il vettore statoFiring
- *   getSinapsi()       — restituisce il vettore statoSinaspi
+ * Metodi getter (privati, esposti a Simulazione via friend):
+ *   getPointerStatoNeuroni()
+ *   getPointerStatoFiring()
+ *   getPointerStatoSinapsi()
  *
  * Metodi di controllo:
- *   hasNeurone(id)     — true se un neurone con quell'ID esiste nella rete
+ *   hasNeurone(id)  — true se un neurone con quell'ID esiste nella rete
  */
 class Rete {
 
   private:
-    std::vector<TypeNeuron> neuroni_; // neuroni della rete
-    std::vector<Sinapsi> sinapsi_;    // connessioni sinaptiche
+    std::vector<TypeNeuron> neuroni_;
+    std::vector<TypeSyn>    sinapsi_;
     std::vector<double> stimoli_;
-    std::vector<double> inputTotale_;           // buffer correnti afferenti, dimensione = neuroni_.size()
-    std::unordered_map<int, size_t> idToIndex_; // mappa ID -> indice in neuroni_, lookup O(1)
+    std::vector<double> inputTotale_;
+    std::unordered_map<int, size_t> idToIndex_;   // mappa ID neurone -> indice
+    std::unordered_map<int, size_t> idToIndexSyn_; // mappa ID sinapsi -> indice
+
+    int prossimoIdSyn_ = 0; // contatore ID sinapsi, analogo all'ID neurone
 
     std::vector<double> statoNeuroni_;
     std::vector<double> statoFiring_;
     std::vector<double> statoSinapsi_;
 
-    // metodi setter
+    // metodi setter stimoli
     void resetStimoli() { std::fill(stimoli_.begin(), stimoli_.end(), 0.0); }
     void addStimolo(size_t i, double value) { stimoli_[i] += value; }
 
     // metodi getter
     const std::vector<double> &getPointerStatoNeuroni() const;
-    const std::vector<double> &getPointerStatoFiring() const;
+    const std::vector<double> &getPointerStatoFiring()  const;
     const std::vector<double> &getPointerStatoSinapsi() const;
 
     size_t getNumNeuroni() const { return neuroni_.size(); }
@@ -67,39 +73,48 @@ class Rete {
     size_t getIndex(int id) const { return idToIndex_.at(id); }
 
     // metodi di controllo
-    bool hasNeurone(int id) const { return idToIndex_.count(id) > 0; }
+    bool hasNeurone(int id)  const { return idToIndex_.count(id)    > 0; }
+    bool hasSinapsi(int id)  const { return idToIndexSyn_.count(id) > 0; }
 
-    // metodi oprativi privati
+    // metodi operativi privati
     void step(double dt);
     void aggiornaStatoRete();
-    void prepare(double dt); // metodo per prepara dal punto di vista della simualzione gli oggetti sinapsi e neuroni
+    void prepare(double dt);
 
   public:
     Rete(int N, Label_Type_Neuron typeNeurone, char typeintegratore = 'E');
 
-    // metodi operativi
+    // --- Neuroni ---
 
-    /*
-     * Possibili configurazioni :
-     *
-     * 1) LIF : {id, Vmembrana_inziale, Vthreshold, VthresholdMax (TRR), Vrest, Vreset, R, C, timeAbsolute, timeRelative, typeIntegratore}
-     *
-     *
-     * 2) Exp : {id, Vmembrana_inziale, Vthreshold, VthresholdMax (TRR), Vrest, Vreset, R, C, timeAbsolute, timeRelative, typeIntegratore}
-     *
-     *
-     * 3) AdExp : {id, Vmembrana_inziale, Vthreshold, VthresholdMax (TRR), Vrest, Vreset, R, C, timeAbsolute, timeRelative, typeIntegratore}
-     *
-     *
-     * 4) Izv : {id, Vmembrana_inziale, Vthreshold, VthresholdMax (TRR), Vrest, Vreset, R, C, timeAbsolute, timeRelative, typeIntegratore}
-     */
     void aggiungiNeurone(int ID, char typeIntegratore, const TypeConfig &configurazione);
-
     void modificaIntegratoreNeurone(int ID, char typeIntegratore);
     void modificaParametriNeurone(int ID, const TypeConfig &configurazione);
 
-    void connettiNeuroni(int IDpre, int IDpost, configSyn configurazioneSinapsi);
-    void modificaSinapsi(int IDpre, int IDpost, configSyn configurazioneSinapsi);
+    // --- Sinapsi ---
+
+    /*
+     * connettiNeuroni — aggiunge una sinapsi tra IDpre e IDpost.
+     *
+     * Restituisce l'ID univoco assegnato alla sinapsi (analogo all'ID neurone).
+     * Usare quell'ID per modificarla in seguito con modificaSinapsi().
+     *
+     * Esempio:
+     *   int idSyn = rete.connettiNeuroni(0, 1, configCurrentSyn{...});
+     *   rete.modificaSinapsi(idSyn, configCurrentSyn{nuovo_peso, ...});
+     *
+     * TypeConfigSyn = std::variant<configCurrentSyn, configConductanceSyn>
+     */
+    int  connettiNeuroni(int IDpre, int IDpost, const TypeConfigSyn &configurazioneSinapsi);
+
+    /*
+     * modificaSinapsi — aggiorna i parametri di una sinapsi esistente.
+     *
+     * IDsin: ID restituito da connettiNeuroni().
+     * La configurazione deve essere dello stesso tipo della sinapsi originale;
+     * se non lo è viene stampato un errore e non viene modificato nulla.
+     */
+    void modificaSinapsi(int IDsin, const TypeConfigSyn &configurazioneSinapsi);
+
     ~Rete() = default;
 
     friend class Simulazione;
