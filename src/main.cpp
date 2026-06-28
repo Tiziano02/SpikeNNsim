@@ -1,10 +1,12 @@
+#include "Exp.hpp"
 #include "Input.hpp"
+#include "Neurone.hpp"
 #include "Rete.hpp"
 #include "Simulazione.hpp"
-#include "Sinapsi.hpp"
 #include "UnitaSI.hpp"
 
 #include <iostream>
+#include <print>
 #include <random>
 #include <vector>
 
@@ -29,49 +31,53 @@ double rumoreUniforme(double centro, double ampiezza) {
 
 int main() {
 
-
-    Neurone n0(0);
-    Rete rete;
-    rete.aggiungiNeurone(n0);
+    int N = 100;
+    Rete rete(N, Label_Type_Neuron::Exp);
 
 
-    Simulazione sim(rete,0.01 * ms ,30 * ms);
+    for (int i = 0; i < N / 2; i++) {
+        configExp configPersonalizzaNeuroneExp;
+        configPersonalizzaNeuroneExp.C = 100 * i;
+
+        rete.modificaParametriNeurone(i, configPersonalizzaNeuroneExp);
+    }
+
+    /*
+    Simulazione sim(rete, 0.01 * ms, 30 * ms);
+
     parametriStimoloCostante p;
-    p.timeStart = 5.0 * ms; 
-    p.timeEnd = 15.0 * ms;  
+    p.timeStart = 5.0 * ms;
+    p.timeEnd = 15.0 * ms;
     p.ampiezza = 20.0 * n * A;
 
-    std::vector<int> v(1,0);
+    std::vector<int> v(1, 0);
     std::vector<parametriStimoloCostante> vp;
     vp.push_back(p);
-    sim.iniettaStimoloCostante(v,vp);
+    sim.iniettaStimoloCostante(v, vp);
 
-    sim.avviaSimulazione("potenzialitest1.bin","firingtest1.bin","sinapsitest1.bin");
+    sim.avviaSimulazione("potenzialitest1.bin", "firingtest1.bin", "sinapsitest1.bin");
 
     std::cout << "\nFINE SIMULAZIONE \n";
-
-
-
-
+    */
     /*
     std::cout << "=========================================================" << std::endl;
     std::cout << "--- BENCHMARK PER SAMPLY: Rete Biologica Sparsa (15k) ---" << std::endl;
     std::cout << "=========================================================" << std::endl;
 
     // 1. Parametri di Scala della Rete
-    const int N = 150; 
+    const int N = 150;
     const int Ne = static_cast<int>(N * 0.8);
     //const int Ni = N - Ne;
 
     // Parametri Neuroni
     const double eV_th = -50.0 * mV,  eV_rest = -65.0 * mV,  eV_reset = -65.0 * mV;
     const double eR = 100.0 * Mohm,  eC = 200.0 * p * F,    eTau_ref = 3.5 * ms;
-    
+
     const double iV_th = -50.0 * mV,  iV_rest = -65.0 * mV,  iV_reset = -65.0 * mV;
     const double iR = 50.0 * Mohm,   iC = 200.0 * p * F,    iTau_ref = 0.5 * ms;
 
     Rete rete;
-    
+
     std::cout << "[1/3] Allocazione di " << N << " neuroni..." << std::endl;
     for (int i = 0; i < N; ++i) {
         double V_0 = eV_reset + rumoreGaussiano(0, 2.0 * mV);
@@ -103,7 +109,7 @@ int main() {
             }
         }
     }
-    
+
     std::cout << " -> Totale Sinapsi Istanziate: " << rete.getNumSinapsi() << std::endl;
 
     // 3. Configurazione Simulazione
@@ -134,16 +140,16 @@ int main() {
     std::cout << "=========================================================" << std::endl;
     std::cout << " COMPILATION COMPLETED " << std::endl;
     std::cout << "=========================================================" << std::endl;
-    
+
     std::cout << "--- Test Ring Network (Propagazione ad Anello) ---" << std::endl;
 
     // 1. Creiamo una rete con 5 neuroni (ID da 0 a 4)
     const int numNeuroni = 50;
-    Rete rete(numNeuroni); 
+    Rete rete(numNeuroni);
 
     // 2. Connettiamo i neuroni in un anello chiuso (Ring Topology)
     std::cout << "[CONFIG] Creazione delle connessioni sinaptiche ad anello..." << std::endl;
-    
+
     // Connettiamo 0->1, 1->2, 2->3, 3->4
     for (int i = 0; i < numNeuroni - 1; ++i) {
         Sinapsi s(1.0, 30.0 * n * A, i, i + 1, 4.0 * ms);
@@ -154,19 +160,19 @@ int main() {
     rete.connettiNeuroni(s_chiusura);
 
     // 3. Inizializziamo i parametri della simulazione
-    double dt = 0.1 * ms; 
+    double dt = 0.1 * ms;
     double T = 500.0 * ms; // Durata sufficiente per vedere più giri dell'anello
     Simulazione sim(rete, dt, T);
 
     // 4. CONFIGURAZIONE STIMOLO COSTANTE — SOLO SUL NEURONE 0
     std::vector<int> idCostante = {0};
     std::vector<parametriStimoloSeno> paramSeno;
-    
+
     parametriStimoloSeno pCost;
     pCost.timeStart = 50.0 * ms;   // Lo stimolo parte a 5 ms
     pCost.timeEnd = 500.0 * ms;    // Lo stimolo si interrompe a 25 ms
     pCost.ampiezza = 40.0 * n * A; // Corrente forte sul primo neurone per innescare il ciclo
-    pCost.fase = 0.0;  
+    pCost.fase = 0.0;
     pCost.frequenza = 40 * Hz;
     paramSeno.push_back(pCost);
 
@@ -289,8 +295,8 @@ int main() {
     std::cout << "Simulazione completata.\n";
     return 0;
 
-    
-    
+
+
     // rete e neuroni
     const int N = 500;
     Rete rete(N);
@@ -331,5 +337,5 @@ int main() {
     sim.avviaSimulazione("potenziali.bin", "firing.bin", "sinapsi.bin");
 
     */
-   return 0;
+    return 0;
 }

@@ -1,11 +1,19 @@
 #ifndef SINAPSI_HPP
 #define SINAPSI_HPP
 
-#include "UnitaSI.hpp"
+// #include "UnitaSI.hpp"
 
 #include <cmath>   // necessaria per round()
 #include <cstddef> // necessaria per i size_t
 #include <vector>
+
+struct configSyn {
+    double peso;
+    double Ipeak;
+    double Isyn;
+    double tau;
+    double delay;
+};
 
 /*
  * Sinapsi — connessione current-based con decadimento esponenziale.
@@ -74,7 +82,7 @@ class Sinapsi {
     size_t getIndexPost() const { return indexPost_; }
 
   public:
-    Sinapsi(double peso, double Ipeak, int idPre, int idPost, double tau, double delay) : idPre_(idPre), idPost_(idPost), indexPre_(0), indexPost_(0), peso_(peso), Ipeak_(Ipeak), Isyn_(0.0), tau_(tau), delay_(delay), presentStep_(0), delayStep_(0) {}
+    Sinapsi(size_t indexPre, size_t indexPost, int idPre, int idPost, configSyn config) : idPre_(idPre), idPost_(idPost), indexPre_(indexPre), indexPost_(indexPost), peso_(config.peso), Ipeak_(config.Ipeak), Isyn_(0.0), tau_(config.tau), delay_(config.delay), presentStep_(0), delayStep_(0) {}
     ~Sinapsi() = default;
 
     friend class Rete;

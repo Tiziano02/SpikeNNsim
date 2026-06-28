@@ -1,10 +1,11 @@
 #ifndef RETE_HPP
 #define RETE_HPP
 
-#include "Input.hpp"
 #include "Neurone.hpp"
 #include "Sinapsi.hpp"
 
+#include <algorithm>
+#include <cstddef>
 #include <unordered_map>
 #include <vector>
 
@@ -42,8 +43,8 @@
 class Rete {
 
   private:
-    std::vector<Neurone> neuroni_; // neuroni della rete
-    std::vector<Sinapsi> sinapsi_; // connessioni sinaptiche
+    std::vector<TypeNeuron> neuroni_; // neuroni della rete
+    std::vector<Sinapsi> sinapsi_;    // connessioni sinaptiche
     std::vector<double> stimoli_;
     std::vector<double> inputTotale_;           // buffer correnti afferenti, dimensione = neuroni_.size()
     std::unordered_map<int, size_t> idToIndex_; // mappa ID -> indice in neuroni_, lookup O(1)
@@ -74,17 +75,31 @@ class Rete {
     void prepare(double dt); // metodo per prepara dal punto di vista della simualzione gli oggetti sinapsi e neuroni
 
   public:
-    Rete() = default;
-
-    Rete(int N) {
-        for (int i = 0; i < N; ++i)
-            aggiungiNeurone(Neurone(i));
-    }
+    Rete(int N, Label_Type_Neuron typeNeurone, char typeintegratore = 'E');
 
     // metodi operativi
-    void aggiungiNeurone(const Neurone &neurone);
-    void connettiNeuroni(Sinapsi &s);
 
+    /*
+     * Possibili configurazioni :
+     *
+     * 1) LIF : {id, Vmembrana_inziale, Vthreshold, VthresholdMax (TRR), Vrest, Vreset, R, C, timeAbsolute, timeRelative, typeIntegratore}
+     *
+     *
+     * 2) Exp : {id, Vmembrana_inziale, Vthreshold, VthresholdMax (TRR), Vrest, Vreset, R, C, timeAbsolute, timeRelative, typeIntegratore}
+     *
+     *
+     * 3) AdExp : {id, Vmembrana_inziale, Vthreshold, VthresholdMax (TRR), Vrest, Vreset, R, C, timeAbsolute, timeRelative, typeIntegratore}
+     *
+     *
+     * 4) Izv : {id, Vmembrana_inziale, Vthreshold, VthresholdMax (TRR), Vrest, Vreset, R, C, timeAbsolute, timeRelative, typeIntegratore}
+     */
+    void aggiungiNeurone(int ID, char typeIntegratore, const TypeConfig &configurazione);
+
+    void modificaIntegratoreNeurone(int ID, char typeIntegratore);
+    void modificaParametriNeurone(int ID, const TypeConfig &configurazione);
+
+    void connettiNeuroni(int IDpre, int IDpost, configSyn configurazioneSinapsi);
+    void modificaSinapsi(int IDpre, int IDpost, configSyn configurazioneSinapsi);
     ~Rete() = default;
 
     friend class Simulazione;
