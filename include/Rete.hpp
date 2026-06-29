@@ -92,6 +92,20 @@ class Rete {
 
     // --- Sinapsi ---
 
+    // /**
+    //  * @brief Aggiunge una sinapsi tra due neuroni e restituisce il suo ID univoco.
+    //  *
+    //  * @param IDpre   ID del neurone pre-sinaptico.
+    //  * @param IDpost  ID del neurone post-sinaptico.
+    //  * @param config  Configurazione della sinapsi (TypeConfigSyn).
+    //  * @return ID univoco della sinapsi, da usare con modificaSinapsi().
+    //  *         Restituisce -1 se uno dei neuroni non esiste.
+    //  *
+    //  * @note Può essere chiamato più volte sulla stessa coppia (IDpre, IDpost):
+    //  *       ogni sinapsi riceve un ID indipendente.
+    //  * @warning Deve essere chiamato prima di avviaSimulazione().
+    //  */
+
     /*
      * connettiNeuroni — aggiunge una sinapsi tra IDpre e IDpost.
      *

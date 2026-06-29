@@ -181,7 +181,8 @@ static void test_conductance_syn() {
     cfgInh.delay = 1.0 * ms;
     cfgInh.E_rev = -70.0 * mV;
     int idInh = rete.connettiNeuroni(2, 1, cfgInh);
-    ok("connettiNeuroni(2→1) ConductanceSyn inibitoria (E_rev=-70mV) — ID: " + std::to_string(idInh));
+    int idtest = rete.connettiNeuroni(int IDpre, int IDpost, const TypeConfigSyn& configurazioneSinapsi)
+                     ok("connettiNeuroni(2→1) ConductanceSyn inibitoria (E_rev=-70mV) — ID: " + std::to_string(idInh));
 
     // Sinapsi CurrentSyn sulla stessa rete (test coesistenza)
     configCurrentSyn cfgCur;
