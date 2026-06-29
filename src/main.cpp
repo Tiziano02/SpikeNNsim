@@ -225,7 +225,7 @@ static void test_conductance_syn() {
 int main() {
     test_nuova_creazione_rete();
     test_neuroni_exp();
-    // test_conductance_syn();
+    test_conductance_syn();
 
     std::cout << "\n══════════════════════════════════════════\n";
     std::cout << "  Tutti i test completati.\n";

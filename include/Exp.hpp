@@ -9,12 +9,11 @@ struct configExp {
     double V_ThresholdSpikeMax = -35.0 * mV;
     double V_rest = -65.0 * mV;
     double V_reset = -70.0 * mV;
-    double deltaT = 2.5 * mV;
+    double sharpness = 2.5 * mV; // cambiare nome ?
     double R = 1.0 * Mohm;
     double C = 100.0 * p * F;
     double timeAbsolute = 5.0 * ms;
     double timeRelative = 15.0 * ms;
-    // altro....
 };
 
 /*
@@ -58,7 +57,7 @@ class Exp {
     double timeRelative_;  // durata periodo refrattario relativo [s]
     double tempoRR_;       // tempo refrattario assoluto rimanente [s]
     double tauRelative_;   // tau decadimento Vth_;
-    double DeltaT_;        // delta esponenziale --> non mi ricordo bene il modello exponential LIF
+    double sharpness_;     // delta esponenziale --> non mi ricordo bene il modello exponential LIF
     bool fired_;           // true se il neurone ha sparato nell'ultimo step
     char tipoIntegratore_; // tipo di integratore da utilizzare: 'E' = Eulero in avanti, 'R' = Runge-Kutta 4
 
@@ -79,7 +78,7 @@ class Exp {
         : id_(id), V_(config.V_), Vth_(config.V_th), Vth0_(config.V_th), VthSpikeMax_(config.V_ThresholdSpikeMax),
           Vrest_(config.V_rest), Vreset_(config.V_reset), R_(config.R), C_(config.C), tau_(config.R * config.C),
           timeAbsolute_(config.timeAbsolute), timeRelative_(config.timeRelative), tempoRR_(0.0),
-          tauRelative_(config.timeRelative / 3), DeltaT_(config.deltaT), fired_(false),
+          tauRelative_(config.timeRelative / 3), sharpness_(config.sharpness), fired_(false),
           tipoIntegratore_(typeIntegratore) {}
 
     friend class Rete;

@@ -1,7 +1,6 @@
 #include "Rete.hpp"
 #include <cstddef>
 #include <iostream>
-#include <type_traits>
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Costruttore
@@ -104,7 +103,7 @@ void Rete::modificaParametriNeurone(int id, const TypeConfig& configurazione) {
                     n.VthSpikeMax_ = cfg->V_ThresholdSpikeMax;
                     n.Vrest_ = cfg->V_rest;
                     n.Vreset_ = cfg->V_reset;
-                    n.DeltaT_ = cfg->deltaT;
+                    n.sharpness_ = cfg->sharpness;
                     n.R_ = cfg->R;
                     n.C_ = cfg->C;
                     n.tau_ = cfg->R * cfg->C;
@@ -262,8 +261,8 @@ void Rete::step(double dt) {
                         std::visit([](const auto& n) { return n.getPotential(); }, neuroni_[syn.getIndexPost()]);
                     syn.update(dt, preFired, V_post);
                 }
-
-                inputTotale_[syn.getIndexPost()] += syn.getCurrent();
+                // sottraggo la corrente sinaptica all'input totale (fisicamente è coerente)
+                inputTotale_[syn.getIndexPost()] -= syn.getCurrent();
             },
             synVar);
     }

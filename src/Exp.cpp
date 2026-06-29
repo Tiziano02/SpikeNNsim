@@ -18,7 +18,7 @@
  */
 void Exp::euleroInAvanti(double correnteTotale, double dt) {
 
-    double termExp = DeltaT_ * std::exp((V_ - Vth_) / DeltaT_);
+    double termExp = sharpness_ * std::exp((V_ - Vth_) / sharpness_);
     double dV = (-(V_ - Vrest_) + termExp + R_ * correnteTotale) / tau_;
     V_ += dV * dt;
 }
@@ -26,7 +26,7 @@ void Exp::euleroInAvanti(double correnteTotale, double dt) {
 void Exp::rungeKutta(double correnteTotale, double dt) {
     // Funzione lambda locale per calcolare f(V, I) in modo pulito
     auto f = [this, correnteTotale](double v) {
-        double termExp = DeltaT_ * std::exp((v - Vth_) / DeltaT_);
+        double termExp = sharpness_ * std::exp((v - Vth_) / sharpness_);
         return (-(v - Vrest_) + termExp + R_ * correnteTotale) / tau_;
     };
 
