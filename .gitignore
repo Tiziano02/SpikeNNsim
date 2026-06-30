@@ -19,7 +19,7 @@ compile_commands.json
 *.dylib
 *.dSYM/
 
-# Eseguibili del nostro Makefile
+# Eseguibili del Makefile
 simulatore
 simulatore_*
 
@@ -32,6 +32,7 @@ simulatore_*
 # Temporary files
 *.tmp
 *.log
+.cache
 
 # Simulation outputs (ignora tutti i risultati)
 output/*
