@@ -18,8 +18,7 @@
  *   tau    — costante di tempo del decadimento esponenziale [s]  default:  5 ms
  *   delay  — ritardo sinaptico                              [s]  default:  1 ms
  *
- * Attenzione alla convenzione dei segni: in Rete::step() la corrente sinaptica
- * viene sottratta all'input totale del neurone post (inputTotale -= Isyn).
+ * Convenzione dei segni per i pesi e per le correnti sinaptiche in generale
  * Quindi:
  *   peso > 0  ->  Isyn > 0  ->  inputTotale diminuisce  ->  inibitoria
  *   peso < 0  ->  Isyn < 0  ->  inputTotale aumenta     ->  eccitatoria
