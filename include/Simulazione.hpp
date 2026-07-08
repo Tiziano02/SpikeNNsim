@@ -3,44 +3,43 @@
 
 #include "Rete.hpp"
 #include "Input.hpp"
-
 #include <fstream>
 
+// ============================================================================
+// CLASSE Simulazione (PUBBLICA)
+// ============================================================================
+
 /**
- * Simulazione — Coordina la rete, gli stimoli esterni e l'output su file.
+ * Simulazione – coordina la rete, gli stimoli esterni e l'output su file.
  *
- * La simulazione gestisce la griglia temporale e il loop principale.
+ * Gestisce il loop temporale e l'applicazione degli stimoli.
  *
  * ============================================================================
- * STIMOLI ESTERNI
+ * STIMOLI
  * ============================================================================
- * La simulazione utilizza un unico vettore di StimoloCollegato per gestire
- * tutti gli stimoli esterni. Ogni stimolo è un std::variant che può contenere
- * diversi tipi (costante, sinusoidale, ecc.).
- *
- * Per aggiungere uno stimolo, usare iniettaStimoli().
+ * Utilizza un vettore di stimolo (vedi Input.hpp) per gestire stimoli costanti
+ * e sinusoidali. Aggiungere stimoli con iniettaStimoli().
  *
  * ============================================================================
  * OUTPUT
  * ============================================================================
- * I risultati vengono salvati in file binari con un header iniziale di 4 byte
- * che specifica il numero di colonne (tempo + dati). Usare gli script Python
- * forniti per leggere i file.
+ * I risultati vengono salvati in file binari con un header (int32_t) che
+ * indica il numero di colonne (tempo + dati). Usare gli script Python
+ * di supporto per la lettura.
  */
 class Simulazione {
 
   private:
-    Rete rete_; // Rete da simulare
+    // ── ATTRIBUTI PRIVATI ──────────────────────────────────────────────────
 
-    // ---------- Stimoli Esterni ----------
-    std::vector<stimolo> stimoli_; // Un unico vettore per tutti gli stimoli
+    Rete rete_;                    // Rete da simulare
+    std::vector<stimolo> stimoli_; // Stimoli esterni
 
-    // ---------- Parametri Temporali ----------
     double dt_;        // Passo temporale [s]
     int stepCorrente_; // Step attuale
     int stepTotali_;   // Numero totale di step
 
-    // ---------- I/O ----------
+    // Output
     std::ofstream filePotenziali_;
     std::ofstream fileFiring_;
     std::ofstream fileSinapsi_;
@@ -57,53 +56,42 @@ class Simulazione {
     size_t posizioneBuffer_ = 0;
     size_t stepsPerFlush_ = 0;
 
-    // ---------- Metodi Interni ----------
+    // ── METODI PRIVATI ──────────────────────────────────────────────────────
+
     void inizializzaOutput();
     void loadStatoRete(double time);
     void writeFile();
 
     /**
      * Valuta tutti gli stimoli al tempo t e li applica alla rete.
-     *
-     * Itera su stimoli_ e usa std::visit per calcolare il valore corrente
-     * di ogni stimolo in base al tipo (costante, sinusoidale, ecc.).
+     * Iterando su stimoli_ e usando std::visit per calcolare il valore corrente.
      */
     void valutaStimoli(double t);
+
+    // ── COSTRUTTORE E METODI PUBBLICI ─────────────────────────────────────
 
   public:
     /**
      * Costruisce una simulazione.
-     *
-     * @param rete Rete da simulare (viene copiata internamente).
-     * @param dt Passo temporale [s].
-     * @param T Durata totale della simulazione [s].
-     *
-     * @warning Verifica che dt non sia troppo grande rispetto a tau_min.
+     * @param rete  Rete da simulare (viene copiata internamente)
+     * @param dt    passo temporale [s]
+     * @param T     durata totale [s]
+     * @warning Se dt > tau_min/10, viene stampato un avviso di instabilità.
      */
     Simulazione(const Rete& rete, double dt, double T);
 
     /**
      * Inietta una lista di stimoli nella simulazione.
-     *
-     * @param stimoli Vettore di coppie (ID neurone, parametri stimolo).
-     *
-     * @note I parametri possono essere StimoloCostante o StimoloSinusoidale.
-     * @warning I neuroni devono esistere; altrimenti viene stampato un errore.
-     *
-     * Esempio:
-     *   sim.iniettaStimoli({
-     *       {0, StimoloCostante{0.0, 100.0*ms, 20e-9}},
-     *       {2, StimoloSinusoidale{0.0, 100.0*ms, 10e-9, 40*Hz, 0.0}}
-     *   });
+     * @param stimoli vettore di stimolo (coppia indice neurone + parametri)
+     * @note I neuroni devono esistere; altrimenti viene stampato un errore.
      */
     void iniettaStimoli(const std::vector<stimolo>& stimoli);
 
     /**
      * Avvia la simulazione e salva i risultati su file binari.
-     *
-     * @param filenameV Nome file per i potenziali.
-     * @param filenameF Nome file per i firing.
-     * @param filenameS Nome file per le correnti sinaptiche.
+     * @param filenameV  file per i potenziali
+     * @param filenameF  file per i firing
+     * @param filenameS  file per le correnti sinaptiche
      */
     void avviaSimulazione(const std::string& filenameV, const std::string& filenameF, const std::string& filenameS);
 

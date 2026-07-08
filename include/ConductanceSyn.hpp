@@ -5,27 +5,27 @@
 #include <cstddef>
 #include <vector>
 
-/*
- * configConductanceSyn — parametri di configurazione per la sinapsi conductance-based.
+// ============================================================================
+// STRUCT DI CONFIGURAZIONE (PUBBLICA)
+// ============================================================================
+
+/**
+ * configConductanceSyn – parametri di configurazione per una sinapsi conductance‑based.
  *
- * Passata a Rete::connettiNeuroni() e a Rete::modificaSinapsi().
- * Tutti i valori sono in unità SI (vedi UnitaSI.hpp).
+ * Questa struct viene passata a Rete::connettiNeuroni() e a Rete::modificaSinapsi()
+ * per specificare le proprietà della sinapsi. Tutti i valori sono in unità SI
+ * (vedi UnitaSI.hpp).
  *
- * Attributi:
- *   peso   — scala il kick di conduttanza ad ogni spike        [-]  default:  1.0
- *   gpeak  — conduttanza di picco per peso unitario            [S]  default:  1 nS
- *   gsyn   — conduttanza iniziale (solitamente lasciare a 0)   [S]  default:  0
- *   tau    — costante di tempo del decadimento esponenziale    [s]  default:  5 ms
- *   delay  — ritardo sinaptico                                 [s]  default:  1 ms
- *   E_rev  — potenziale di inversione                          [V]  default:  0 V
- *
- * Il tipo di sinapsi si controlla tramite E_rev (la convenzione dei segni emerge
- * dalla fisica, vedi classe ConductanceSyn):
- *   E_rev ~  0 mV   ->  eccitatoria  (AMPA/NMDA)
- *   E_rev ~ -70 mV  ->  inibitoria   (GABA-A)
+ * Campi (con valori di default):
+ *   peso   – fattore di scala del kick di conduttanza ad ogni spike   [-]   default: 1.0
+ *   gpeak  – conduttanza di picco per peso unitario                   [S]   default: 1 nS
+ *   gsyn   – conduttanza iniziale (di solito lasciare a 0)            [S]   default: 0
+ *   tau    – costante di tempo del decadimento esponenziale           [s]   default: 5 ms
+ *   delay  – ritardo sinaptico                                        [s]   default: 1 ms
+ *   E_rev  – potenziale di inversione                                 [V]   default: 0 V
  */
 struct configConductanceSyn {
-    double peso = 1.0;
+    double peso = 1.0;   // [-]
     double gpeak = 1e-9; // [S]
     double gsyn = 0.0;   // [S]
     double tau = 5e-3;   // [s]
@@ -33,76 +33,92 @@ struct configConductanceSyn {
     double E_rev = 0.0;  // [V]
 };
 
-/*
- * ConductanceSyn — sinapsi conductance-based con decadimento esponenziale e delay.
+// ============================================================================
+// CLASSE ConductanceSyn (PRIVATA – USO INTERNO)
+// ============================================================================
+
+/**
+ * ConductanceSyn – sinapsi conductance‑based con decadimento esponenziale e ritardo.
+ *
+ * Questa classe è friend di Rete e NON deve essere istanziata direttamente
+ * dall'utente: usare sempre Rete::connettiNeuroni().
  *
  * Modello matematico:
  *   dg_syn/dt = -g_syn / tau
  *
- * Ad ogni spike pre-sinaptico (con ritardo delay):
- *   g_syn -> g_syn + peso * gpeak
+ * Ad ogni spike pre‑sinaptico (dopo il ritardo delay):
+ *   g_syn += peso * gpeak
  *
  * La corrente sinaptica è:
  *   I_syn = g_syn * (V_post - E_rev)
  *
- * In Rete::step() la corrente viene sottratta all'input totale (inputTotale -= Isyn).
- * Il segno dell'effetto emerge dalla combinazione di I_syn e questa sottrazione:
- *   E_rev ~  0 mV,  V_post ~ -65 mV  ->  I_syn < 0  ->  inputTotale aumenta  ->  eccitatoria
- *   E_rev ~ -70 mV, V_post ~ -65 mV  ->  I_syn > 0  ->  inputTotale diminuisce -> inibitoria
+ * In Rete::step() la corrente viene sottratta all'input totale del neurone post.
+ * Il segno dell'effetto dipende da V_post rispetto a E_rev:
+ *   - se V_post > E_rev  -> I_syn > 0  -> depolarizzante (eccitatoria)
+ *   - se V_post < E_rev  -> I_syn < 0  -> iperpolarizzante (inibitoria)
  *
- * A differenza di CurrentSyn, la corrente dipende dal potenziale post-sinaptico
- * corrente: update() richiede V_post come argomento aggiuntivo. Questo rende
- * il modello più realistico biologicamente (la forza trainante si riduce
- * man mano che V_post si avvicina a E_rev).
- *
- * Nota: ConductanceSyn è friend di Rete. Tutti i metodi sono privati e vengono
- * chiamati esclusivamente da Rete::step(). Non istanziare direttamente:
- * usare Rete::connettiNeuroni().
+ * A differenza di CurrentSyn, la corrente dipende dal potenziale post‑sinaptico,
+ * rendendo il modello più realistico.
  */
 class ConductanceSyn {
 
-    // ── ATTRIBUTI ────────────────────────────────────────────────────────────
+    friend class Rete; // Consente a Rete di accedere a tutti i membri privati
+
+    // ── ATTRIBUTI PRIVATI ────────────────────────────────────────────────────
 
   private:
-    int idPre_, idPost_;            // ID dei neuroni pre e post-sinaptico
-    size_t indexPre_, indexPost_;   // indici interni in Rete::neuroni_
-    double peso_;                   // scala il kick di conduttanza ad ogni spike
+    int idPre_, idPost_;            // ID dei neuroni pre e post
+    size_t indexPre_, indexPost_;   // indici interni nei vettori di Rete
+    double peso_;                   // scalare del kick di conduttanza [-]
     double gpeak_;                  // conduttanza di picco per peso unitario [S]
-    double gsyn_;                   // conduttanza sinaptica corrente [S]
+    double gsyn_;                   // conduttanza corrente [S]
     double Isyn_;                   // corrente sinaptica corrente [A]  (= gsyn_ * (V_post - E_rev))
     double tau_;                    // costante di tempo del decadimento [s]
     double delay_;                  // ritardo sinaptico [s]
     double E_rev_;                  // potenziale di inversione [V]
     size_t presentStep_;            // posizione corrente nel ring buffer
-    size_t delayStep_;              // numero di step corrispondenti al delay
-    std::vector<double> delayRing_; // ring buffer per la gestione del delay
+    size_t delayStep_;              // numero di passi corrispondenti al delay
+    std::vector<double> delayRing_; // ring buffer per il ritardo
 
-    // ── METODI PRIVATI ───────────────────────────────────────────────────────
+    // ── METODI PRIVATI ──────────────────────────────────────────────────────
 
-    void update(double dt, bool preFired,
-                double V_post); // avanza lo stato della sinapsi di un passo dt (chiamato da Rete)
+    /**
+     * Avanza lo stato della sinapsi di un passo temporale dt.
+     * Viene chiamato da Rete::step().
+     *
+     * @param dt       passo temporale [s]
+     * @param preFired true se il neurone pre ha generato uno spike in questo step
+     * @param V_post   potenziale del neurone post (necessario per la corrente)
+     */
+    void update(double dt, bool preFired, double V_post);
 
-    void setIndexPre(size_t idx) { indexPre_ = idx; }   // aggiorna l'indice interno del neurone pre
-    void setIndexPost(size_t idx) { indexPost_ = idx; } // aggiorna l'indice interno del neurone post
-    void setDelayRing(double dt) {                      // alloca il ring buffer in base al dt della simulazione
+    // Setter per gli indici interni (usati da Rete)
+    void setIndexPre(size_t idx) { indexPre_ = idx; }
+    void setIndexPost(size_t idx) { indexPost_ = idx; }
+
+    /**
+     * Alloca il ring buffer per il ritardo in base al passo temporale dt.
+     * Viene chiamato da Rete::prepare() prima dell'avvio.
+     */
+    void setDelayRing(double dt) {
         delayStep_ = static_cast<size_t>(std::round(delay_ / dt));
         delayRing_.assign(delayStep_ + 1, 0.0);
     }
 
-    double getCurrent() const { return Isyn_; }        // restituisce la corrente sinaptica corrente [A]
-    int getIdPre() const { return idPre_; }            // restituisce l'ID del neurone pre-sinaptico
-    int getIdPost() const { return idPost_; }          // restituisce l'ID del neurone post-sinaptico
-    size_t getIndexPre() const { return indexPre_; }   // restituisce l'indice interno del neurone pre
-    size_t getIndexPost() const { return indexPost_; } // restituisce l'indice interno del neurone post
+    // Getter per l'accesso da parte di Rete
+    double getCurrent() const { return Isyn_; }
+    int getIdPre() const { return idPre_; }
+    int getIdPost() const { return idPost_; }
+    size_t getIndexPre() const { return indexPre_; }
+    size_t getIndexPost() const { return indexPost_; }
 
-    // ── COSTRUTTORE / DISTRUTTORE ─────────────────────────────────────────────
+    // ── COSTRUTTORE / DISTRUTTORE (PUBBLICI MA NON USATI DIRETTAMENTE) ──
 
   public:
-    /*
-     * Costruisce una sinapsi conductance-based tra due neuroni.
-     * In genere non si chiama direttamente: usare Rete::connettiNeuroni().
-     * Il ring buffer del delay viene allocato da Rete::prepare() al momento
-     * dell'avvio della simulazione.
+    /**
+     * Costruisce una sinapsi conductance‑based.
+     * Non chiamare direttamente: usare Rete::connettiNeuroni().
+     * Il ring buffer viene allocato successivamente da Rete::prepare().
      */
     ConductanceSyn(size_t indexPre, size_t indexPost, int idPre, int idPost, configConductanceSyn config)
         : idPre_(idPre), idPost_(idPost), indexPre_(indexPre), indexPost_(indexPost), peso_(config.peso),
@@ -110,8 +126,6 @@ class ConductanceSyn {
           presentStep_(0), delayStep_(0) {}
 
     ~ConductanceSyn() = default;
-
-    friend class Rete;
 };
 
 #endif // CONDUCTANCESYN_HPP

@@ -1,8 +1,13 @@
 #ifndef UTILITY
 #define UTILITY
 
-#include <cstddef> //necessaria per i size_t
+#include <cstddef>
 
-size_t getAvailableRAM(); // Senza parentesi graffe!
+/**
+ * getAvailableRAM – restituisce la RAM attualmente disponibile in byte.
+ * Utilizzata da Simulazione per dimensionare i buffer di output.
+ * @return dimensione in byte, o un valore di fallback in caso di errore.
+ */
+size_t getAvailableRAM();
 
 #endif // UTILITY

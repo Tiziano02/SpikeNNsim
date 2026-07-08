@@ -3,48 +3,57 @@
 
 #include <variant>
 
-// ============================================================
-// TIPI DI STIMOLO
-// ============================================================
+// ============================================================================
+// TIPI DI STIMOLO (PUBBLICI)
+// ============================================================================
 
 /**
- * Stimolo costante: fornisce una corrente costante per un intervallo di tempo.
+ * configConstantStimulus – stimolo costante.
+ *
+ * Fornisce una corrente costante di ampiezza "ampiezza" nell'intervallo
+ * [timeStart, timeEnd] (in secondi).
  */
 struct configConstantStimulus {
-    double timeStart; // Istante di inizio [s]
-    double timeEnd;   // Istante di fine [s]
-    double ampiezza;  // Corrente [A]
+    double timeStart; // [s]
+    double timeEnd;   // [s]
+    double ampiezza;  // [A]
 };
 
 /**
- * Stimolo sinusoidale: fornisce una corrente sinusoidale.
+ * configSinStimulus – stimolo sinusoidale.
+ *
+ * Fornisce una corrente sinusoidale:
+ *   I(t) = ampiezza * sin(2π * frequenza * t + fase)
+ * attiva solo per t in [timeStart, timeEnd].
  */
 struct configSinStimulus {
-    double timeStart; // Istante di inizio [s]
-    double timeEnd;   // Istante di fine [s]
-    double ampiezza;  // Ampiezza della sinusoide [A]
-    double frequenza; // Frequenza [Hz]
-    double fase;      // Fase iniziale [rad]
+    double timeStart; // [s]
+    double timeEnd;   // [s]
+    double ampiezza;  // [A]
+    double frequenza; // [Hz]
+    double fase;      // [rad]
 };
 
-// ============================================================
-// TYPE-ALIAS PER USARE VARIANT
-// ============================================================
+// ============================================================================
+// ALIAS PER LA GESTIONE POLIMORFA DEGLI STIMOLI
+// ============================================================================
 
 /**
- * ParametriStimolo è un variant che può contenere uno dei tipi di stimolo.
- * Uniforma la gestione degli stimoli come per neuroni (LIF/Exp) e sinapsi
- * (CurrentSyn/ConductanceSyn).
+ * typeParameters – variant che può contenere uno dei tipi di stimolo.
+ * Utilizzato per uniformare la gestione degli stimoli esterni.
  */
 using typeParameters = std::variant<configConstantStimulus, configSinStimulus>;
 
 /**
- * Struttura che associa uno stimolo al neurone target.
- * Sostituisce il vecchio registro + database multipli.
+ * stimolo – associa uno stimolo a un neurone target.
+ *
+ * Campi:
+ *   indiceNeurone – indice del neurone nel vettore neuroni_ di Rete
+ *   parametri     – parametri dello stimolo (uno dei tipi sopra)
  */
 struct stimolo {
-    size_t indiceNeurone;     // Indice nel vettore neuroni_ (per accesso rapido)
-    typeParameters parametri; // Parametri dello stimolo
+    size_t indiceNeurone;
+    typeParameters parametri;
 };
 
 #endif // INPUT_HPP
