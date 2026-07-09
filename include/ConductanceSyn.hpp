@@ -4,6 +4,8 @@
 #include <cmath>
 #include <cstddef>
 #include <vector>
+#include <UnitaSI.hpp>
+
 /**
  * @brief Struct che definisce i parametri biologici di una sinapsi conductance-based
  *
@@ -20,12 +22,12 @@
  * @param E_rev è il potenziale di inversione della sinapsi
  */
 struct configConductanceSyn {
-    double peso = 1.0;   // [-]
-    double gpeak = 1e-9; // [S]
-    double gsyn = 0.0;   // [S]
-    double tau = 5e-3;   // [s]
-    double delay = 1e-3; // [s]
-    double E_rev = 0.0;  // [V]
+    double peso = 1.0; ///> è un numero senza unità di misura e indica la forza della sinapsi
+    double gpeak = 1e-9 * S;
+    double gsyn = 0.0 * S;
+    double tau = 5 * ms;
+    double delay = 1 * ms;
+    double E_rev = 0.0 * Volt;
 };
 
 class ConductanceSyn {
