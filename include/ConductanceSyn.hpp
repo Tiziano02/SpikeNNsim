@@ -5,8 +5,17 @@
 #include <cstddef>
 #include <vector>
 /**
- * @brief {cursor}
+ * @brief {cursor} Per connettere due neuroni tramite il metodo c(IDpre, IDpost,
+ * configurazioneSinapisi) è necessario utilizzare una configuraione di una sinaspe tra quelle possibili. Una di quelle
+ * possibili è la sinapsi di tipo conductance-based. Per definire una sinapsi di questo tipo è necessario passare al
+ * metodo Rete::connettiNeuroni una configurazione definita da questa struct.
  *
+ * @param peso è un numero senza unità di misura e indica la forza della sinapsi
+ * @param gpeak è il valore di picco della conduttanza quando avviene uno spike
+ * @param gsyn è la conduttanza della sinapsi al tempo t, variabile dinamica della sinapsi
+ * @param tau è la scala di tempo di decadiemnto della dinamica della sinapsi :
+ * @param delay è il ritardo sinaptico per il passaggio di uno spike
+ * @param E_rev è il potenziale di inversione della sinapsi
  */
 struct configConductanceSyn {
     double peso = 1.0;   // [-]
