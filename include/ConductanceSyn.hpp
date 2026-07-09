@@ -4,7 +4,10 @@
 #include <cmath>
 #include <cstddef>
 #include <vector>
-
+/**
+ * @brief {cursor}
+ *
+ */
 struct configConductanceSyn {
     double peso = 1.0;   // [-]
     double gpeak = 1e-9; // [S]
