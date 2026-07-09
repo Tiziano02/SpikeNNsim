@@ -20,8 +20,8 @@ compile_commands.json
 *.dSYM/
 
 # Eseguibili del Makefile
-simulatore
-simulatore_*
+SpikeNNsim
+SpikeNNsim_*
 
 # macOS
 .DS_Store
@@ -51,3 +51,9 @@ plots/
 
 # Profiling directory
 profiles/
+
+# html directory
+docs/html/
+
+# clangd cache 
+.cache/

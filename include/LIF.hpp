@@ -8,32 +8,22 @@
 // ============================================================================
 
 /**
- * configLIF – parametri di configurazione per il neurone LIF.
+ * @ingroup publicapi
+ * @brief Parametri di configurazione per il neurone LIF (Leaky Integrate-and-Fire).
  *
  * Passata al costruttore di LIF e a Rete::modificaParametriNeurone().
- * Tutti i valori in unità SI.
- *
- * Campi:
- *   V_                  – potenziale iniziale [V]   default: -65 mV
- *   V_th                – soglia a riposo       [V]   default: -50 mV
- *   V_ThresholdSpikeMax – soglia massima post‑spike [V]   default: -35 mV
- *   V_rest              – potenziale di riposo  [V]   default: -65 mV
- *   V_reset             – reset dopo spike      [V]   default: -70 mV
- *   R                   – resistenza di ingresso [Ω]   default: 1 MΩ
- *   C                   – capacità di membrana  [F]   default: 100 pF
- *   timeAbsolute        – refrattarietà assoluta [s]   default: 5 ms
- *   timeRelative        – refrattarietà relativa [s]   default: 15 ms
+ * Tutti i valori sono in unità SI (vedi UnitaSI.hpp).
  */
 struct configLIF {
-    double V_ = -65.0 * mV;
-    double V_th = -50.0 * mV;
-    double V_ThresholdSpikeMax = -35.0 * mV;
-    double V_rest = -65.0 * mV;
-    double V_reset = -70.0 * mV;
-    double R = 1.0 * Mohm;
-    double C = 100.0 * p * F;
-    double timeAbsolute = 5.0 * ms;
-    double timeRelative = 15.0 * ms;
+    double V_ = -65.0 * mV;                  ///< Potenziale di membrana iniziale [V]
+    double V_th = -50.0 * mV;                ///< Soglia di attivazione a riposo [V]
+    double V_ThresholdSpikeMax = -35.0 * mV; ///< Soglia massima raggiunta subito dopo uno spike [V]
+    double V_rest = -65.0 * mV;              ///< Potenziale di riposo [V]
+    double V_reset = -70.0 * mV;             ///< Potenziale a cui il neurone torna dopo lo spike [V]
+    double R = 1.0 * Mohm;                   ///< Resistenza di ingresso [Ω]
+    double C = 100.0 * p * F;                ///< Capacità di membrana [F] (tau = R * C)
+    double timeAbsolute = 5.0 * ms;          ///< Durata della refrattarietà assoluta [s]
+    double timeRelative = 15.0 * ms;         ///< Durata della refrattarietà relativa (decadimento soglia) [s]
 };
 
 // ============================================================================
@@ -41,7 +31,8 @@ struct configLIF {
 // ============================================================================
 
 /**
- * LIF – neurone Leaky Integrate‑and‑Fire con refrattarietà assoluta e relativa.
+ * @ingroup internals
+ * @brief Neurone Leaky Integrate-and-Fire con refrattarietà assoluta e relativa.
  *
  * Friend di Rete: usare Rete::aggiungiNeurone().
  *

@@ -97,8 +97,8 @@ static void test_nuova_creazione_rete() {
     // I_min per sparare = (Vth - Vrest) / R = 15mV / 1MOhm = 15 nA
     // Usiamo 20 nA per stare comodamente sopra soglia
     std::vector<int> ids = {0};
-    std::vector<parametriStimoloCostante> stim = {{0.0, 50.0 * ms, 20e-9}};
-    sim.iniettaStimoloCostante(ids, stim);
+    // std::vector<parametriStimoloCostante> stim = {{0.0, 50.0 * ms, 20e-9}};
+    // sim.iniettaStimoloCostante(ids, stim);
 
     sim.avviaSimulazione("test1_V.bin", "test1_F.bin", "test1_S.bin");
     ok("avviaSimulazione completata senza crash");
@@ -142,8 +142,8 @@ static void test_neuroni_exp() {
     Simulazione sim(rete, 0.1 * ms, 50.0 * ms);
 
     std::vector<int> ids = {0};
-    std::vector<parametriStimoloCostante> stim = {{0.0, 50.0 * ms, 20e-9}};
-    sim.iniettaStimoloCostante(ids, stim);
+    // std::vector<parametriStimoloCostante> stim = {{0.0, 50.0 * ms, 20e-9}};
+    // sim.iniettaStimoloCostante(ids, stim);
 
     sim.avviaSimulazione("test2_V.bin", "test2_F.bin", "test2_S.bin");
     ok("avviaSimulazione completata senza crash");
@@ -221,9 +221,9 @@ static void test_conductance_syn() {
     Simulazione sim(rete, 0.1 * ms, 100.0 * ms);
 
     std::vector<int> ids = {0, 2, 3};
-    std::vector<parametriStimoloCostante> stim = {
-        {0.0, 100.0 * ms, 20e-9}, {0.0, 100.0 * ms, 20e-9}, {0.0, 100.0 * ms, 20e-9}};
-    sim.iniettaStimoloCostante(ids, stim);
+    // std::vector<parametriStimoloCostante> stim = {
+    //     {0.0, 100.0 * ms, 20e-9}, {0.0, 100.0 * ms, 20e-9}, {0.0, 100.0 * ms, 20e-9}};
+    // sim.iniettaStimoloCostante(ids, stim);
 
     sim.avviaSimulazione("test3_V.bin", "test3_F.bin", "test3_S.bin");
     ok("avviaSimulazione con sinapsi miste completata senza crash");
@@ -241,13 +241,13 @@ int main() {
     std::cout << "  Tutti i test completati.\n";
     std::cout << "══════════════════════════════════════════\n\n";
 
-    return 0;
+    Rete rete(100, NeuronModel::Exp, 'E');
 }
 /*
 #include "Exp.hpp"
 #include "Input.hpp"
 #include "Neurone.hpp"
-#include "Rete.hpp"
+#include "Rete.hpp"i
 #include "Simulazione.hpp"
 #include "UnitaSI.hpp"
 

@@ -1,0 +1,20 @@
+[
+  {
+    "file": "src/Rete.cpp",
+    "arguments": [
+      "/usr/bin/clang++",
+      "-std=c++23",
+      "-Wall",
+      "-Wextra",
+      "-Iinclude",
+      "-I.",
+      "-O3",
+      "-c",
+      "src/Rete.cpp",
+      "-o",
+      "build/release/Rete.o"
+    ],
+    "directory": "/Users/tiziano/RepositoryGitHub/SpikeNNsim",
+    "output": "build/release/Rete.o"
+  }
+]

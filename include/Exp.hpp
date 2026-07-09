@@ -25,13 +25,20 @@
  *   timeAbsolute        – durata refrattarietà assoluta        [s]   default: 5 ms
  *   timeRelative        – durata refrattarietà relativa        [s]   default: 15 ms
  */
+
+/// Parametri di configurazione per il neurone Exponential LIF.
+///
+/// Puoi aggiungere qui dettagli aggiuntivi:
+///
+/// - @b V_rest: Potenziale di riposo
+/// - @b V_reset: Potenziale a cui il neurone torna post-spike
 struct configExp {
-    double V_ = -65.0 * mV;
-    double V_th = -50.0 * mV;
-    double V_ThresholdSpikeMax = -35.0 * mV;
-    double V_rest = -65.0 * mV;
-    double V_reset = -70.0 * mV;
-    double sharpness = 2.5 * mV;
+    double V_ = -65.0 * mV;                  ///< Potenziale di membrana iniziale [V]
+    double V_th = -50.0 * mV;                ///< Soglia di attivazione per lo spike [V]
+    double V_ThresholdSpikeMax = -35.0 * mV; ///< Valore di picco massimo dello spike [V]
+    double V_rest = -65.0 * mV;              ///< Potenziale di riposo [V]
+    double V_reset = -70.0 * mV;             ///< Potenziale a cui il neurone torna post-spike [V]
+    double sharpness = 2.5 * mV;             ///< Fattore di pendenza dell'esponenziale (Delta_T) [V]
     double R = 1.0 * Mohm;
     double C = 100.0 * p * F;
     double timeAbsolute = 5.0 * ms;
@@ -39,7 +46,7 @@ struct configExp {
 };
 
 // ============================================================================
-// CLASSE Exp (PRIVATA – USO INTERNO)
+// CLASSE Exp (PRIVATA)
 // ============================================================================
 
 /**
@@ -102,14 +109,12 @@ class Exp {
     // ── COSTRUTTORE / DISTRUTTORE ──────────────────────────────────────────
 
   public:
-    /**
-     * Costruisce un neurone Exp.
-     * Non chiamare direttamente: usare Rete::aggiungiNeurone().
-     *
-     * @param id                identificatore univoco
-     * @param typeIntegratore   'E' o 'R'
-     * @param config            parametri di configurazione
-     */
+    /// Costruisce un neurone Exp.
+    /// Non chiamare direttamente: usare Rete::aggiungiNeurone().
+    ///
+    /// \param id Identificatore univoco del neurone.
+    /// \param typeIntegratore Metodo di integrazione: 'E' per Eulero in avanti, 'R' per Runge-Kutta 4 (consigliato).
+    /// \param config Struttura configExp con i parametri di configurazione.
     Exp(int id, char typeIntegratore, configExp config)
         : id_(id), V_(config.V_), Vth_(config.V_th), Vth0_(config.V_th), VthSpikeMax_(config.V_ThresholdSpikeMax),
           Vrest_(config.V_rest), Vreset_(config.V_reset), R_(config.R), C_(config.C), tau_(config.R * config.C),

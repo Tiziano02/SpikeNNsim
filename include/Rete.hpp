@@ -118,22 +118,20 @@ class Rete {
     // ── COSTRUTTORE E METODI PUBBLICI ─────────────────────────────────────
 
   public:
-    /**
-     * Costruisce una rete con N neuroni del tipo specificato.
-     * @param N                numero di neuroni (ID da 0 a N‑1)
-     * @param typeNeurone      LIF o Exp
-     * @param typeintegratore  'E' o 'R' (default 'E')
-     */
+    /// Crea N neuroni del tipo specificato con parametri di default.
+    ///
+    /// @param N Il numero iniziale di neuroni.
+    /// @param neuronModel Il modello da utilizzare (es. LIF o Exp).
+    /// @param integratore 'E' (Eulero) o 'R' (Runge‑Kutta 4).
     Rete(int N, NeuronModel typeNeurone, char typeintegratore = 'E');
 
     // -------------------- Neuroni --------------------
 
-    /**
-     * Aggiunge un neurone alla rete.
-     * @param ID              identificatore univoco
-     * @param typeIntegratore 'E' o 'R'
-     * @param configurazione  configLIF o configExp (deve corrispondere al tipo)
-     */
+    /// Aggiunge un nuovo neurone con un ID unico.
+    ///
+    /// @param id Identificativo univoco del neurone.
+    /// @param integratore 'E' o 'R'.
+    /// @param config I parametri (deve corrispondere al modello scelto).
     void aggiungiNeurone(int ID, char typeIntegratore, const TypeConfig& configurazione);
 
     /**

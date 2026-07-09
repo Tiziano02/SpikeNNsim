@@ -1,0 +1,28 @@
+/**
+ * @file groups.dox
+ * @brief Definizione dei gruppi Doxygen usati per organizzare la documentazione.
+ *
+ * Questo file non contiene codice: serve solo a dichiarare i due gruppi
+ * tematici della documentazione tramite \@defgroup. 
+ * Ogni classe/struct del progetto si aggiunge poi a uno dei due gruppi con \@ingroup.
+ */
+
+/**
+ * @defgroup publicapi API Pubblica
+ * @brief Tutto ciò che un utente di SpikeNNsim usa per costruire ed eseguire una simulazione.
+ *
+ * Include Rete, Simulazione, le struct di configurazione (configLIF, configExp,
+ * configCurrentSyn, configConductanceSyn, configConstantStimulus, configSinStimulus),
+ * gli enum di selezione modello (NeuronModel, SynapseModel) e gli alias di tipo
+ * (TypeConfig, TypeConfigSyn) usati per passare le configurazioni.
+ */
+
+/**
+ * @defgroup internals Modelli Interni
+ * @brief Implementazione dei modelli di neurone e sinapsi.
+ *
+ * Contiene le classi LIF, Exp, CurrentSyn, ConductanceSyn: l'utente non le
+ * istanzia mai direttamente (si usano Rete::aggiungiNeurone() e
+ * Rete::connettiNeuroni()), ma sono documentate per chi vuole capire
+ * l'architettura interna o estendere il framework con nuovi modelli.
+ */
