@@ -22,6 +22,7 @@ compile_commands.json
 # Eseguibili del Makefile
 SpikeNNsim
 SpikeNNsim_*
+ssh
 
 # macOS
 .DS_Store
