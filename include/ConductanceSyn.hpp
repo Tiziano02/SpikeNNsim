@@ -7,6 +7,7 @@
 #include <UnitaSI.hpp>
 
 /**
+ * @ingroup publicapi
  * @brief Struct che definisce i parametri biologici di una sinapsi conductance-based
  *
  * @details Per connettere due neuroni tramite il metodo Rete::connettiNeuroni(IDpre, IDpost,configurazioneSinapisi)
@@ -14,22 +15,28 @@
  * possibili è la sinapsi di tipo conductance-based. Per definire una sinapsi di questo tipo è necessario passare al
  * metodo Rete::connettiNeuroni una configurazione definita da questa struct.
  *
- * @param peso è un numero senza unità di misura e indica la forza della sinapsi
- * @param gpeak è il valore di picco della conduttanza quando avviene uno spike
- * @param gsyn è la conduttanza della sinapsi al tempo t, variabile dinamica della sinapsi
- * @param tau è la scala di tempo di decadiemnto della dinamica della sinapsi :
- * @param delay è il ritardo sinaptico per il passaggio di uno spike
- * @param E_rev è il potenziale di inversione della sinapsi
+ * @param gpeak Quando avviene uno spike la conduttanza aumenta in questo modo, dopo il ritardo, gsyn =+ peso * gpeak
+ * @param gsyn La dinamica della sinapsi è la seguente d/dt gsyn = - 1/tau * gsyn
  */
 struct configConductanceSyn {
-    double peso = 1.0; ///> è un numero senza unità di misura e indica la forza della sinapsi
-    double gpeak = 1e-9 * S;
-    double gsyn = 0.0 * S;
-    double tau = 5 * ms;
-    double delay = 1 * ms;
-    double E_rev = 0.0 * Volt;
+    double peso = 1.0;         ///< Forza della sinapsi
+    double gpeak = 1 * n * S;  ///< conduttanza di picco dovuto ad uno spike
+    double gsyn = 0.0 * S;     ///< conduttanza della sinapsi, variabile dinamica
+    double tau = 5 * ms;       ///< scala temporale di decadimento della dinamica della sinapsi
+    double delay = 1 * ms;     ///< ritardo sinaptico
+    double E_rev = 0.0 * Volt; ///< potenziale di reverse della sinapsi
 };
 
+/**
+ * @ingroup internals
+ * @brief Classe che permette la creazione di oggetti di tipo sinapsi conductance-based
+ *
+ * @details Questa classe, e quindi il suo costruttuore, non può e non deve essere usata dall'utente. Soltanto il metodo
+ * Rete::connettiNeurone chiama il costrutture di questa classe. Oltre ai metodi getter e setter utili alla classe Rete,
+ * ha un unico metodo applicativo : update(dt, preFired, V_post). Questo metodo permette alla dinamica della sinapsi di
+ * avanzanzare step alla volta
+ *
+ */
 class ConductanceSyn {
 
     friend class Rete; // Consente a Rete di accedere a tutti i membri privati
