@@ -5,9 +5,9 @@
 #include <cstddef>
 #include <vector>
 /**
- * @brief struct che definisce i parametri biologici di una sinapsi conductance-based
+ * @brief Struct che definisce i parametri biologici di una sinapsi conductance-based
  *
- * Per connettere due neuroni tramite il metodo Rete::connettiNeuroni(IDpre, IDpost,configurazioneSinapisi)
+ * @details Per connettere due neuroni tramite il metodo Rete::connettiNeuroni(IDpre, IDpost,configurazioneSinapisi)
  * è necessario utilizzare una configuraione di una sinaspe tra quelle possibili. Una di quelle
  * possibili è la sinapsi di tipo conductance-based. Per definire una sinapsi di questo tipo è necessario passare al
  * metodo Rete::connettiNeuroni una configurazione definita da questa struct.
