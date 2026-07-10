@@ -55,21 +55,12 @@ struct patchLIF {
  */
 class LIF {
 
-    friend class Rete; ///< Concede a Rete l'accesso a tutti i membri privati
+    friend class Rete;
 
     // ── COSTRUTTORE / DISTRUTTORE ──────────────────────────────────────────
 
   public:
-    /**
-     * @brief Costruisce un neurone LIF con parametri di default.
-     *
-     * @param ID               Identificatore univoco del neurone (scelto dall'utente).
-     * @param typeIntegratore  Metodo di integrazione: 'E' (Eulero) o 'R' (RK4).
-     *
-     * @warning Non chiamare direttamente – usare Rete::aggiungiNeurone().
-     */
     LIF(int ID, char typeIntegratore) : ID_(ID), tipoIntegratore_(typeIntegratore) {}
-
     ~LIF() = default;
 
     // ── ATTRIBUTI PRIVATI ──────────────────────────────────────────────────
@@ -92,56 +83,19 @@ class LIF {
 
     // ── METODI PRIVATI ──────────────────────────────────────────────────────
 
-    /// @name Metodi di integrazione
-    /// @{
-
-    /**
-     * @brief Integra l'equazione del neurone con il metodo di Eulero in avanti.
-     * @param correnteTotale Corrente totale in ingresso [A].
-     * @param dt             Passo temporale [s].
-     */
+    // 1. metodi di integrazione numerica
     void euleroInAvanti(double correnteTotale, double dt);
-
-    /**
-     * @brief Integra l'equazione del neurone con Runge-Kutta del 4° ordine.
-     * @param correnteTotale Corrente totale in ingresso [A].
-     * @param dt             Passo temporale [s].
-     */
     void rungeKutta(double correnteTotale, double dt);
 
-    /// @}
+    // 2. metodi getter
+    bool hasFired() const { return fired_; }                             // True se ha generato uno spike.
+    double getPotential() const { return V_; }                           // Potenziale di membrana corrente [V].
+    int getId() const { return ID_; }                                    // ID del neurone.
+    inline double getTau() const { return R_ * C_; }                     // Costante di tempo di membrana [s].
+    inline double getTauRelative() const { return timeRelative_ / 3.0; } // Tau per il decadimento della soglia [s].
 
-    /// @name Getter
-    /// @{
-
-    bool hasFired() const { return fired_; }                             ///< True se ha generato uno spike.
-    double getPotential() const { return V_; }                           ///< Potenziale di membrana corrente [V].
-    int getId() const { return ID_; }                                    ///< ID del neurone.
-    inline double getTau() const { return R_ * C_; }                     ///< Costante di tempo di membrana [s].
-    inline double getTauRelative() const { return timeRelative_ / 3.0; } ///< Tau per il decadimento della soglia [s].
-
-    /// @}
-
-    /// @name Motore di evoluzione
-    /// @{
-
-    /**
-     * @brief Avanza lo stato del neurone di un passo dt.
-     *
-     * @details
-     * Sequenza:
-     *   1. Reset di fired_ (flag valido solo per questo step).
-     *   2. Se in refrattarietà assoluta: decrementa tempoRR_ e salta l'integrazione.
-     *   3. Decadimento della soglia verso VthMin (se tempoRR_ == 0).
-     *   4. Integrazione del potenziale con il metodo scelto.
-     *   5. Controllo soglia: se V >= Vth → spike.
-     *
-     * @param correnteTotale Corrente totale in ingresso al neurone [A].
-     * @param dt             Passo temporale [s].
-     */
+    // 3. metodi di evoluzione della dinamica
     void update(double correnteTotale, double dt);
-
-    /// @}
 };
 
 #endif // LIF_HPP
