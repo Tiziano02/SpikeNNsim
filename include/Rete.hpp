@@ -1,3 +1,11 @@
+/**
+ * @file Rete.hpp
+ * @brief Gestore principale della topologia e dell'evoluzione temporale della SpikeNNsim.
+ * * Questo file definisce la classe Rete, il motore centrale del simulatore.
+ * Si occupa di allocare i neuroni, gestire le connessioni sinaptiche e calcolare
+ * l'integrazione numerica dell'intero sistema ad ogni step temporale.
+ */
+
 #ifndef RETE_HPP
 #define RETE_HPP
 
@@ -8,177 +16,126 @@
 #include <unordered_map>
 #include <vector>
 
-// ============================================================================
-// CLASSE Rete (PUBBLICA)
-// ============================================================================
-
 /**
- * Rete – contenitore della topologia e motore di evoluzione della rete neurale.
+ * @ingroup publicapi
+ * @brief Classe principale per la costruzione e simulazione della rete neurale.
  *
- * La rete è composta da:
- *   - un vettore di neuroni (TypeNeuron)
- *   - un vettore di sinapsi (TypeSyn)
- *   - mappe per accesso rapido ID → indice
- *   - buffer pre‑allocati per correnti e stato
- *
- * L'utente interagisce con Rete attraverso i metodi pubblici per aggiungere
- * neuroni, connetterli, modificare parametri e avviare la simulazione
- * (tramite la classe Simulazione).
- *
- * ============================================================================
- * COSTRUTTORE
- * ============================================================================
- * Rete(N, neuronModel, integratore)
- *   - Crea N neuroni del tipo specificato (LIF o Exp) con parametri di default.
- *   - L'integratore può essere 'E' (Eulero) o 'R' (Runge‑Kutta 4).
- *
- * ============================================================================
- * METODI PUBBLICI – NEURONI
- * ============================================================================
- * aggiungiNeurone(id, integratore, config)
- *   - Aggiunge un neurone con ID unico.
- *   - La config deve essere dello stesso tipo del modello scelto.
- *
- * modificaIntegratoreNeurone(id, integratore)
- *   - Cambia il metodo di integrazione di un neurone esistente.
- *
- * modificaParametriNeurone(id, config)
- *   - Aggiorna i parametri di un neurone esistente.
- *   - La config deve corrispondere al tipo del neurone.
- *
- * ============================================================================
- * METODI PUBBLICI – SINAPSI
- * ============================================================================
- * connettiNeuroni(IDpre, IDpost, configSyn) -> int
- *   - Crea una sinapsi tra due neuroni e restituisce un ID univoco.
- *   - Supporta sinapsi multiple tra la stessa coppia.
- *
- * modificaSinapsi(IDsin, configSyn)
- *   - Modifica i parametri di una sinapsi esistente.
- *   - Deve essere chiamata prima di prepare() (ovvero prima di avviare la simulazione).
- *
- * getSinapsiIds(pre, post) -> vector<int>
- *   - Restituisce tutti gli ID delle sinapsi tra due neuroni.
- *
- * ============================================================================
- * METODI INTERNI (accessibili solo a Simulazione)
- * ============================================================================
- * step(dt)             – avanza la rete di un passo
- * prepare(dt)          – prepara la rete (ring buffer per i delay)
- * aggiornaStatoRete()  – sincronizza i vettori di stato
- * getPointerStato...() – puntatori ai vettori di stato per l'output
- * hasNeurone(id)       – verifica esistenza neurone
- * hasSinapsi(id)       – verifica esistenza sinapsi
+ * @details
+ * L'utente interagisce con `Rete` esclusivamente attraverso i metodi pubblici per:
+ * - Aggiungere popolazioni di neuroni (LIF, Exp).
+ * - Connettere i neuroni tramite sinapsi (Current-based, Conductance-based).
+ * - Modificare i parametri in corso d'opera tramite i pacchetti "Patch".
+ * * @note L'evoluzione temporale (`step()`) e la preparazione (`prepare()`)
+ * sono gestite internamente dalla classe `Simulazione` (friend class).
  */
 class Rete {
-  private:
-    // ── ATTRIBUTI PRIVATI ──────────────────────────────────────────────────
 
-    // Topologia
-    std::vector<TypeNeuron> neuroni_;
-    std::vector<TypeSyn> sinapsi_;
-    std::unordered_map<int, size_t> idToIndex_;    // ID neurone → indice
-    std::unordered_map<int, size_t> idToIndexSyn_; // ID sinapsi → indice
-    int prossimoIdSyn_ = 0;
-
-    // Correnti e stimoli
-    std::vector<double> stimoli_;
-    std::vector<double> inputTotale_;
-
-    // Stati (per output)
-    std::vector<double> statoNeuroni_;
-    std::vector<double> statoFiring_;
-    std::vector<double> statoSinapsi_;
-
-    // ── METODI PRIVATI ──────────────────────────────────────────────────────
-
-    // Gestione stimoli
-    void resetStimoli() { std::fill(stimoli_.begin(), stimoli_.end(), 0.0); }
-    void addStimolo(size_t i, double value) { stimoli_[i] += value; }
-
-    // Getter per lo stato (usati da Simulazione)
-    const std::vector<double>& getPointerStatoNeuroni() const { return statoNeuroni_; }
-    const std::vector<double>& getPointerStatoFiring() const { return statoFiring_; }
-    const std::vector<double>& getPointerStatoSinapsi() const { return statoSinapsi_; }
-
-    size_t getNumNeuroni() const { return neuroni_.size(); }
-    size_t getNumSinapsi() const { return sinapsi_.size(); }
-    size_t getIndex(int id) const { return idToIndex_.at(id); }
-
-    // Controllo esistenza
-    bool hasNeurone(int id) const { return idToIndex_.count(id) > 0; }
-    bool hasSinapsi(int id) const { return idToIndexSyn_.count(id) > 0; }
-
-    // Motore di evoluzione (chiamati da Simulazione)
-    void step(double dt);
-    void aggiornaStatoRete();
-    void prepare(double dt);
-    double getMinTau() const;
-
-    // ── COSTRUTTORE E METODI PUBBLICI ─────────────────────────────────────
+    friend class Simulazione;
 
   public:
-    /// Crea N neuroni del tipo specificato con parametri di default.
-    ///
-    /// @param N Il numero iniziale di neuroni.
-    /// @param neuronModel Il modello da utilizzare (es. LIF o Exp).
-    /// @param integratore 'E' (Eulero) o 'R' (Runge‑Kutta 4).
+    /**
+     * @brief Costruttore principale: alloca e inizializza una popolazione omogenea.
+     * @param N Numero di neuroni da creare.
+     * @param typeNeurone Modello fisico dei neuroni (es. NeuronModel::LIF).
+     * @param typeintegratore Metodo numerico: 'E' (Eulero) o 'R' (Runge-Kutta 4). Default 'E'.
+     */
     Rete(int N, NeuronModel typeNeurone, char typeintegratore = 'E');
 
-    // -------------------- Neuroni --------------------
+    ~Rete() = default;
 
-    /// Aggiunge un nuovo neurone con un ID unico.
-    ///
-    /// @param id Identificativo univoco del neurone.
-    /// @param integratore 'E' o 'R'.
-    /// @param config I parametri (deve corrispondere al modello scelto).
-    void aggiungiNeurone(int id, NeuronModel typeNeurone, char typeIntegratore);
+    // -- GESTIONE NEURONI (API PUBBLICA) --------------------------------
 
     /**
-     * Cambia il metodo di integrazione di un neurone.
-     * @param ID              ID del neurone
-     * @param typeIntegratore 'E' o 'R'
+     * @brief Inserisce un singolo neurone nella topologia della rete.
+     * @param ID Identificativo univoco definito dall'utente.
+     * @param typeNeurone Modello del neurone (es. NeuronModel::Exp).
+     * @param typeIntegratore Metodo di risoluzione ODE ('E' o 'R').
+     */
+    void aggiungiNeurone(int ID, NeuronModel typeNeurone, char typeIntegratore);
+
+    /**
+     * @brief Modifica a runtime il risolutore numerico di un neurone specifico.
+     * @param ID Identificativo del neurone bersaglio.
+     * @param typeIntegratore Nuovo metodo ('E' o 'R').
      */
     void modificaIntegratoreNeurone(int ID, char typeIntegratore);
 
     /**
-     * Modifica i parametri di un neurone.
-     * @param ID              ID del neurone
-     * @param configurazione  configLIF o configExp (stesso tipo del neurone)
+     * @brief Inietta una modifica parziale (Patch) nei parametri di un neurone.
+     * @param id Identificativo del neurone bersaglio.
+     * @param patch Struttura dati contenente solo i parametri da sovrascrivere.
      */
-    void modificaParametriNeurone(int ID, const TypePatchNeuron& patch);
+    void modificaParametriNeurone(int id, const TypePatchNeuron& patch);
 
-    // -------------------- Sinapsi --------------------
+    // -- GESTIONE SINAPSI (API PUBBLICA) --------------------------------
 
     /**
-     * Crea una sinapsi tra due neuroni.
-     * @param IDpre                ID del neurone pre‑sinaptico
-     * @param IDpost               ID del neurone post‑sinaptico
-     * @param configurazioneSinapsi configCurrentSyn o configConductanceSyn
-     * @return ID univoco della sinapsi, oppure -1 in caso di errore
+     * @brief Crea una connessione unidirezionale tra due neuroni.
+     * @param IDpre ID del neurone sorgente (pre-sinaptico).
+     * @param IDpost ID del neurone bersaglio (post-sinaptico).
+     * @param typeSynapse Modello matematico della sinapsi.
+     * @return L'ID univoco assegnato automaticamente alla nuova sinapsi, o -1 in caso di errore.
      */
     int connettiNeuroni(int IDpre, int IDpost, SynapseModel typeSynapse);
 
     /**
-     * Modifica i parametri di una sinapsi esistente.
-     * @param IDsin                ID della sinapsi
-     * @param configurazioneSinapsi nuova configurazione (stesso tipo dell'originale)
-     * @warning Deve essere chiamata prima di prepare() (ovvero prima di avviare la simulazione).
+     * @brief Aggiorna i parametri di una sinapsi esistente.
+     * @param IDsin ID univoco della sinapsi (restituito da connettiNeuroni).
+     * @param patch Struttura dati contenente le modifiche da applicare.
+     * @warning Deve essere chiamata prima dell'avvio della simulazione (prima di prepare()).
      */
     void modificaSinapsi(int IDsin, const TypePatchSyn& patch);
 
     /**
-     * Restituisce tutti gli ID delle sinapsi tra due neuroni.
-     * @param pre  ID neurone pre
-     * @param post ID neurone post
-     * @return vettore di ID (può essere vuoto)
+     * @brief Ricerca tutte le sinapsi che collegano una specifica coppia di neuroni.
+     * @param pre ID del neurone sorgente.
+     * @param post ID del neurone bersaglio.
+     * @return Vettore contenente gli ID delle sinapsi trovate.
      */
-    std::vector<int> getSinapsiIds(int pre, int post) const;
+    std::vector<int> findSinapsi(int pre, int post) const;
 
-    ~Rete() = default;
+  private:
+    // -- ATTRIBUTI PRIVATI (Topologia e Stato) --------------------------------------------------------
 
-    // Concede a Simulazione l'accesso ai metodi privati
-    friend class Simulazione;
+    std::vector<TypeNeuron> neuroni_; // Lista dei neuroni
+    std::vector<TypeSyn> sinapsi_;    // Lista delle sinapsi
+
+    std::unordered_map<int, size_t> idToIndex_;    // Mappa: ID Utente -> Indice Vettore Neuroni
+    std::unordered_map<int, size_t> idToIndexSyn_; // Mappa: ID Generato -> Indice Vettore Sinapsi
+    int prossimoIdSyn_ = 0;                        // Contatore auto-incrementante per gli ID sinapsi
+
+    std::vector<double> stimoli_;     // Correnti esterne calcolate dalla simuazione
+    std::vector<double> inputTotale_; // Somma stimoli + correnti sinaptiche
+
+    std::vector<double> statoNeuroni_; // Potenziale di membrana di tutti i neuroni nella rete
+    std::vector<double> statoFiring_;  // Stato dei neuroni di tutta la rete
+    std::vector<double> statoSinapsi_; // Corrente sinaptica di tutte le sinapsi nella rete
+
+    // -- METODI INTERNI ------------------------------------------------------------------
+
+    // 1. Metodo evoluzione della rete
+    void step(double dt);
+
+    // 2. Metodi applicativi
+    double getMinTau() const;
+    void prepare(double dt);
+
+    // 2.1 metodi "setter"
+    void aggiornaStatoRete();
+    void resetStimoli() { std::fill(stimoli_.begin(), stimoli_.end(), 0.0); }
+    void addStimolo(size_t i, double value) { stimoli_[i] += value; }
+
+    // 3. Metodi getter
+    const std::vector<double>& getPointerStatoNeuroni() const { return statoNeuroni_; }
+    const std::vector<double>& getPointerStatoFiring() const { return statoFiring_; }
+    const std::vector<double>& getPointerStatoSinapsi() const { return statoSinapsi_; }
+    size_t getNumNeuroni() const { return neuroni_.size(); }
+    size_t getNumSinapsi() const { return sinapsi_.size(); }
+    size_t getIndex(int id) const { return idToIndex_.at(id); }
+
+    // 4. Metodi di controllo
+    bool hasNeurone(int id) const { return idToIndex_.count(id) > 0; }
+    bool hasSinapsi(int id) const { return idToIndexSyn_.count(id) > 0; }
 };
 
 #endif // RETE_HPP
