@@ -1,5 +1,4 @@
 #include "Simulazione.hpp"
-#include "Input.hpp"
 #include "Utility.hpp"
 #include <algorithm>
 #include <cmath>

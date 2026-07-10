@@ -1,3 +1,10 @@
+/**
+ * @file Sinapsi.hpp
+ * @brief Registro dei modelli sinaptici e definizione dei tipi polimorfi.
+ * * Raggruppa i modelli di sinapsi supportati in SpikeNNsim e
+ * definisce le relative varianti per l'allocazione e l'aggiornamento.
+ */
+
 #ifndef SINAPSI_HPP
 #define SINAPSI_HPP
 
@@ -5,24 +12,27 @@
 #include "ConductanceSyn.hpp"
 #include <variant>
 
-// ============================================================================
-// ENUM E ALIAS (PUBBLICI)
-// ============================================================================
+/**
+ * @ingroup publicapi
+ * @brief Etichette identificative della fisica sinaptica supportata.
+ * @details Utilizzato dall'utente nella funzione `Rete::connettiNeuroni()`.
+ */
+enum class SynapseModel {
+    Current,    ///< Sinapsi basata sull'iniezione di corrente (I_syn)
+    Conductance ///< Sinapsi basata sulla variazione di conduttanza (g_syn)
+};
 
 /**
- * Label_Type_Syn – tipo di sinapsi (current‑based o conductance‑based).
- */
-enum class SynapseModel { Current, Conductance };
-/**
- * TypeSyn – variant che può contenere CurrentSyn o ConductanceSyn.
- * È il tipo effettivo memorizzato nel vettore sinapsi_ di Rete.
+ * @ingroup internals
+ * @brief Tipo polimorfo che rappresenta fisicamente una sinapsi in memoria.
+ * @details È il tipo effettivo memorizzato nel vettore contiguo `sinapsi_` di `Rete`.
  */
 using TypeSyn = std::variant<Current, Conductance>;
 
 /**
- * TypeConfigSyn – variant che può contenere configCurrentSyn o configConductanceSyn.
- * Usato per passare la configurazione a Rete::connettiNeuroni() e
- * Rete::modificaSinapsi().
+ * @ingroup publicapi
+ * @brief Tipo polimorfo per l'aggiornamento dei parametri sinaptici.
+ * @details Utilizzato dalla funzione `Rete::modificaSinapsi()`.
  */
 using TypePatchSyn = std::variant<patchCurrent, patchConductance>;
 

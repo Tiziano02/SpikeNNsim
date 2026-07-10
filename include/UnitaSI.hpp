@@ -1,19 +1,16 @@
+/**
+ * @file UnitaSI.hpp
+ * @brief Sistema di unità di misura fisiche (SI) per il simulatore.
+ * * @details
+ * Tutte le costanti in questo file sono fattori di scala rispetto alle unità base (MKS).
+ * Questo approccio previene i classici errori di ordine di grandezza nei calcoli fisici.
+ * * @example
+ * double V = -65.0 * mV;   // In memoria viene salvato coerentemente come -0.065
+ * double C = 100.0 * p * F; // In memoria viene salvato come 1e-10
+ */
+
 #ifndef UNITA_SI_HPP
 #define UNITA_SI_HPP
-
-/**
- * UnitaSI – definizione delle unità di misura SI e dei loro multipli.
- *
- * Tutte le costanti sono fattori di scala rispetto alle unità SI base.
- * Moltiplicando un valore numerico per la costante corrispondente lo si esprime
- * nell'unità SI corretta.
- *
- * Esempio:
- *   double V = -65.0 * mV;   // -0.065 V
- *   double t = 5.0 * ms;     // 0.005 s
- *
- * In questo modo l'integrazione numerica lavora sempre con valori coerenti.
- */
 
 // Unità fondamentali del SI
 constexpr double s = 1.0;  // secondo      [s]
