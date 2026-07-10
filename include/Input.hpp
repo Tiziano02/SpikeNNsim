@@ -56,7 +56,7 @@ struct stimolo {
     typeParameters parametri;
 };
 
-struct lineaRegistroStimolo {
+struct recordStimolo {
     size_t indexNeurone;
     typeParameters parametri;
 };
