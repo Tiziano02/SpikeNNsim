@@ -4,15 +4,11 @@
 #include "UnitaSI.hpp"
 #include <optional>
 
-// ============================================================================
-// STRUCT DI CONFIGURAZIONE (PUBBLICA)
-// ============================================================================
-
 /**
  * @ingroup publicapi
- * @brief Insieme di parametri modificabili dopo la creazione per il neurone Exp
+ * @brief Insieme di parametri modificabili dei neuroni di tipo Exp
  *
- * Utilizzata esclusivamente da Rete::modificaParametriNeurone().
+ * Utilizzata esclusivamente da Rete::modificaParametriNeurone()
  * Tutti i valori sono in unità SI (vedi UnitaSI.hpp).
  */
 struct patchExp {
@@ -29,15 +25,14 @@ struct patchExp {
     std::optional<double> sharpness;    ///< Fattore di pendenza dell'esponenziale (Delta_T) [V]
 };
 
-// ============================================================================
-// CLASSE Exp (PRIVATA)
-// ============================================================================
-
 /**
- * Exp – neurone Exponential Leaky Integrate‑and‑Fire (versione semplificata di AdEx).
+ * @ingroup internals
+ * @brief neurone Exponential Leaky Integrate‑and‑Fire
  *
- * Friend di Rete: non istanziare direttamente, usare Rete::aggiungiNeurone().
+ * Friend di Rete: non istanziare direttamente, usare costrutture di Rete oppure il metodo aggiungiNeurone()
+ * (sconsigliato).
  *
+ * @details
  * Equazione:
  *   τ * dV/dt = -(V - Vrest) + Δ_T * exp((V - Vth)/Δ_T) + R * I_tot(t)
  *   τ = R * C
