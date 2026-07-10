@@ -5,14 +5,14 @@
 #include <fstream>
 #include <iostream>
 
-// ============================================================
+// -----------------------------------------------------------------------------------------------------------
 // COSTRUTTORE
-// ============================================================
+// -----------------------------------------------------------------------------------------------------------
 
 Simulazione::Simulazione(const Rete& rete, double dt, double T)
     : rete_(rete), dt_(dt), stepCorrente_(0), stepTotali_(static_cast<int>(std::round(T / dt))) {
 
-    // Warning per dt instabile
+    // 1. Controllo del tau minimo per il metodo di integrazione Eulero in avanti
     double tauMin = rete_.getMinTau();
     if (dt > tauMin / 10.0) {
         std::cerr << "⚠️  [Simulazione] ATTENZIONE: dt = " << dt << "s è maggiore di tau_min/10 (" << tauMin / 10.0
@@ -22,132 +22,154 @@ Simulazione::Simulazione(const Rete& rete, double dt, double T)
     }
 }
 
-// ============================================================
+// -----------------------------------------------------------------------------------------------------------
 // STIMOLI ESTERNI
-// ============================================================
+// -----------------------------------------------------------------------------------------------------------
 
 void Simulazione::iniettaStimoli(const std::vector<stimolo>& stimoli) {
-    // Pre-riserva spazio per evitare riallocazioni multiple
+
+    // 1. Accantonamento spazio necessario
     RegistroStimoli_.reserve(RegistroStimoli_.size() + stimoli.size());
 
+    // 2. Aggiungere tutti gli stimoli nel registro degli stimoli
     for (const auto& [id, params] : stimoli) {
+
+        // 2.1 Controllo ID dei neuroni che ricevono gli stimoli
         if (!rete_.hasNeurone(id)) {
             std::cerr << "[Simulazione] errore: neurone ID " << id << " non trovato.\n";
-            continue; // Salta questo stimolo ma continua con gli altri
+            return;
         }
+
+        // 2.2 Calcolo indice del neurone target
         size_t indexNeurone = rete_.getIndex(id);
-        // Converte ID in indice per accesso rapido nel loop caldo
+
+        // 2.3 Aggiungo stimolo al registro :  stimolo (ID - parametri ) --> record  registro (indice - parametri)
         RegistroStimoli_.push_back({indexNeurone, params});
     }
 }
 
 void Simulazione::valutaStimoli(double t) {
-    rete_.resetStimoli();
 
-    for (const auto& stimolo : RegistroStimoli_) {
+    // 1. Azzero il vector degli stimoli della rete
+    std::fill(rete_.stimoli_.begin(), rete_.stimoli_.end(), 0.0);
+
+    // 2. Ispezione del registro degli stimoli
+    for (const auto& recordStimolo : RegistroStimoli_) {
+
+        // 2.1 Calcolo valore dello stimolo per il record i-esimo nel registroStimoli
         double valore = std::visit(
             [&](const auto& params) -> double {
                 using T = std::decay_t<decltype(params)>;
 
-                // Controllo se siamo nell'intervallo di tempo attivo
+                // 2.1.1 Controllo intervallo temporale
                 if (t < params.timeStart || t > params.timeEnd) {
                     return 0.0;
                 }
 
+                // 2.1.2 Calcolo il valore a seconda della tipologia di stimolo
                 if constexpr (std::is_same_v<T, configConstantStimulus>) {
                     return params.ampiezza;
                 } else if constexpr (std::is_same_v<T, configSinStimulus>) {
                     return params.ampiezza * std::sin(params.frequenza * t + params.fase);
                 }
-                // Se si aggiungono nuovi tipi, aggiungere qui un nuovo constexpr branch
             },
-            stimolo.parametri);
-        rete_.addStimolo(stimolo.indexNeurone, valore);
+            recordStimolo.parametri);
+
+        // 2.2 Inserimento nel vettore degli stimoli il valore appena calcolato
+        rete_.stimoli_[recordStimolo.indexNeurone] += valore;
     }
 }
 
-// ============================================================
-// OUTPUT
-// ============================================================
+// -----------------------------------------------------------------------------------------------------------
+// PREPARAZIONE OUTPUT
+// -----------------------------------------------------------------------------------------------------------
 
-void Simulazione::inizializzaOutput() {
+void Simulazione::scritturaHeader() {
 
-    // 1. Apertura file e creazione dell'header
-
-    // - apertura
-
+    // 1. Apertura dei file
     filePotenziali_.open("output/" + fileNameV_, std::ios::binary | std::ios::out);
     fileFiring_.open("output/" + fileNameF_, std::ios::binary | std::ios::out);
     fileSinapsi_.open("output/" + fileNameS_, std::ios::binary | std::ios::out);
 
-    // - controllo
-
+    // 2. Controllo della corretta apertura dei file
     if (!filePotenziali_.is_open() || !fileFiring_.is_open() || !fileSinapsi_.is_open()) {
         std::cerr << "[Simulazione] errore: impossibile aprire i file di output.\n";
         return;
     }
 
-    // - calcolo numero di colonne
+    // 3. Calcolo "numero di colonne"
+    int32_t colsV = rete_.getNumNeuroni() + 1;
+    int32_t colsF = rete_.getNumNeuroni() + 1;
+    int32_t colsS = rete_.getNumSinapsi() + 1;
 
-    int32_t colsV = static_cast<int32_t>(rete_.getNumNeuroni() + 1);
-    int32_t colsF = static_cast<int32_t>(rete_.getNumNeuroni() + 1);
-    int32_t colsS = static_cast<int32_t>(rete_.getNumSinapsi() + 1);
-
-    // - scrittura dell'header
-
+    // 4. Scrittura dell'header nei file
     filePotenziali_.write(reinterpret_cast<const char*>(&colsV), sizeof(int32_t));
     fileFiring_.write(reinterpret_cast<const char*>(&colsF), sizeof(int32_t));
     fileSinapsi_.write(reinterpret_cast<const char*>(&colsS), sizeof(int32_t));
+}
 
-    // 2. Creazione del buffer
+void Simulazione::creazioneBuffer() {
 
-    // - calcolo numero di byte da scrviere ad ogni step
+    // 1. Calcolo "numero di colonne"
+    int32_t colsV = rete_.getNumNeuroni() + 1;
+    int32_t colsF = rete_.getNumNeuroni() + 1;
+    int32_t colsS = rete_.getNumSinapsi() + 1;
 
+    // 2. Calcolo numero di byte da scrviere ad ogni step
     bytesPerStepV_ = static_cast<size_t>(colsV) * sizeof(double);
     bytesPerStepF_ = static_cast<size_t>(colsF) * sizeof(double);
     bytesPerStepS_ = static_cast<size_t>(colsS) * sizeof(double);
 
-    // - calcolo la RAM disponibile sulla macchina e cosidero il 10% per i 3 buffer
-
+    // 3. Calcolo la RAM disponibile sulla macchina
     size_t ramDisponibile = getAvailableRAM(); // detection --> scritta interamente da gemini, da controllare
 
+    // 4. Calcolo la grandezza massima uguale per i tre buffer
     size_t bufferTarget = ramDisponibile / 10 / 3;
 
-    // - calcolo il numero di step di simulazione che entrano nel buffer dopo aver calcolato lo spazio disponible
-
+    // 5. Calcolo il numero di step di simulazione che entrano nel buffer di dimensione massima
     size_t stepsPerFlushV = bufferTarget / bytesPerStepV_;
     size_t stepsPerFlushF = bufferTarget / bytesPerStepF_;
     size_t stepsPerFlushS = bufferTarget / bytesPerStepS_;
 
-    // - considero il numero di step minore per non allocare più memora del necessario
-
+    // 6. Considero il numero di step minore
     stepsPerFlush_ = std::min({stepsPerFlushV, stepsPerFlushF, stepsPerFlushS, static_cast<size_t>(stepTotali_)});
 
-    // - controllo
-
+    // 7. Controllo che il numero di step più piccolo non sia nullo
     if (stepsPerFlush_ == 0) {
         std::cerr << "[Simulazione] Warning: RAM disponibile insufficiente o non rilevata. "
                   << "Forzo stepsPerFlush a 1 per evitare il crash.\n";
         stepsPerFlush_ = 1;
     }
 
-    // - calcolo la dimensione buffer : i buffer hanno dimensioni diverse ma si riempiono tutti allo stesso step
-
+    // 8. Calcolo la dimensione di ciascun buffer in base al numero di byte scritti in uno step
+    // Osservazione : i buffer hanno dimensioni diverse ma si riempiono tutti allo stesso step (stepPerFlush_)
     size_t bufferSizeV = stepsPerFlush_ * bytesPerStepV_;
     size_t bufferSizeF = stepsPerFlush_ * bytesPerStepF_;
     size_t bufferSizeS = stepsPerFlush_ * bytesPerStepS_;
 
-    // - imposto la dimensione dei tre buffer
-
+    // 9. Imposto la dimensione dei tre buffer
     bufferV_.resize(bufferSizeV);
     bufferF_.resize(bufferSizeF);
     bufferS_.resize(bufferSizeS);
 
-    // Piccolo log a console per vedere quanta RAM sta usando effettivamente (utile per il profiling temporale)
+    // 10. Log per vedere quanta RAM si sta usando effettivamente
     std::cout << "[Simulazione] RAM allocata per i 3 buffer: "
               << (bufferSizeV + bufferSizeF + bufferSizeS) / (1024 * 1024) << " MB (" << stepsPerFlush_
               << " step per flush)\n";
 }
+
+void Simulazione::preparazioneOutput() {
+
+    // 1. Apertura dei file di output e inseriemto dell'header
+    scritturaHeader();
+
+    // 2. Creazione del buffer
+    creazioneBuffer();
+}
+
+// -----------------------------------------------------------------------------------------------------------
+// SCRITTURA OUTPUT
+// -----------------------------------------------------------------------------------------------------------
 
 void Simulazione::writeFile() {
 
@@ -177,12 +199,12 @@ void Simulazione::loadStatoRete(double time) {
     // 3. "Converto" il tempo attuale, inserisco il tempo nei tre buffer, vado avanti nella pozione del buffer attuale
     const char* src = reinterpret_cast<const char*>(&time);
 
-    //  - inserisco il tempo nei tre buffer
+    // 3.1 Inserisco il tempo nei tre buffer
     std::copy(src, src + sizeof(time), bufferV_.begin() + offsetV);
     std::copy(src, src + sizeof(time), bufferF_.begin() + offsetF);
     std::copy(src, src + sizeof(time), bufferS_.begin() + offsetS);
 
-    // - sposto l'offset pari a nuemro di byte della "variabile" tempo
+    // 3.2 Sposto l'offset pari a nuemro di byte della "variabile" tempo
     offsetV += sizeof(time);
     offsetF += sizeof(time);
     offsetS += sizeof(time);
@@ -194,7 +216,7 @@ void Simulazione::loadStatoRete(double time) {
 
     // 5. Copio, in blocco, lo stato della rete (neuroni, firing e sinapsi)
 
-    // - prendo il puntatore all'inizio dell'array e lo converto in puntatore a char
+    // 5.1 Prendo il puntatore all'inizio dell'array e lo converto in puntatore a char
     const char* srcV = reinterpret_cast<const char*>(rete_.getPointerStatoNeuroni().data());
     std::copy(srcV, srcV + byteNeuroni, bufferV_.begin() + offsetV);
 
@@ -208,24 +230,29 @@ void Simulazione::loadStatoRete(double time) {
     posizioneBuffer_++;
 }
 
+// -----------------------------------------------------------------------------------------------------------
+// GESTIONE SIMULAZIONE
+// -----------------------------------------------------------------------------------------------------------
+
 void Simulazione::avviaSimulazione(const std::string& filenameV, const std::string& filenameF,
                                    const std::string& filenameS) {
 
-    // 1. inizializza il tempo della simulazione e il passo attuale a zero
+    // 1. Isnizializza il tempo della simulazione e il passo attuale a zero
     double time = 0.0;
     stepCorrente_ = 0;
 
-    // 2. inializzo il nome del file dove salvare l'output della simulazione
+    // 2. Inializzo il nome del file dove salvare l'output della simulazione
     fileNameV_ = filenameV;
     fileNameF_ = filenameF;
     fileNameS_ = filenameS;
 
-    // 3. Creazione dell'header nei tre file di output e creazione del buffer per la scrittura su disco
-    inizializzaOutput();
+    // 3. Preparo il necessario per poter salvare su disco l'output
+    preparazioneOutput();
 
     // 4. Per adesso : creazione della dimensione dei ring per il ritardo sinaptico
     rete_.prepare(dt_);
 
+    // 5. Avvio della simualzione
     for (; stepCorrente_ < stepTotali_; ++stepCorrente_) {
 
         // 1. Applica gli stimoli al tempo corrente
@@ -240,6 +267,7 @@ void Simulazione::avviaSimulazione(const std::string& filenameV, const std::stri
         loadStatoRete(time);
     }
 
+    // 6. Svuoto il buffer a fine simulazione
     if (posizioneBuffer_ > 0) {
         writeFile();
     }

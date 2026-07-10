@@ -1,20 +1,5 @@
 #include "LIF.hpp"
 
-/*
- * update — avanza lo stato del neurone di un passo dt.
- *
- * Sequenza:
- *  1. Reset del flag fired_.
- *  2. Se il neurone è in periodo refrattario: decrementa tempoRR_ ed esce.
- *  3. Integrazione LIF con metodo di Eulero in avanti:
- *       V(t+dt) = V(t) + (dt/tau) * [-(V(t) - Vrest) + R * I_tot]
- *  4. Se V >= Vth: spike -> fired_ = true, V = Vreset, avvia periodo refrattario.
- *
- * Note:
- *  - fired_ è valido solo per lo step corrente; viene letto da Rete::step()
- *    prima del prossimo update().
- *  - Il metodo di Eulero è stabile se dt << tau (tipicamente dt < tau/10).
- */
 void LIF::euleroInAvanti(double correnteTotale, double dt) {
     V_ += (dt / getTau()) * (-(V_ - Vrest_) + R_ * correnteTotale);
 }
@@ -28,32 +13,49 @@ void LIF::rungeKutta(double correnteTotale, double dt) {
 }
 
 void LIF::update(double correnteTotale, double dt) {
+
+    // 1. Reset flag stato del neurono
     fired_ = false;
 
-    // 3. Gestione Refrattarietà Assoluta
+    // 2. Gestione Refrattarietà Assoluta
     if (tempoRR_ > 0.0) {
+
+        // 2.1 diminuizione del tempo refrattario assoluto
         tempoRR_ -= dt;
+
+        // 2.2 controllo del tempo refrattario assoluto
         if (tempoRR_ < 0.0)
             tempoRR_ = 0.0;
-        V_ = Vreset_; // mantiene il potenziale inchiodato a reset
-        return;       // Salta l'integrazione fisica: il neurone è sordo
+
+        // 2.3 Potenziale fisso a reset
+        V_ = Vreset_;
+
+        // 2.4 Salto integrazione fisica
+        return;
     }
 
-    // 2. Il decadimento della soglia
+    // 3. Il decadimento della soglia
     Vth_ += dt * ((VthMin_ - Vth_) / getTauRelative());
 
-    // 3. Integrazione del Potenziale (Fase normale o Refrattarietà Relativa)
+    // 4. Integrazione del Potenziale
     if (tipoIntegratore_ == 'E') {
         euleroInAvanti(correnteTotale, dt);
     } else if (tipoIntegratore_ == 'R') {
         rungeKutta(correnteTotale, dt);
     }
 
-    // 4. Controllo del Firing
+    // 5. Controllo superametro soglia
     if (V_ >= Vth_) {
+        // 5.1 Aggiornameto soglia
         fired_ = true;
+
+        // 5.2 Setting potenziale di membrana
         V_ = Vreset_;
-        tempoRR_ = timeAbsolute_; // Fissa il tempo assoluto
-        Vth_ = VthMax_;           // Alza la soglia al massimo istantaneamente!
+
+        // 5.3 Setting tempo relativo assoluto rimanente
+        tempoRR_ = timeAbsolute_;
+
+        // 5.4 Setting soglia al valore massimo
+        Vth_ = VthMax_;
     }
 }

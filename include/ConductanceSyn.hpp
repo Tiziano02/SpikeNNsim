@@ -23,8 +23,9 @@
  * Tutti i campi sono basati su `std::optional`: se un campo non viene esplicitamente
  * impostato dall'utente, il suo valore nella sinapsi bersaglio rimarrà inalterato.
  * * I valori fisici devono essere passati in unità del Sistema Internazionale (SI).
- * * @warning Non inserire MAI valori di default (es. `= 1.0`) in questa struct,
- * altrimenti le modifiche parziali sovrascriveranno i valori esistenti con i default.
+ * * @note Convenzione dei segni:
+ * - I_syn > 0 -> Inibitoria (abbassa il potenziale post-sinaptico)
+ * - I_syn < 0 -> Eccitatoria (alza il potenziale post-sinaptico)
  */
 struct patchConductance {
     std::optional<double> peso;  ///< Parametro: Forza adimensionale della sinapsi (moltiplicatore)

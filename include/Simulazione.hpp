@@ -99,7 +99,9 @@ class Simulazione {
     // -- METODI PRIVATI  ------------------------------------------------------------------------
 
     // 1. Setup I/O e Buffer
-    void inizializzaOutput();
+    void preparazioneOutput();
+    void scritturaHeader();
+    void creazioneBuffer();
 
     // 2. Scrittura buffer e disco
     void loadStatoRete(double time);

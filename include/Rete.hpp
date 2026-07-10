@@ -11,7 +11,6 @@
 
 #include "Neurone.hpp"
 #include "Sinapsi.hpp"
-#include <algorithm>
 #include <cstddef>
 #include <unordered_map>
 #include <vector>
@@ -113,24 +112,20 @@ class Rete {
 
     // -- METODI INTERNI -----------------------------------------------------------------------------------
 
-    // 1. Metodo evoluzione della rete
+    // 1. Metodi evoluzione della rete e stato della rete
     void step(double dt);
+    void aggiornaStatoRete();
 
     // 2. Metodi applicativi
     double getMinTau() const;
     void prepare(double dt);
 
-    // 2.1 metodi "setter"
-    void aggiornaStatoRete();
-    void resetStimoli() { std::fill(stimoli_.begin(), stimoli_.end(), 0.0); }
-    void addStimolo(size_t i, double value) { stimoli_[i] += value; }
-
     // 3. Metodi getter
     const std::vector<double>& getPointerStatoNeuroni() const { return statoNeuroni_; }
     const std::vector<double>& getPointerStatoFiring() const { return statoFiring_; }
     const std::vector<double>& getPointerStatoSinapsi() const { return statoSinapsi_; }
-    size_t getNumNeuroni() const { return neuroni_.size(); }
-    size_t getNumSinapsi() const { return sinapsi_.size(); }
+    int32_t getNumNeuroni() const { return neuroni_.size(); }
+    int32_t getNumSinapsi() const { return sinapsi_.size(); }
     size_t getIndex(int id) const { return idToIndex_.at(id); }
 
     // 4. Metodi di controllo
