@@ -19,7 +19,7 @@
 void Exp::euleroInAvanti(double correnteTotale, double dt) {
 
     double termExp = sharpness_ * std::exp((V_ - Vth_) / sharpness_);
-    double dV = (-(V_ - Vrest_) + termExp + R_ * correnteTotale) / tau_;
+    double dV = (-(V_ - Vrest_) + termExp + R_ * correnteTotale) / getTau();
     V_ += dV * dt;
 }
 
@@ -27,7 +27,7 @@ void Exp::rungeKutta(double correnteTotale, double dt) {
     // Funzione lambda locale per calcolare f(V, I) in modo pulito
     auto f = [this, correnteTotale](double v) {
         double termExp = sharpness_ * std::exp((v - Vth_) / sharpness_);
-        return (-(v - Vrest_) + termExp + R_ * correnteTotale) / tau_;
+        return (-(v - Vrest_) + termExp + R_ * correnteTotale) / getTau();
     };
 
     // Calcolo dei 4 coefficienti di Runge-Kutta
@@ -44,7 +44,7 @@ void Exp::update(double correnteTotale, double dt) {
     fired_ = false;
 
     // 1. Il decadimento della soglia
-    Vth_ += dt * ((Vth0_ - Vth_) / tauRelative_);
+    Vth_ += dt * ((VthMin_ - Vth_) / getTauRelative());
 
     // 2. Gestione Refrattarietà Assoluta
     if (tempoRR_ > 0.0) {
@@ -67,6 +67,6 @@ void Exp::update(double correnteTotale, double dt) {
         fired_ = true;
         V_ = Vreset_;
         tempoRR_ = timeAbsolute_; // Fissa il tempo assoluto
-        Vth_ = VthSpikeMax_;      // Alza la soglia al massimo istantaneamente!
+        Vth_ = VthMax_;           // Alza la soglia al massimo istantaneamente!
     }
 }

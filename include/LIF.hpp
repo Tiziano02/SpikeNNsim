@@ -2,6 +2,7 @@
 #define LIF_HPP
 
 #include "UnitaSI.hpp"
+#include <optional>
 
 // ============================================================================
 // STRUCT DI CONFIGURAZIONE (PUBBLICA)
@@ -9,21 +10,22 @@
 
 /**
  * @ingroup publicapi
- * @brief Parametri di configurazione per il neurone LIF (Leaky Integrate-and-Fire).
+ * @brief Insieme di parametri modificabili dopo la creazione per il neurone LIF (Leaky Integrate-and-Fire).
  *
- * Passata al costruttore di LIF e a Rete::modificaParametriNeurone().
+ * Utilizzata esclusivamente da Rete::modificaParametriNeurone().
  * Tutti i valori sono in unità SI (vedi UnitaSI.hpp).
  */
-struct configLIF {
-    double V_ = -65.0 * mV;                  ///< Potenziale di membrana iniziale [V]
-    double V_th = -50.0 * mV;                ///< Soglia di attivazione a riposo [V]
-    double V_ThresholdSpikeMax = -35.0 * mV; ///< Soglia massima raggiunta subito dopo uno spike [V]
-    double V_rest = -65.0 * mV;              ///< Potenziale di riposo [V]
-    double V_reset = -70.0 * mV;             ///< Potenziale a cui il neurone torna dopo lo spike [V]
-    double R = 1.0 * Mohm;                   ///< Resistenza di ingresso [Ω]
-    double C = 100.0 * p * F;                ///< Capacità di membrana [F] (tau = R * C)
-    double timeAbsolute = 5.0 * ms;          ///< Durata della refrattarietà assoluta [s]
-    double timeRelative = 15.0 * ms;         ///< Durata della refrattarietà relativa (decadimento soglia) [s]
+struct patchLIF {
+    std::optional<double> V;            ///< Potenziale di membrana iniziale [V]
+    std::optional<double> Vth;          ///< Soglia di attivazione iniziale [V]
+    std::optional<double> VthMin;       ///< Soglia minima, la dinamica di Vth tende a questa soglia [V]
+    std::optional<double> VthMax;       ///< Soglia massima raggiunta subito dopo uno spike [V]
+    std::optional<double> Vrest;        ///< Potenziale di riposo [V]
+    std::optional<double> Vreset;       ///< Potenziale a cui il neurone torna dopo lo spike [V]
+    std::optional<double> R;            ///< Resistenza di ingresso [Ω]
+    std::optional<double> C;            ///< Capacità di membrana [F] (tau = R * C)
+    std::optional<double> timeAbsolute; ///< Durata della refrattarietà assoluta [s]
+    std::optional<double> timeRelative; ///< Durata della refrattarietà relativa (decadimento soglia) [s]
 };
 
 // ============================================================================
@@ -52,22 +54,20 @@ class LIF {
     // ── ATTRIBUTI PRIVATI ────────────────────────────────────────────────────
 
   private:
-    int id_;              // id del neruone
-    double V_;            // potenziale di membrana
-    double Vth_;          // potenziale soglia del neurone, variabile nel tempo
-    double Vth0_;         // potenziale soglia a riposo --> no spike --> soglia più bassa possibile
-    double VthSpikeMax_;  // potenziale soglia appena il neurone emette uno spike --> soglia più alta possibile
-    double Vrest_;        // potenziale di membrana a riposo
-    double Vreset_;       // potenziale di membrana dopo uno spike
-    double R_;            // resistenza neurone
-    double C_;            // capacità neurone
-    double tau_;          // tempo scala di decadimento del neurone verso il potenziale di riposo : tau_ = R_* C_
-    double timeAbsolute_; // tempo refrattario assoluto
-    double timeRelative_; // tempo refrattario relativo
-    double tempoRR_;      // tempo refrattario assoluto rimanente
-    double tauRelative_;  // tempo scala di decadimento della soglia
-    bool fired_;          // stato del neurone
-    char tipoIntegratore_;
+    int id_;                          // id del neruone
+    double V_ = -65.0 * mV;           // potenziale di membrana
+    double Vth_ = -50.0 * mV;         // potenziale soglia del neurone, variabile nel tempo
+    double VthMin_ = -50.0 * mV;      // potenziale soglia minimo
+    double VthMax_ = -35.0 * mV;      // potenziale soglia massima
+    double Vrest_ = -65.0 * mV;       // potenziale di membrana a riposo
+    double Vreset_ = -70.0 * mV;      // potenziale di membrana dopo uno spike
+    double R_ = 1.0 * Mohm;           // resistenza neurone
+    double C_ = 100.0 * p * F;        // capacità neurone
+    double timeAbsolute_ = 5.0 * ms;  // tempo refrattario assoluto
+    double timeRelative_ = 15.0 * ms; // tempo refrattario relativo
+    double tempoRR_ = 0.0 * s;        // tempo refrattario assoluto rimanente
+    bool fired_ = false;              // stato del neurone
+    char tipoIntegratore_ = 'E';
 
     // ── METODI PRIVATI ──────────────────────────────────────────────────────
 
@@ -85,6 +85,10 @@ class LIF {
     double getPotential() const { return V_; }
     int getId() const { return id_; }
 
+    inline double getTau() const { return R_ * C_; }
+
+    inline double getTauRelative() const { return timeRelative_ / 3.0; }
+
     // ── COSTRUTTORE / DISTRUTTORE ──────────────────────────────────────────
 
   public:
@@ -92,11 +96,7 @@ class LIF {
      * Costruisce un neurone LIF.
      * Non chiamare direttamente: usare Rete::aggiungiNeurone().
      */
-    LIF(int id, char typeIntegratore, configLIF config)
-        : id_(id), V_(config.V_), Vth_(config.V_th), Vth0_(config.V_th), VthSpikeMax_(config.V_ThresholdSpikeMax),
-          Vrest_(config.V_rest), Vreset_(config.V_reset), R_(config.R), C_(config.C), tau_(config.R * config.C),
-          timeAbsolute_(config.timeAbsolute), timeRelative_(config.timeRelative), tempoRR_(0.0),
-          tauRelative_(config.timeRelative / 3), fired_(false), tipoIntegratore_(typeIntegratore) {}
+    LIF(int id, char typeIntegratore) : id_(id), tipoIntegratore_(typeIntegratore) {}
 
     ~LIF() = default;
 };

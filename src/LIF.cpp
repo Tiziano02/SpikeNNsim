@@ -15,26 +15,29 @@
  *    prima del prossimo update().
  *  - Il metodo di Eulero è stabile se dt << tau (tipicamente dt < tau/10).
  */
-void LIF::euleroInAvanti(double correnteTotale, double dt) { V_ += (dt / tau_) * (-(V_ - Vrest_) + R_ * correnteTotale); }
+void LIF::euleroInAvanti(double correnteTotale, double dt) {
+    V_ += (dt / getTau()) * (-(V_ - Vrest_) + R_ * correnteTotale);
+}
 
 void LIF::rungeKutta(double correnteTotale, double dt) {
-    double k1 = (-(V_ - Vrest_) + R_ * correnteTotale) / tau_;
-    double k2 = (-(V_ + 0.5 * dt * k1 - Vrest_) + R_ * correnteTotale) / tau_;
-    double k3 = (-(V_ + 0.5 * dt * k2 - Vrest_) + R_ * correnteTotale) / tau_;
-    double k4 = (-(V_ + dt * k3 - Vrest_) + R_ * correnteTotale) / tau_;
+    double k1 = (-(V_ - Vrest_) + R_ * correnteTotale) / getTau();
+    double k2 = (-(V_ + 0.5 * dt * k1 - Vrest_) + R_ * correnteTotale) / getTau();
+    double k3 = (-(V_ + 0.5 * dt * k2 - Vrest_) + R_ * correnteTotale) / getTau();
+    double k4 = (-(V_ + dt * k3 - Vrest_) + R_ * correnteTotale) / getTau();
     V_ += (dt / 6.0) * (k1 + 2.0 * k2 + 2.0 * k3 + k4);
 }
 
 void LIF::update(double correnteTotale, double dt) {
     fired_ = false;
 
-    // 1. Il decadimento della soglia 
-    Vth_ += dt * ((Vth0_ - Vth_) / tauRelative_);
+    // 1. Il decadimento della soglia
+    Vth_ += dt * ((VthMin_ - Vth_) / getTauRelative());
 
     // 2. Gestione Refrattarietà Assoluta
     if (tempoRR_ > 0.0) {
         tempoRR_ -= dt;
-        if (tempoRR_ < 0.0) tempoRR_ = 0.0;
+        if (tempoRR_ < 0.0)
+            tempoRR_ = 0.0;
         V_ = Vreset_; // mantiene il potenziale inchiodato a reset
         return;       // Salta l'integrazione fisica: il neurone è sordo
     }
@@ -46,11 +49,11 @@ void LIF::update(double correnteTotale, double dt) {
         rungeKutta(correnteTotale, dt);
     }
 
-    // 4. Controllo del Firing 
+    // 4. Controllo del Firing
     if (V_ >= Vth_) {
         fired_ = true;
         V_ = Vreset_;
-        tempoRR_ = timeAbsolute_;       // Fissa il tempo assoluto
-        Vth_ = VthSpikeMax_;        // Alza la soglia al massimo istantaneamente!
+        tempoRR_ = timeAbsolute_; // Fissa il tempo assoluto
+        Vth_ = VthMax_;           // Alza la soglia al massimo istantaneamente!
     }
 }

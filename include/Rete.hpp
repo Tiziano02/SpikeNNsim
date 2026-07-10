@@ -132,7 +132,7 @@ class Rete {
     /// @param id Identificativo univoco del neurone.
     /// @param integratore 'E' o 'R'.
     /// @param config I parametri (deve corrispondere al modello scelto).
-    void aggiungiNeurone(int ID, char typeIntegratore, const TypeConfig& configurazione);
+    void aggiungiNeurone(int id, NeuronModel typeNeurone, char typeIntegratore);
 
     /**
      * Cambia il metodo di integrazione di un neurone.
@@ -146,7 +146,7 @@ class Rete {
      * @param ID              ID del neurone
      * @param configurazione  configLIF o configExp (stesso tipo del neurone)
      */
-    void modificaParametriNeurone(int ID, const TypeConfig& configurazione);
+    void modificaParametriNeurone(int ID, const TypePatchNeuron& patch);
 
     // -------------------- Sinapsi --------------------
 
@@ -157,7 +157,7 @@ class Rete {
      * @param configurazioneSinapsi configCurrentSyn o configConductanceSyn
      * @return ID univoco della sinapsi, oppure -1 in caso di errore
      */
-    int connettiNeuroni(int IDpre, int IDpost, const TypeConfigSyn& configurazioneSinapsi);
+    int connettiNeuroni(int IDpre, int IDpost, SynapseModel typeSynapse);
 
     /**
      * Modifica i parametri di una sinapsi esistente.
@@ -165,7 +165,7 @@ class Rete {
      * @param configurazioneSinapsi nuova configurazione (stesso tipo dell'originale)
      * @warning Deve essere chiamata prima di prepare() (ovvero prima di avviare la simulazione).
      */
-    void modificaSinapsi(int IDsin, const TypeConfigSyn& configurazioneSinapsi);
+    void modificaSinapsi(int IDsin, const TypePatchSyn& patch);
 
     /**
      * Restituisce tutti gli ID delle sinapsi tra due neuroni.

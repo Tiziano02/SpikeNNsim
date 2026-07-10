@@ -4,27 +4,28 @@
 #include <cmath>
 #include <cstddef>
 #include <vector>
+#include <optional>
 #include <UnitaSI.hpp>
 
 /**
  * @ingroup publicapi
- * @brief Struct che definisce i parametri biologici di una sinapsi conductance-based
+ * @brief Parametri biologici per configurare una sinapsi conductance-based
  *
  * @details Per connettere due neuroni tramite il metodo Rete::connettiNeuroni(IDpre, IDpost,configurazioneSinapisi)
- * è necessario utilizzare una configuraione di una sinaspe tra quelle possibili. Una di quelle
- * possibili è la sinapsi di tipo conductance-based. Per definire una sinapsi di questo tipo è necessario passare al
- * metodo Rete::connettiNeuroni una configurazione definita da questa struct.
+ * è necessario fornire al metodo determinati parametri biologici a seconda della tipologia di sinapsi che si vuole
+ * creare. Per creare una sinapsi conductance-based è necessario fornire i parametri all'inteno di questa struct.
+ * Inoltre
  *
  * @param gpeak Quando avviene uno spike la conduttanza aumenta in questo modo, dopo il ritardo, gsyn =+ peso * gpeak
  * @param gsyn La dinamica della sinapsi è la seguente d/dt gsyn = - 1/tau * gsyn
  */
-struct configConductanceSyn {
-    double peso = 1.0;         ///< Forza della sinapsi
-    double gpeak = 1 * n * S;  ///< conduttanza di picco dovuto ad uno spike
-    double gsyn = 0.0 * S;     ///< conduttanza della sinapsi, variabile dinamica
-    double tau = 5 * ms;       ///< scala temporale di decadimento della dinamica della sinapsi
-    double delay = 1 * ms;     ///< ritardo sinaptico
-    double E_rev = 0.0 * Volt; ///< potenziale di reverse della sinapsi
+struct patchConductance {
+    std::optional<double> peso = 1.0;        ///< Forza della sinapsi
+    std::optional<double> gpeak = 1 * n * S; ///< conduttanza di picco dovuto ad uno spike
+    std::optional<double> gsyn = 0.0 * S;    ///< conduttanza della sinapsi, variabile dinamica
+    std::optional<double> tau = 5 * ms;      ///< scala temporale di decadimento della dinamica della sinapsi
+    std::optional<double> delay = 1 * ms;    ///< ritardo sinaptico
+    std::optional<double> Erev = 0.0 * Volt; ///< potenziale di reverse della sinapsi
 };
 
 /**
@@ -37,7 +38,7 @@ struct configConductanceSyn {
  * avanzanzare step alla volta
  *
  */
-class ConductanceSyn {
+class Conductance {
 
     friend class Rete; // Consente a Rete di accedere a tutti i membri privati
 
@@ -46,15 +47,15 @@ class ConductanceSyn {
   private:
     int idPre_, idPost_;            // ID dei neuroni pre e post
     size_t indexPre_, indexPost_;   // indici interni nei vettori di Rete
-    double peso_;                   // scalare del kick di conduttanza [-]
-    double gpeak_;                  // conduttanza di picco per peso unitario [S]
-    double gsyn_;                   // conduttanza corrente [S]
-    double Isyn_;                   // corrente sinaptica corrente [A]  (= gsyn_ * (V_post - E_rev))
-    double tau_;                    // costante di tempo del decadimento [s]
-    double delay_;                  // ritardo sinaptico [s]
-    double E_rev_;                  // potenziale di inversione [V]
-    size_t presentStep_;            // posizione corrente nel ring buffer
-    size_t delayStep_;              // numero di passi corrispondenti al delay
+    double Isyn_ = 0 * A;           // corrente sinaptica corrente [A]  (= gsyn_ * (V_post - E_rev))
+    double peso_ = 1.0;             // Forza della sinapsi
+    double gpeak_ = 1 * n * S;      // conduttanza di picco dovuto ad uno spike
+    double gsyn_ = 0.0 * S;         // conduttanza della sinapsi, variabile dinamica
+    double tau_ = 5 * ms;           // scala temporale di decadimento della dinamica della sinapsi
+    double delay_ = 1 * ms;         // ritardo sinaptico
+    double Erev_ = 0.0 * Volt;      // potenziale di reverse della sinapsi
+    size_t presentStep_ = 0;        // posizione corrente nel ring buffer
+    size_t delayStep_ = 0;          // numero di passi corrispondenti al delay
     std::vector<double> delayRing_; // ring buffer per il ritardo
 
     // ── METODI PRIVATI ──────────────────────────────────────────────────────
@@ -77,12 +78,10 @@ class ConductanceSyn {
     // ── COSTRUTTORE / DISTRUTTORE (PUBBLICI MA NON USATI DIRETTAMENTE) ──
 
   public:
-    ConductanceSyn(size_t indexPre, size_t indexPost, int idPre, int idPost, configConductanceSyn config)
-        : idPre_(idPre), idPost_(idPost), indexPre_(indexPre), indexPost_(indexPost), peso_(config.peso),
-          gpeak_(config.gpeak), gsyn_(0.0), Isyn_(0.0), tau_(config.tau), delay_(config.delay), E_rev_(config.E_rev),
-          presentStep_(0), delayStep_(0) {}
+    Conductance(size_t indexPre, size_t indexPost, int idPre, int idPost)
+        : idPre_(idPre), idPost_(idPost), indexPre_(indexPre), indexPost_(indexPost) {}
 
-    ~ConductanceSyn() = default;
+    ~Conductance() = default;
 };
 
 #endif // CONDUCTANCESYN_HPP

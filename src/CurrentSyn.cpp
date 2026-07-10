@@ -9,7 +9,7 @@
  *  3. Controllo spike pre-sinaptico e aggiornamento del ring
  *  4. Avanzamento della posizione nel ring
  */
-void CurrentSyn::update(double dt, bool preFired) {
+void Current::update(double dt, bool preFired) {
 
     Isyn_ += dt * (-Isyn_ / tau_);
 

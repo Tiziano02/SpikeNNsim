@@ -2,47 +2,31 @@
 #define EXP_HPP
 
 #include "UnitaSI.hpp"
+#include <optional>
 
 // ============================================================================
 // STRUCT DI CONFIGURAZIONE (PUBBLICA)
 // ============================================================================
 
 /**
- * configExp – parametri di configurazione per il neurone Exponential LIF.
+ * @ingroup publicapi
+ * @brief Insieme di parametri modificabili dopo la creazione per il neurone Exp
  *
- * Passata al costruttore di Exp e a Rete::modificaParametriNeurone().
+ * Utilizzata esclusivamente da Rete::modificaParametriNeurone().
  * Tutti i valori sono in unità SI (vedi UnitaSI.hpp).
- *
- * Campi (con valori di default):
- *   V_                  – potenziale iniziale di membrana      [V]   default: -65 mV
- *   V_th                – soglia di firing a riposo            [V]   default: -50 mV
- *   V_ThresholdSpikeMax – soglia massima dopo uno spike        [V]   default: -35 mV
- *   V_rest              – potenziale di riposo                 [V]   default: -65 mV
- *   V_reset             – potenziale di reset post‑spike       [V]   default: -70 mV
- *   sharpness           – fattore di sharpness Δ_T             [V]   default: 2.5 mV
- *   R                   – resistenza di ingresso               [Ω]   default: 1 MΩ
- *   C                   – capacità di membrana                 [F]   default: 100 pF  (τ = 100 ms)
- *   timeAbsolute        – durata refrattarietà assoluta        [s]   default: 5 ms
- *   timeRelative        – durata refrattarietà relativa        [s]   default: 15 ms
  */
-
-/// Parametri di configurazione per il neurone Exponential LIF.
-///
-/// Puoi aggiungere qui dettagli aggiuntivi:
-///
-/// - @b V_rest: Potenziale di riposo
-/// - @b V_reset: Potenziale a cui il neurone torna post-spike
-struct configExp {
-    double V_ = -65.0 * mV;                  ///< Potenziale di membrana iniziale [V]
-    double V_th = -50.0 * mV;                ///< Soglia di attivazione per lo spike [V]
-    double V_ThresholdSpikeMax = -35.0 * mV; ///< Valore di picco massimo dello spike [V]
-    double V_rest = -65.0 * mV;              ///< Potenziale di riposo [V]
-    double V_reset = -70.0 * mV;             ///< Potenziale a cui il neurone torna post-spike [V]
-    double sharpness = 2.5 * mV;             ///< Fattore di pendenza dell'esponenziale (Delta_T) [V]
-    double R = 1.0 * Mohm;
-    double C = 100.0 * p * F;
-    double timeAbsolute = 5.0 * ms;
-    double timeRelative = 15.0 * ms;
+struct patchExp {
+    std::optional<double> V;            ///< Potenziale di membrana iniziale [V]
+    std::optional<double> Vth;          ///< Soglia di attivazione iniziale [V]
+    std::optional<double> VthMin;       ///< Soglia minima, la dinamica di Vth tende a questa soglia [V]
+    std::optional<double> VthMax;       ///< Soglia massima raggiunta subito dopo uno spike [V]
+    std::optional<double> Vrest;        ///< Potenziale di riposo [V]
+    std::optional<double> Vreset;       ///< Potenziale a cui il neurone torna dopo lo spike [V]
+    std::optional<double> R;            ///< Resistenza di ingresso [Ω]
+    std::optional<double> C;            ///< Capacità di membrana [F] (tau = R * C)
+    std::optional<double> timeAbsolute; ///< Durata della refrattarietà assoluta [s]
+    std::optional<double> timeRelative; ///< Durata della refrattarietà relativa (decadimento soglia) [s]
+    std::optional<double> sharpness;    ///< Fattore di pendenza dell'esponenziale (Delta_T) [V]
 };
 
 // ============================================================================
@@ -72,22 +56,20 @@ class Exp {
     // ── ATTRIBUTI PRIVATI ────────────────────────────────────────────────────
 
   private:
-    int id_;              // id del neruone
-    double V_;            // potenziale di membrana
-    double Vth_;          // potenziale soglia del neurone, variabile nel tempo
-    double Vth0_;         // potenziale soglia a riposo --> no spike --> soglia più bassa possibile
-    double VthSpikeMax_;  // potenziale soglia appena il neurone emette uno spike --> soglia più alta possibile
-    double Vrest_;        // potenziale di membrana a riposo
-    double Vreset_;       // potenziale di membrana dopo uno spike
-    double R_;            // resistenza neurone
-    double C_;            // capacità neurone
-    double tau_;          // tempo scala di decadimento del neurone verso il potenziale di riposo : tau_ = R_* C_
-    double timeAbsolute_; // tempo refrattario assoluto
-    double timeRelative_; // tempo refrattario relativo
-    double tempoRR_;      // tempo refrattario assoluto rimanente
-    double tauRelative_;  // tempo scala di decadimento della soglia
-    double sharpness_;    // parametro modello Exp
-    bool fired_;          // stato del neurone
+    int id_;                     // id del neruone
+    double V_ = -65.0 * mV;      // potenziale di membrana
+    double Vth_ = -50.0 * mV;    // potenziale soglia del neurone, variabile nel tempo
+    double VthMin_ = -50.0 * mV; // potenziale soglia a riposo --> no spike --> soglia più bassa possibile
+    double VthMax_ = -35.0 * mV; // potenziale soglia appena il neurone emette uno spike --> soglia più alta possibile
+    double Vrest_ = -65.0 * mV;  // potenziale di membrana a riposo
+    double Vreset_ = -70.0 * mV; // potenziale di membrana dopo uno spike
+    double R_ = 1.0 * Mohm;      // resistenza neurone
+    double C_ = 100.0 * p * F;   // capacità neurone
+    double timeAbsolute_ = 5.0 * ms;  // tempo refrattario assoluto
+    double timeRelative_ = 15.0 * ms; // tempo refrattario relativo
+    double tempoRR_ = 0.0;            // tempo refrattario assoluto rimanente
+    double sharpness_ = 2.5 * mV;     // parametro modello Exp
+    bool fired_ = false;              // stato del neurone
     char tipoIntegratore_;
 
     // ── METODI PRIVATI ──────────────────────────────────────────────────────
@@ -106,6 +88,10 @@ class Exp {
     double getPotential() const { return V_; }
     int getId() const { return id_; }
 
+    inline double getTau() const { return R_ * C_; }
+
+    inline double getTauRelative() const { return timeRelative_ / 3.0; }
+
     // ── COSTRUTTORE / DISTRUTTORE ──────────────────────────────────────────
 
   public:
@@ -115,12 +101,7 @@ class Exp {
     /// \param id Identificatore univoco del neurone.
     /// \param typeIntegratore Metodo di integrazione: 'E' per Eulero in avanti, 'R' per Runge-Kutta 4 (consigliato).
     /// \param config Struttura configExp con i parametri di configurazione.
-    Exp(int id, char typeIntegratore, configExp config)
-        : id_(id), V_(config.V_), Vth_(config.V_th), Vth0_(config.V_th), VthSpikeMax_(config.V_ThresholdSpikeMax),
-          Vrest_(config.V_rest), Vreset_(config.V_reset), R_(config.R), C_(config.C), tau_(config.R * config.C),
-          timeAbsolute_(config.timeAbsolute), timeRelative_(config.timeRelative), tempoRR_(0.0),
-          tauRelative_(config.timeRelative / 3), sharpness_(config.sharpness), fired_(false),
-          tipoIntegratore_(typeIntegratore) {}
+    Exp(int id, char typeIntegratore) : id_(id), tipoIntegratore_(typeIntegratore) {}
 
     ~Exp() = default;
 };

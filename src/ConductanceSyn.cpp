@@ -14,7 +14,7 @@
  * kick, così getCurrent() restituisce sempre il valore aggiornato
  * coerente con la g corrente e il V_post di questo step.
  */
-void ConductanceSyn::update(double dt, bool preFired, double V_post) {
+void Conductance::update(double dt, bool preFired, double Vpost) {
 
     // 1. Decadimento esponenziale della conduttanza
     gsyn_ += dt * (-gsyn_ / tau_);
@@ -34,7 +34,7 @@ void ConductanceSyn::update(double dt, bool preFired, double V_post) {
     //    Il segno è fisicamente corretto per costruzione:
     //    se V_post > E_rev  -> I > 0 (depolarizzante, eccitatoria)
     //    se V_post < E_rev  -> I < 0 (iperpolarizzante, inibitoria)
-    Isyn_ = gsyn_ * (V_post - E_rev_);
+    Isyn_ = gsyn_ * (Vpost - Erev_);
 
     // 5. Avanzamento posizione nel ring
     presentStep_ = (presentStep_ + 1) % delayRing_.size();

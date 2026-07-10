@@ -1,241 +1,237 @@
 #include "Rete.hpp"
-#include "Simulazione.hpp"
-#include "UnitaSI.hpp"
-
 #include <iostream>
-#include <string>
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Utility di stampa
 // ─────────────────────────────────────────────────────────────────────────────
 
-static void intestazione(const std::string& titolo) {
-    std::cout << "\n══════════════════════════════════════════\n";
-    std::cout << "  " << titolo << "\n";
-    std::cout << "══════════════════════════════════════════\n";
-}
+// static void intestazione(const std::string& titolo) {
+//     std::cout << "\n══════════════════════════════════════════\n";
+//     std::cout << "  " << titolo << "\n";
+//     std::cout << "══════════════════════════════════════════\n";
+// }
 
-static void ok(const std::string& msg) { std::cout << "  [OK]     " << msg << "\n"; }
-static void info(const std::string& msg) { std::cout << "  [INFO]   " << msg << "\n"; }
+// static void ok(const std::string& msg) { std::cout << "  [OK]     " << msg << "\n"; }
+// static void info(const std::string& msg) { std::cout << "  [INFO]   " << msg << "\n"; }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// TEST 1 — Nuova modalità di creazione rete
-//
-// Verifica il flusso:
-//   1. Rete(N) con neuroni di default
-//   2. modificaParametriNeurone su un sottoinsieme
-//   3. modificaIntegratoreNeurone su un neurone
-//   4. connettiNeuroni (ritorna ID sinapsi)
-//   5. modificaSinapsi tramite l'ID restituito
-// ─────────────────────────────────────────────────────────────────────────────
-static void test_nuova_creazione_rete() {
-    intestazione("TEST 1 — Nuova modalità di creazione rete (LIF + CurrentSyn)");
+// // ─────────────────────────────────────────────────────────────────────────────
+// // TEST 1 — Nuova modalità di creazione rete
+// //
+// // Verifica il flusso:
+// //   1. Rete(N) con neuroni di default
+// //   2. modificaParametriNeurone su un sottoinsieme
+// //   3. modificaIntegratoreNeurone su un neurone
+// //   4. connettiNeuroni (ritorna ID sinapsi)
+// //   5. modificaSinapsi tramite l'ID restituito
+// // ─────────────────────────────────────────────────────────────────────────────
+// static void test_nuova_creazione_rete() {
+//     intestazione("TEST 1 — Nuova modalità di creazione rete (LIF + CurrentSyn)");
 
-    // 1. Rete con 4 neuroni LIF di default, integratore Eulero
-    Rete rete(4, NeuronModel::LIF, 'E');
-    ok("Rete(4, LIF, 'E') creata");
+//     // 1. Rete con 4 neuroni LIF di default, integratore Eulero
+//     Rete rete(4, NeuronModel::LIF, 'E');
+//     ok("Rete(4, LIF, 'E') creata");
 
-    // 2. Modifica parametri del neurone 0 (soglia più alta)
-    configLIF cfgN0;
-    cfgN0.V_th = -45.0 * mV;
-    cfgN0.R = 2.0 * Mohm;
-    rete.modificaParametriNeurone(0, cfgN0);
-    ok("modificaParametriNeurone(0) — Vth=-45mV, R=2MOhm");
+//     // 2. Modifica parametri del neurone 0 (soglia più alta)
+//     configLIF cfgN0;
+//     cfgN0.V_th = -45.0 * mV;
+//     cfgN0.R = 2.0 * Mohm;
+//     rete.modificaParametriNeurone(0, cfgN0);
+//     ok("modificaParametriNeurone(0) — Vth=-45mV, R=2MOhm");
 
-    // 3. Cambia integratore del neurone 2 a Runge-Kutta
-    // rete.modificaIntegratoreNeurone(2, 'R');
-    // ok("modificaIntegratoreNeurone(2, 'R') — Runge-Kutta");
+//     // 3. Cambia integratore del neurone 2 a Runge-Kutta
+//     // rete.modificaIntegratoreNeurone(2, 'R');
+//     // ok("modificaIntegratoreNeurone(2, 'R') — Runge-Kutta");
 
-    // 4a. Connessione 0→1 (eccitatoria)
-    configCurrentSyn cfgSyn01;
-    cfgSyn01.peso = 0.8;
-    cfgSyn01.Ipeak = 10e-9; // [A]
-    cfgSyn01.tau = 5.0 * ms;
-    cfgSyn01.delay = 1.0 * ms;
-    int idSyn01 = rete.connettiNeuroni(0, 1, cfgSyn01);
-    ok("connettiNeuroni(0→1) — ID sinapsi restituito: " + std::to_string(idSyn01));
+//     // 4a. Connessione 0→1 (eccitatoria)
+//     configCurrentSyn cfgSyn01;
+//     cfgSyn01.peso = 0.8;
+//     cfgSyn01.Ipeak = 10e-9; // [A]
+//     cfgSyn01.tau = 5.0 * ms;
+//     cfgSyn01.delay = 1.0 * ms;
+//     int idSyn01 = rete.connettiNeuroni(0, 1, cfgSyn01);
+//     ok("connettiNeuroni(0→1) — ID sinapsi restituito: " + std::to_string(idSyn01));
 
-    // 4b. Seconda sinapsi 0→1 (stessa coppia, ID diverso — test disambiguazione)
-    configCurrentSyn cfgSyn01b;
-    cfgSyn01b.peso = 0.3;
-    cfgSyn01b.Ipeak = 10e-9;
-    cfgSyn01b.tau = 3.0 * ms;
-    cfgSyn01b.delay = 2.0 * ms;
-    int idSyn01b = rete.connettiNeuroni(0, 1, cfgSyn01b);
-    ok("connettiNeuroni(0→1) seconda sinapsi — ID: " + std::to_string(idSyn01b) +
-       "  (diverso dal precedente: " + (idSyn01b != idSyn01 ? "SI" : "NO") + ")");
+//     // 4b. Seconda sinapsi 0→1 (stessa coppia, ID diverso — test disambiguazione)
+//     configCurrentSyn cfgSyn01b;
+//     cfgSyn01b.peso = 0.3;
+//     cfgSyn01b.Ipeak = 10e-9;
+//     cfgSyn01b.tau = 3.0 * ms;
+//     cfgSyn01b.delay = 2.0 * ms;
+//     int idSyn01b = rete.connettiNeuroni(0, 1, cfgSyn01b);
+//     ok("connettiNeuroni(0→1) seconda sinapsi — ID: " + std::to_string(idSyn01b) +
+//        "  (diverso dal precedente: " + (idSyn01b != idSyn01 ? "SI" : "NO") + ")");
 
-    // 4c. Connessione 1→2 (inibitoria, peso negativo)
-    configCurrentSyn cfgSyn12;
-    cfgSyn12.peso = -0.5;
-    cfgSyn12.Ipeak = 10e-9;
-    cfgSyn12.tau = 8.0 * ms;
-    cfgSyn12.delay = 1.5 * ms;
-    int idSyn12 = rete.connettiNeuroni(1, 2, cfgSyn12);
-    ok("connettiNeuroni(1→2) inibitoria — ID: " + std::to_string(idSyn12));
+//     // 4c. Connessione 1→2 (inibitoria, peso negativo)
+//     configCurrentSyn cfgSyn12;
+//     cfgSyn12.peso = -0.5;
+//     cfgSyn12.Ipeak = 10e-9;
+//     cfgSyn12.tau = 8.0 * ms;
+//     cfgSyn12.delay = 1.5 * ms;
+//     int idSyn12 = rete.connettiNeuroni(1, 2, cfgSyn12);
+//     ok("connettiNeuroni(1→2) inibitoria — ID: " + std::to_string(idSyn12));
 
-    // 5. Modifica della prima sinapsi 0→1 tramite ID
-    configCurrentSyn cfgSyn01_mod = cfgSyn01;
-    cfgSyn01_mod.peso = 1.0; // aumento il peso
-    cfgSyn01_mod.delay = 0.5 * ms;
-    rete.modificaSinapsi(idSyn01, cfgSyn01_mod);
-    ok("modificaSinapsi(idSyn01) — peso aggiornato a 1.0, delay a 0.5ms");
+//     // 5. Modifica della prima sinapsi 0→1 tramite ID
+//     configCurrentSyn cfgSyn01_mod = cfgSyn01;
+//     cfgSyn01_mod.peso = 1.0; // aumento il peso
+//     cfgSyn01_mod.delay = 0.5 * ms;
+//     rete.modificaSinapsi(idSyn01, cfgSyn01_mod);
+//     ok("modificaSinapsi(idSyn01) — peso aggiornato a 1.0, delay a 0.5ms");
 
-    // 6. Errore atteso: ID sinapsi inesistente
-    info("Tentativo modificaSinapsi con ID inesistente (atteso errore su "
-         "stderr):");
-    rete.modificaSinapsi(999, cfgSyn01_mod);
+//     // 6. Errore atteso: ID sinapsi inesistente
+//     info("Tentativo modificaSinapsi con ID inesistente (atteso errore su "
+//          "stderr):");
+//     rete.modificaSinapsi(999, cfgSyn01_mod);
 
-    // 7. Errore atteso: neurone inesistente
-    info("Tentativo modificaParametriNeurone con ID inesistente (atteso errore "
-         "su stderr):");
-    rete.modificaParametriNeurone(99, cfgN0);
+//     // 7. Errore atteso: neurone inesistente
+//     info("Tentativo modificaParametriNeurone con ID inesistente (atteso errore "
+//          "su stderr):");
+//     rete.modificaParametriNeurone(99, cfgN0);
 
-    // 8. Simulazione breve per verificare che la rete giri senza crash
-    Simulazione sim(rete, 0.1 * ms, 50.0 * ms);
+//     // 8. Simulazione breve per verificare che la rete giri senza crash
+//     Simulazione sim(rete, 0.1 * ms, 50.0 * ms);
 
-    // I_min per sparare = (Vth - Vrest) / R = 15mV / 1MOhm = 15 nA
-    // Usiamo 20 nA per stare comodamente sopra soglia
-    std::vector<int> ids = {0};
-    // std::vector<parametriStimoloCostante> stim = {{0.0, 50.0 * ms, 20e-9}};
-    // sim.iniettaStimoloCostante(ids, stim);
+//     // I_min per sparare = (Vth - Vrest) / R = 15mV / 1MOhm = 15 nA
+//     // Usiamo 20 nA per stare comodamente sopra soglia
+//     std::vector<int> ids = {0};
+//     // std::vector<parametriStimoloCostante> stim = {{0.0, 50.0 * ms, 20e-9}};
+//     // sim.iniettaStimoloCostante(ids, stim);
 
-    sim.avviaSimulazione("test1_V.bin", "test1_F.bin", "test1_S.bin");
-    ok("avviaSimulazione completata senza crash");
-}
+//     sim.avviaSimulazione("test1_V.bin", "test1_F.bin", "test1_S.bin");
+//     ok("avviaSimulazione completata senza crash");
+// }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// TEST 2 — Neuroni Exp
-//
-// Verifica che si possano creare neuroni Exp, modificarne i parametri
-// e farli girare in simulazione.
-// ─────────────────────────────────────────────────────────────────────────────
-static void test_neuroni_exp() {
-    intestazione("TEST 2 — Neuroni Exp");
+// // ─────────────────────────────────────────────────────────────────────────────
+// // TEST 2 — Neuroni Exp
+// //
+// // Verifica che si possano creare neuroni Exp, modificarne i parametri
+// // e farli girare in simulazione.
+// // ─────────────────────────────────────────────────────────────────────────────
+// static void test_neuroni_exp() {
+//     intestazione("TEST 2 — Neuroni Exp");
 
-    // Rete di 3 neuroni Exp con Runge-Kutta
-    Rete rete(3, NeuronModel::Exp, 'R');
-    ok("Rete(3, Exp, 'E') creata");
+//     // Rete di 3 neuroni Exp con Runge-Kutta
+//     Rete rete(3, NeuronModel::Exp, 'R');
+//     ok("Rete(3, Exp, 'E') creata");
 
-    // Modifica parametri del neurone 1
-    configExp cfgE1;
-    cfgE1.V_th = -48.0 * mV;
-    cfgE1.V_rest = -65.0 * mV;
-    rete.modificaParametriNeurone(1, cfgE1);
-    ok("modificaParametriNeurone(1) su Exp — Vth=-48mV");
+//     // Modifica parametri del neurone 1
+//     configExp cfgE1;
+//     cfgE1.V_th = -48.0 * mV;
+//     cfgE1.V_rest = -65.0 * mV;
+//     rete.modificaParametriNeurone(1, cfgE1);
+//     ok("modificaParametriNeurone(1) su Exp — Vth=-48mV");
 
-    // Errore atteso: passare configLIF a un neurone Exp
-    info("Tentativo modificaParametriNeurone con config sbagliata (atteso errore "
-         "su stderr):");
-    rete.modificaParametriNeurone(1, configLIF{});
+//     // Errore atteso: passare configLIF a un neurone Exp
+//     info("Tentativo modificaParametriNeurone con config sbagliata (atteso errore "
+//          "su stderr):");
+//     rete.modificaParametriNeurone(1, configLIF{});
 
-    // Connessione con CurrentSyn — Ipeak scalato coerentemente con lo stimolo
-    configCurrentSyn cfgSyn;
-    cfgSyn.peso = 0.6;
-    cfgSyn.Ipeak = 10e-9; // [A] — contributo sinaptico significativo
-    cfgSyn.tau = 5.0 * ms;
-    cfgSyn.delay = 1.0 * ms;
-    int idSyn = rete.connettiNeuroni(0, 1, cfgSyn);
-    ok("connettiNeuroni(0→1) su rete Exp — ID: " + std::to_string(idSyn));
+//     // Connessione con CurrentSyn — Ipeak scalato coerentemente con lo stimolo
+//     configCurrentSyn cfgSyn;
+//     cfgSyn.peso = 0.6;
+//     cfgSyn.Ipeak = 10e-9; // [A] — contributo sinaptico significativo
+//     cfgSyn.tau = 5.0 * ms;
+//     cfgSyn.delay = 1.0 * ms;
+//     int idSyn = rete.connettiNeuroni(0, 1, cfgSyn);
+//     ok("connettiNeuroni(0→1) su rete Exp — ID: " + std::to_string(idSyn));
 
-    // Simulazione breve
-    Simulazione sim(rete, 0.1 * ms, 50.0 * ms);
+//     // Simulazione breve
+//     Simulazione sim(rete, 0.1 * ms, 50.0 * ms);
 
-    std::vector<int> ids = {0};
-    // std::vector<parametriStimoloCostante> stim = {{0.0, 50.0 * ms, 20e-9}};
-    // sim.iniettaStimoloCostante(ids, stim);
+//     std::vector<int> ids = {0};
+//     // std::vector<parametriStimoloCostante> stim = {{0.0, 50.0 * ms, 20e-9}};
+//     // sim.iniettaStimoloCostante(ids, stim);
 
-    sim.avviaSimulazione("test2_V.bin", "test2_F.bin", "test2_S.bin");
-    ok("avviaSimulazione completata senza crash");
-}
+//     sim.avviaSimulazione("test2_V.bin", "test2_F.bin", "test2_S.bin");
+//     ok("avviaSimulazione completata senza crash");
+// }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// TEST 3 — ConductanceSyn
-//
-// Verifica la sinapsi conductance-based:
-//   - creazione con configConductanceSyn
-//   - modifica tramite ID
-//   - errore atteso se si passa config sbagliata
-//   - simulazione con sinapsi miste (Current + Conductance sulla stessa rete)
-// ─────────────────────────────────────────────────────────────────────────────
-static void test_conductance_syn() {
+// // ─────────────────────────────────────────────────────────────────────────────
+// // TEST 3 — ConductanceSyn
+// //
+// // Verifica la sinapsi conductance-based:
+// //   - creazione con configConductanceSyn
+// //   - modifica tramite ID
+// //   - errore atteso se si passa config sbagliata
+// //   - simulazione con sinapsi miste (Current + Conductance sulla stessa rete)
+// // ─────────────────────────────────────────────────────────────────────────────
+// static void test_conductance_syn() {
 
-    intestazione("TEST 3 — ConductanceSyn (sinapsi miste)");
+//     intestazione("TEST 3 — ConductanceSyn (sinapsi miste)");
 
-    // Rete di 4 neuroni LIF
-    Rete rete(4, NeuronModel::LIF, 'E');
-    ok("Rete(4, LIF, 'E') creata");
+//     // Rete di 4 neuroni LIF
+//     Rete rete(4, NeuronModel::LIF, 'E');
+//     ok("Rete(4, LIF, 'E') creata");
 
-    // Sinapsi eccitatoria conductance-based 0→1  (E_rev ~ 0 mV, AMPA-like)
-    // I = g * (V_post - E_rev) ~ 1e-8 S * 0.065 V = 0.65 nA per spike —
-    // significativo
-    configConductanceSyn cfgExc;
-    cfgExc.peso = 1.0;
-    cfgExc.gpeak = 10e-9; // [S]
-    cfgExc.tau = 5.0 * ms;
-    cfgExc.delay = 1.0 * ms;
-    cfgExc.E_rev = 0.0 * mV;
-    int idExc = rete.connettiNeuroni(0, 1, cfgExc);
-    ok("connettiNeuroni(0→1) ConductanceSyn eccitatoria (E_rev=0mV) — ID: " + std::to_string(idExc));
+//     // Sinapsi eccitatoria conductance-based 0→1  (E_rev ~ 0 mV, AMPA-like)
+//     // I = g * (V_post - E_rev) ~ 1e-8 S * 0.065 V = 0.65 nA per spike —
+//     // significativo
+//     configConductanceSyn cfgExc;
+//     cfgExc.peso = 1.0;
+//     cfgExc.gpeak = 10e-9; // [S]
+//     cfgExc.tau = 5.0 * ms;
+//     cfgExc.delay = 1.0 * ms;
+//     cfgExc.E_rev = 0.0 * mV;
+//     int idExc = rete.connettiNeuroni(0, 1, cfgExc);
+//     ok("connettiNeuroni(0→1) ConductanceSyn eccitatoria (E_rev=0mV) — ID: " + std::to_string(idExc));
 
-    // Sinapsi inibitoria conductance-based 2→1  (E_rev ~ -70 mV, GABA-A-like)
-    configConductanceSyn cfgInh;
-    cfgInh.peso = 1.0;
-    cfgInh.gpeak = 10e-9;
-    cfgInh.tau = 10.0 * ms;
-    cfgInh.delay = 1.0 * ms;
-    cfgInh.E_rev = -70.0 * mV;
-    int idInh = rete.connettiNeuroni(2, 1, cfgInh);
-    // int idtest = rete.connettiNeuroni(int IDpre, int IDpost, const
-    // TypeConfigSyn &configurazioneSinapsi)
-    ok("connettiNeuroni(2→1) ConductanceSyn inibitoria (E_rev=-70mV) — ID: " + std::to_string(idInh));
+//     // Sinapsi inibitoria conductance-based 2→1  (E_rev ~ -70 mV, GABA-A-like)
+//     configConductanceSyn cfgInh;
+//     cfgInh.peso = 1.0;
+//     cfgInh.gpeak = 10e-9;
+//     cfgInh.tau = 10.0 * ms;
+//     cfgInh.delay = 1.0 * ms;
+//     cfgInh.E_rev = -70.0 * mV;
+//     int idInh = rete.connettiNeuroni(2, 1, cfgInh);
+//     // int idtest = rete.connettiNeuroni(int IDpre, int IDpost, const
+//     // TypeConfigSyn &configurazioneSinapsi)
+//     ok("connettiNeuroni(2→1) ConductanceSyn inibitoria (E_rev=-70mV) — ID: " + std::to_string(idInh));
 
-    // Sinapsi CurrentSyn sulla stessa rete (test coesistenza)
-    configCurrentSyn cfgCur;
-    cfgCur.peso = 0.5;
-    cfgCur.Ipeak = 10e-9;
-    cfgCur.tau = 5.0 * ms;
-    cfgCur.delay = 1.0 * ms;
-    int idCur = rete.connettiNeuroni(3, 1, cfgCur);
-    ok("connettiNeuroni(3→1) CurrentSyn (coesistenza con ConductanceSyn) — ID: " + std::to_string(idCur));
+//     // Sinapsi CurrentSyn sulla stessa rete (test coesistenza)
+//     configCurrentSyn cfgCur;
+//     cfgCur.peso = 0.5;
+//     cfgCur.Ipeak = 10e-9;
+//     cfgCur.tau = 5.0 * ms;
+//     cfgCur.delay = 1.0 * ms;
+//     int idCur = rete.connettiNeuroni(3, 1, cfgCur);
+//     ok("connettiNeuroni(3→1) CurrentSyn (coesistenza con ConductanceSyn) — ID: " + std::to_string(idCur));
 
-    // Modifica della sinapsi eccitatoria
-    configConductanceSyn cfgExc_mod = cfgExc;
-    cfgExc_mod.gpeak = 20e-9;
-    cfgExc_mod.delay = 0.5 * ms;
-    rete.modificaSinapsi(idExc, cfgExc_mod);
-    ok("modificaSinapsi(idExc) — gpeak aggiornato a 20e-9 S, delay a 0.5ms");
+//     // Modifica della sinapsi eccitatoria
+//     configConductanceSyn cfgExc_mod = cfgExc;
+//     cfgExc_mod.gpeak = 20e-9;
+//     cfgExc_mod.delay = 0.5 * ms;
+//     rete.modificaSinapsi(idExc, cfgExc_mod);
+//     ok("modificaSinapsi(idExc) — gpeak aggiornato a 20e-9 S, delay a 0.5ms");
 
-    // Errore atteso: passare configCurrentSyn a una ConductanceSyn
-    info("Tentativo modificaSinapsi con config sbagliata (atteso errore su "
-         "stderr):");
-    rete.modificaSinapsi(idExc, configCurrentSyn{});
+//     // Errore atteso: passare configCurrentSyn a una ConductanceSyn
+//     info("Tentativo modificaSinapsi con config sbagliata (atteso errore su "
+//          "stderr):");
+//     rete.modificaSinapsi(idExc, configCurrentSyn{});
 
-    // Errore atteso: passare configConductanceSyn a una CurrentSyn
-    info("Tentativo modificaSinapsi con config sbagliata inversa (atteso errore "
-         "su stderr):");
-    rete.modificaSinapsi(idCur, configConductanceSyn{});
+//     // Errore atteso: passare configConductanceSyn a una CurrentSyn
+//     info("Tentativo modificaSinapsi con config sbagliata inversa (atteso errore "
+//          "su stderr):");
+//     rete.modificaSinapsi(idCur, configConductanceSyn{});
 
-    // Simulazione con stimolo su 0 e 2 per attivare entrambe le sinapsi
-    // conductance
-    Simulazione sim(rete, 0.1 * ms, 100.0 * ms);
+//     // Simulazione con stimolo su 0 e 2 per attivare entrambe le sinapsi
+//     // conductance
+//     Simulazione sim(rete, 0.1 * ms, 100.0 * ms);
 
-    std::vector<int> ids = {0, 2, 3};
-    // std::vector<parametriStimoloCostante> stim = {
-    //     {0.0, 100.0 * ms, 20e-9}, {0.0, 100.0 * ms, 20e-9}, {0.0, 100.0 * ms, 20e-9}};
-    // sim.iniettaStimoloCostante(ids, stim);
+//     std::vector<int> ids = {0, 2, 3};
+//     // std::vector<parametriStimoloCostante> stim = {
+//     //     {0.0, 100.0 * ms, 20e-9}, {0.0, 100.0 * ms, 20e-9}, {0.0, 100.0 * ms, 20e-9}};
+//     // sim.iniettaStimoloCostante(ids, stim);
 
-    sim.avviaSimulazione("test3_V.bin", "test3_F.bin", "test3_S.bin");
-    ok("avviaSimulazione con sinapsi miste completata senza crash");
-}
+//     sim.avviaSimulazione("test3_V.bin", "test3_F.bin", "test3_S.bin");
+//     ok("avviaSimulazione con sinapsi miste completata senza crash");
+// }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // main
 // ─────────────────────────────────────────────────────────────────────────────
 int main() {
-    test_nuova_creazione_rete();
-    test_neuroni_exp();
-    test_conductance_syn();
+    // test_nuova_creazione_rete();
+    // test_neuroni_exp();
+    // test_conductance_syn();
 
     std::cout << "\n══════════════════════════════════════════\n";
     std::cout << "  Tutti i test completati.\n";

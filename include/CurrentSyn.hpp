@@ -4,6 +4,8 @@
 #include <cmath>
 #include <cstddef>
 #include <vector>
+#include <optional>
+#include <UnitaSI.hpp>
 
 // ============================================================================
 // STRUCT DI CONFIGURAZIONE (PUBBLICA)
@@ -26,12 +28,12 @@
  *   peso > 0  -> I_syn > 0  -> inputTotale diminuisce  -> inibitoria
  *   peso < 0  -> I_syn < 0  -> inputTotale aumenta     -> eccitatoria
  */
-struct configCurrentSyn {
-    double peso = 1.0;
-    double Ipeak = 1e-10; // [A]
-    double Isyn = 0.0;    // [A]
-    double tau = 5e-3;    // [s]
-    double delay = 1e-3;  // [s]
+struct patchCurrent {
+    std::optional<double> Isyn; // [A]
+    std::optional<double> peso;
+    std::optional<double> Ipeak; // [A]
+    std::optional<double> tau;   // [s]
+    std::optional<double> delay; // [s]
 };
 
 // ============================================================================
@@ -54,7 +56,7 @@ struct configCurrentSyn {
  *
  * Il ritardo è gestito con un ring buffer.
  */
-class CurrentSyn {
+class Current {
 
     friend class Rete;
 
@@ -63,13 +65,13 @@ class CurrentSyn {
   private:
     int idPre_, idPost_;
     size_t indexPre_, indexPost_;
-    double peso_;
-    double Ipeak_;
-    double Isyn_;
-    double tau_;
-    double delay_;
-    size_t presentStep_;
-    size_t delayStep_;
+    double Isyn_ = 0.0 * A; // [A]
+    double peso_ = 1.0;
+    double Ipeak_ = 0.1 * n * A; // [A]
+    double tau_ = 5 * ms;        // [s]
+    double delay_ = 1 * ms;      // [s]
+    size_t presentStep_ = 0;
+    size_t delayStep_ = 0;
     std::vector<double> delayRing_;
 
     // ── METODI PRIVATI ──────────────────────────────────────────────────────
@@ -107,11 +109,10 @@ class CurrentSyn {
      * Costruisce una sinapsi current‑based.
      * Non chiamare direttamente: usare Rete::connettiNeuroni().
      */
-    CurrentSyn(size_t indexPre, size_t indexPost, int idPre, int idPost, configCurrentSyn config)
-        : idPre_(idPre), idPost_(idPost), indexPre_(indexPre), indexPost_(indexPost), peso_(config.peso),
-          Ipeak_(config.Ipeak), Isyn_(0.0), tau_(config.tau), delay_(config.delay), presentStep_(0), delayStep_(0) {}
+    Current(size_t indexPre, size_t indexPost, int idPre, int idPost)
+        : idPre_(idPre), idPost_(idPost), indexPre_(indexPre), indexPost_(indexPost) {}
 
-    ~CurrentSyn() = default;
+    ~Current() = default;
 };
 
 #endif // CURRENTSYN_HPP

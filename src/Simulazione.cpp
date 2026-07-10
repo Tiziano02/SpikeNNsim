@@ -124,8 +124,7 @@ void Simulazione::inizializzaOutput() {
 
     // - considero il numero di step minore per non allocare più memora del necessario
 
-    size_t stepsPerFlush_ =
-        std::min({stepsPerFlushV, stepsPerFlushF, stepsPerFlushS, static_cast<size_t>(stepTotali_)});
+    stepsPerFlush_ = std::min({stepsPerFlushV, stepsPerFlushF, stepsPerFlushS, static_cast<size_t>(stepTotali_)});
 
     // - controllo
 
