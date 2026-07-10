@@ -32,8 +32,8 @@ class Simulazione {
   private:
     // ── ATTRIBUTI PRIVATI ──────────────────────────────────────────────────
 
-    Rete rete_;                    // Rete da simulare
-    std::vector<stimolo> stimoli_; // Stimoli esterni
+    Rete rete_;                                         // Rete da simulare
+    std::vector<lineaRegistroStimolo> RegistroStimoli_; // Stimoli esterni
 
     double dt_;        // Passo temporale [s]
     int stepCorrente_; // Step attuale

@@ -227,7 +227,7 @@ void Rete::modificaSinapsi(int IDsin, const TypePatchSyn& patch) {
                 if (auto cfg = std::get_if<patchConductance>(&patch)) {
                     if (cfg->gsyn.has_value())
                         syn.gsyn_ = cfg->gsyn.value();
-                    if (cfg->peso.has_value())
+                    if (cfg->peso.has_value() && cfg->peso.value() > 0.0) // controllo peso positivo
                         syn.peso_ = cfg->peso.value();
                     if (cfg->gpeak.has_value())
                         syn.gpeak_ = cfg->gpeak.value();

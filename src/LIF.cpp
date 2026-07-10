@@ -30,10 +30,7 @@ void LIF::rungeKutta(double correnteTotale, double dt) {
 void LIF::update(double correnteTotale, double dt) {
     fired_ = false;
 
-    // 1. Il decadimento della soglia
-    Vth_ += dt * ((VthMin_ - Vth_) / getTauRelative());
-
-    // 2. Gestione Refrattarietà Assoluta
+    // 3. Gestione Refrattarietà Assoluta
     if (tempoRR_ > 0.0) {
         tempoRR_ -= dt;
         if (tempoRR_ < 0.0)
@@ -41,6 +38,9 @@ void LIF::update(double correnteTotale, double dt) {
         V_ = Vreset_; // mantiene il potenziale inchiodato a reset
         return;       // Salta l'integrazione fisica: il neurone è sordo
     }
+
+    // 2. Il decadimento della soglia
+    Vth_ += dt * ((VthMin_ - Vth_) / getTauRelative());
 
     // 3. Integrazione del Potenziale (Fase normale o Refrattarietà Relativa)
     if (tipoIntegratore_ == 'E') {

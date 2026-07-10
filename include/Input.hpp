@@ -48,11 +48,16 @@ using typeParameters = std::variant<configConstantStimulus, configSinStimulus>;
  * stimolo – associa uno stimolo a un neurone target.
  *
  * Campi:
- *   indiceNeurone – indice del neurone nel vettore neuroni_ di Rete
- *   parametri     – parametri dello stimolo (uno dei tipi sopra)
+ *   IDneurone – ID del neurone nel vettore neuroni_ di Rete
+ *   parametri – parametri dello stimolo (uno dei tipi sopra)
  */
 struct stimolo {
-    size_t indiceNeurone;
+    int IDneurone;
+    typeParameters parametri;
+};
+
+struct lineaRegistroStimolo {
+    size_t indexNeurone;
     typeParameters parametri;
 };
 

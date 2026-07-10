@@ -29,24 +29,23 @@ Simulazione::Simulazione(const Rete& rete, double dt, double T)
 
 void Simulazione::iniettaStimoli(const std::vector<stimolo>& stimoli) {
     // Pre-riserva spazio per evitare riallocazioni multiple
-    stimoli_.reserve(stimoli_.size() + stimoli.size());
+    RegistroStimoli_.reserve(RegistroStimoli_.size() + stimoli.size());
 
     for (const auto& [id, params] : stimoli) {
         if (!rete_.hasNeurone(id)) {
             std::cerr << "[Simulazione] errore: neurone ID " << id << " non trovato.\n";
             continue; // Salta questo stimolo ma continua con gli altri
         }
-
+        size_t indexNeurone = rete_.getIndex(id);
         // Converte ID in indice per accesso rapido nel loop caldo
-        size_t indice = rete_.getIndex(id);
-        stimoli_.push_back({indice, params});
+        RegistroStimoli_.push_back({indexNeurone, params});
     }
 }
 
 void Simulazione::valutaStimoli(double t) {
     rete_.resetStimoli();
 
-    for (const auto& stimolo : stimoli_) {
+    for (const auto& stimolo : RegistroStimoli_) {
         double valore = std::visit(
             [&](const auto& params) -> double {
                 using T = std::decay_t<decltype(params)>;
@@ -64,8 +63,7 @@ void Simulazione::valutaStimoli(double t) {
                 // Se si aggiungono nuovi tipi, aggiungere qui un nuovo constexpr branch
             },
             stimolo.parametri);
-
-        rete_.addStimolo(stimolo.indiceNeurone, valore);
+        rete_.addStimolo(stimolo.indexNeurone, valore);
     }
 }
 
