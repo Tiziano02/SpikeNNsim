@@ -95,7 +95,6 @@ class Exp {
     ///
     /// \param id Identificatore univoco del neurone.
     /// \param typeIntegratore Metodo di integrazione: 'E' per Eulero in avanti, 'R' per Runge-Kutta 4 (consigliato).
-    /// \param config Struttura configExp con i parametri di configurazione.
     Exp(int id, char typeIntegratore) : id_(id), tipoIntegratore_(typeIntegratore) {}
 
     ~Exp() = default;

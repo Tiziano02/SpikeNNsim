@@ -33,25 +33,29 @@ struct patchLIF {
  * @brief
  * Neurone Leaky Integrate-and-Fire con refrattarietà assoluta e relativa.
  *
- * @details
- * Friend di Rete: usare Rete::aggiungiNeurone().
- * Equazione:
- *   τ * dV/dt = -(V - Vrest) + R * I_tot(t)
- *
- * Quando V ≥ Vth: spike, reset a Vreset, alza la soglia a VthSpikeMax
- * e inizia il periodo refrattario assoluto. Durante la refrattarietà relativa
- * la soglia decade esponenzialmente verso Vth0.
- *
- * Integratori: 'E' (Eulero) o 'R' (Runge‑Kutta 4).
  */
 class LIF {
 
     friend class Rete;
 
+    // -- COSTRUTTORE / DISTRUTTORE -----------------------------------------
+
+  public:
+    /**
+     * @brief Costruisce un neurone di default di tipo LIF
+     *
+     * @details Non chiamare direttamente: usare Rete::aggiungiNeurone().
+     * @param ID Identificatore univoco del neurone
+     * @param typeIntegratore Metodo di integrazione: 'E' per Eulero in avanti, 'R' per Runge-Kutta 4 (consigliato).
+     */
+    LIF(int ID, char typeIntegratore) : ID_(ID), tipoIntegratore_(typeIntegratore) {}
+
+    ~LIF() = default;
+
     // ── ATTRIBUTI PRIVATI --------------------------------------------------
 
   private:
-    int id_;                          ///< id del neruone
+    int ID_;                          ///< id del neruone
     double V_ = -65.0 * mV;           ///< potenziale di membrana
     double Vth_ = -50.0 * mV;         ///< potenziale soglia del neurone, variabile nel tempo
     double VthMin_ = -50.0 * mV;      ///< potenziale soglia minimo
@@ -75,20 +79,12 @@ class LIF {
     // 2. metodi getter
     bool hasFired() const { return fired_; }
     double getPotential() const { return V_; }
-    int getId() const { return id_; }
+    int getId() const { return ID_; }
     inline double getTau() const { return R_ * C_; }
     inline double getTauRelative() const { return timeRelative_ / 3.0; }
 
     // 3. metodi di evoluzione della dinamica
     void update(double correnteTotale, double dt);
-
-    // -- COSTRUTTORE / DISTRUTTORE -----------------------------------------
-
-  public:
-    ///< @brief Costrutture neurone LIF
-    LIF(int id, char typeIntegratore) : id_(id), tipoIntegratore_(typeIntegratore) {}
-
-    ~LIF() = default;
 };
 
 #endif // LIF_HPP
