@@ -43,7 +43,7 @@ class Rete {
 
     ~Rete() = default;
 
-    // -- GESTIONE NEURONI (API PUBBLICA) --------------------------------
+    // -- GESTIONE NEURONI (API PUBBLICA) ---------------------------------------------------------------------
 
     /**
      * @brief Inserisce un singolo neurone nella topologia della rete.
@@ -67,7 +67,7 @@ class Rete {
      */
     void modificaParametriNeurone(int id, const TypePatchNeuron& patch);
 
-    // -- GESTIONE SINAPSI (API PUBBLICA) --------------------------------
+    // -- GESTIONE SINAPSI (API PUBBLICA) ----------------------------------------------------------------------
 
     /**
      * @brief Crea una connessione unidirezionale tra due neuroni.
@@ -95,7 +95,7 @@ class Rete {
     std::vector<int> findSinapsi(int pre, int post) const;
 
   private:
-    // -- ATTRIBUTI PRIVATI (Topologia e Stato) --------------------------------------------------------
+    // -- ATTRIBUTI PRIVATI (Topologia e Stato) --------------------------------------------------------------
 
     std::vector<TypeNeuron> neuroni_; // Lista dei neuroni
     std::vector<TypeSyn> sinapsi_;    // Lista delle sinapsi
@@ -111,7 +111,7 @@ class Rete {
     std::vector<double> statoFiring_;  // Stato dei neuroni di tutta la rete
     std::vector<double> statoSinapsi_; // Corrente sinaptica di tutte le sinapsi nella rete
 
-    // -- METODI INTERNI ------------------------------------------------------------------
+    // -- METODI INTERNI -----------------------------------------------------------------------------------
 
     // 1. Metodo evoluzione della rete
     void step(double dt);

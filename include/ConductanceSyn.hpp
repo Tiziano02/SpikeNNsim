@@ -1,3 +1,10 @@
+/**
+ * @file ConductanceSyn.hpp
+ * @brief Definizione del modello di sinapsi basato sulla conduttanza (Conductance-based).
+ * * Questo file contiene sia l'interfaccia pubblica per la modifica dei parametri (patchConductance),
+ * sia l'implementazione interna del modello fisico (Conductance) utilizzato dal motore del simulatore.
+ */
+
 #ifndef CONDUCTANCESYN_HPP
 #define CONDUCTANCESYN_HPP
 
@@ -5,83 +12,106 @@
 #include <cstddef>
 #include <vector>
 #include <optional>
-#include <UnitaSI.hpp>
+#include "UnitaSI.hpp"
 
 /**
  * @ingroup publicapi
- * @brief Parametri biologici per configurare una sinapsi conductance-based
+ * @brief Pacchetto dati per l'aggiornamento dei parametri di una sinapsi Conductance-based.
  *
- * @details Per connettere due neuroni tramite il metodo Rete::connettiNeuroni(IDpre, IDpost,configurazioneSinapisi)
- * è necessario fornire al metodo determinati parametri biologici a seconda della tipologia di sinapsi che si vuole
- * creare. Per creare una sinapsi conductance-based è necessario fornire i parametri all'inteno di questa struct.
- * Inoltre
- *
- * @param gpeak Quando avviene uno spike la conduttanza aumenta in questo modo, dopo il ritardo, gsyn =+ peso * gpeak
- * @param gsyn La dinamica della sinapsi è la seguente d/dt gsyn = - 1/tau * gsyn
+ * @details
+ * Struttura utilizzata esclusivamente dal metodo `Rete::modificaSinapsi()`.
+ * Tutti i campi sono basati su `std::optional`: se un campo non viene esplicitamente
+ * impostato dall'utente, il suo valore nella sinapsi bersaglio rimarrà inalterato.
+ * * I valori fisici devono essere passati in unità del Sistema Internazionale (SI).
+ * * @warning Non inserire MAI valori di default (es. `= 1.0`) in questa struct,
+ * altrimenti le modifiche parziali sovrascriveranno i valori esistenti con i default.
  */
 struct patchConductance {
-    std::optional<double> peso = 1.0;        ///< Forza della sinapsi
-    std::optional<double> gpeak = 1 * n * S; ///< conduttanza di picco dovuto ad uno spike
-    std::optional<double> gsyn = 0.0 * S;    ///< conduttanza della sinapsi, variabile dinamica
-    std::optional<double> tau = 5 * ms;      ///< scala temporale di decadimento della dinamica della sinapsi
-    std::optional<double> delay = 1 * ms;    ///< ritardo sinaptico
-    std::optional<double> Erev = 0.0 * Volt; ///< potenziale di reverse della sinapsi
+    std::optional<double> peso;  ///< Parametro: Forza adimensionale della sinapsi (moltiplicatore)
+    std::optional<double> gpeak; ///< Parametro: Conduttanza di picco aggiunta per ogni spike [S]
+    std::optional<double> gsyn;  ///< Stato: Conduttanza dinamica attuale [S]
+    std::optional<double> tau;   ///< Parametro: Scala temporale di decadimento della conduttanza [s]
+    std::optional<double> delay; ///< Parametro: Ritardo di conduzione sinaptica (delay) [s]
+    std::optional<double> Erev;  ///< Parametro: Potenziale di inversione (Reversal potential) [V]
 };
 
 /**
  * @ingroup internals
- * @brief Classe che permette la creazione di oggetti di tipo sinapsi conductance-based
+ * @brief Entità fisica della sinapsi basata sulla conduttanza.
  *
- * @details Questa classe, e quindi il suo costruttuore, non può e non deve essere usata dall'utente. Soltanto il metodo
- * Rete::connettiNeurone chiama il costrutture di questa classe. Oltre ai metodi getter e setter utili alla classe Rete,
- * ha un unico metodo applicativo : update(dt, preFired, V_post). Questo metodo permette alla dinamica della sinapsi di
- * avanzanzare step alla volta
+ * @details
+ * Modello matematico:
+ * La corrente sinaptica iniettata nel neurone post-sinaptico è calcolata come:
+ * I_syn(t) = g_syn(t) * (V_post(t) - E_rev)
  *
+ * Dinamica della conduttanza (g_syn):
+ * d(g_syn)/dt = -g_syn / tau
+ * * Quando il neurone pre-sinaptico emette uno spike, dopo un tempo pari a 'delay',
+ * la conduttanza subisce un incremento istantaneo:
+ * g_syn = g_syn + (peso * gpeak)
+ *
+ * @warning Non istanziare mai manualmente. Il ciclo di vita di questo oggetto
+ * è gestito interamente dal motore di simulazione della classe `Rete`.
  */
 class Conductance {
 
-    friend class Rete; // Consente a Rete di accedere a tutti i membri privati
-
-    // ── ATTRIBUTI PRIVATI ────────────────────────────────────────────────────
-
-  private:
-    int idPre_, idPost_;            // ID dei neuroni pre e post
-    size_t indexPre_, indexPost_;   // indici interni nei vettori di Rete
-    double Isyn_ = 0 * A;           // corrente sinaptica corrente [A]  (= gsyn_ * (V_post - E_rev))
-    double peso_ = 1.0;             // Forza della sinapsi
-    double gpeak_ = 1 * n * S;      // conduttanza di picco dovuto ad uno spike
-    double gsyn_ = 0.0 * S;         // conduttanza della sinapsi, variabile dinamica
-    double tau_ = 5 * ms;           // scala temporale di decadimento della dinamica della sinapsi
-    double delay_ = 1 * ms;         // ritardo sinaptico
-    double Erev_ = 0.0 * Volt;      // potenziale di reverse della sinapsi
-    size_t presentStep_ = 0;        // posizione corrente nel ring buffer
-    size_t delayStep_ = 0;          // numero di passi corrispondenti al delay
-    std::vector<double> delayRing_; // ring buffer per il ritardo
-
-    // ── METODI PRIVATI ──────────────────────────────────────────────────────
-
-    void update(double dt, bool preFired, double V_post);
-
-    void setIndexPre(size_t idx) { indexPre_ = idx; }
-    void setIndexPost(size_t idx) { indexPost_ = idx; }
-    void setDelayRing(double dt) {
-        delayStep_ = static_cast<size_t>(std::round(delay_ / dt));
-        delayRing_.assign(delayStep_ + 1, 0.0);
-    }
-
-    double getCurrent() const { return Isyn_; }
-    int getIdPre() const { return idPre_; }
-    int getIdPost() const { return idPost_; }
-    size_t getIndexPre() const { return indexPre_; }
-    size_t getIndexPost() const { return indexPost_; }
-
-    // ── COSTRUTTORE / DISTRUTTORE (PUBBLICI MA NON USATI DIRETTAMENTE) ──
+    friend class Rete;
 
   public:
+    /**
+     * @brief Costruttore interno utilizzato da Rete.
+     * @param indexPre Indice del neurone pre-sinaptico nel vettore di Rete.
+     * @param indexPost Indice del neurone post-sinaptico nel vettore di Rete.
+     * @param idPre ID utente del neurone pre-sinaptico.
+     * @param idPost ID utente del neurone post-sinaptico.
+     */
     Conductance(size_t indexPre, size_t indexPost, int idPre, int idPost)
         : idPre_(idPre), idPost_(idPost), indexPre_(indexPre), indexPost_(indexPost) {}
 
     ~Conductance() = default;
+
+  private:
+    // -- ATTRIBUTI FISICI E DI STATO --------------------------------------------------------------------------
+
+    // Topologia (Routing)
+    int idPre_, idPost_;          // Identificatori pubblici scelti dall'utente
+    size_t indexPre_, indexPost_; // Indici interni per accesso rapido ai vettori di Rete (Cache)
+
+    // Stato Dinamico
+    double Isyn_ = 0.0 * A; // Corrente sinaptica calcolata in questo step [A]
+    double gsyn_ = 0.0 * S; // Conduttanza dinamica corrente [S]
+
+    // Parametri Fisici
+    double peso_ = 1.0;          // Forza adimensionale della sinapsi
+    double gpeak_ = 1.0 * n * S; // Conduttanza di picco post-spike [S]
+    double tau_ = 5.0 * ms;      // Scala temporale di decadimento [s]
+    double delay_ = 1.0 * ms;    // Ritardo sinaptico [s]
+    double Erev_ = 0.0 * Volt;   // Potenziale di inversione [V]
+
+    // Ring Buffer
+    size_t presentStep_ = 0;        // Indice di lettura corrente nel ring buffer
+    size_t delayStep_ = 0;          // Numero di step temporali corrispondenti al delay_
+    std::vector<double> delayRing_; // Ring buffer per immagazzinare gli spike in transito
+
+    // -- METODI PRIVATI --------------------------------------------------------------------------------------
+
+    // 1. Gestione evoluzione temporale
+    void update(double dt, bool preFired, double V_post);
+
+    // 2. Metodi getter
+    inline double getCurrent() const { return Isyn_; }
+    inline int getIdPre() const { return idPre_; }
+    inline int getIdPost() const { return idPost_; }
+    inline size_t getIndexPre() const { return indexPre_; }
+    inline size_t getIndexPost() const { return indexPost_; }
+
+    // 3. Metodi setter
+    inline void setIndexPre(size_t idx) { indexPre_ = idx; }
+    inline void setIndexPost(size_t idx) { indexPost_ = idx; }
+    inline void setDelayRing(double dt) {
+        delayStep_ = static_cast<size_t>(std::round(delay_ / dt));
+        delayRing_.assign(delayStep_ + 1, 0.0);
+    }
 };
 
 #endif // CONDUCTANCESYN_HPP
