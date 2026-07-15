@@ -72,26 +72,32 @@ src/
 A minimal simulation consists of:
 
 1. Creating a network.
-2. Adding neurons.
+2. Adding or change neurons.
 3. Connecting neurons through synapses.
 4. Creating a simulation object.
 5. Injecting external stimuli.
 6. Running the simulation.
 
 ```cpp
-// Create a network of 10 default LIF neurons
-Rete rete(10);
+// Create a network of N LIF neurons using the Euler integration method
+Rete rete(N, NeuronModel::LIF,'E');
 
-// Connect neuron 0 -> neuron 1 with an excitatory synapse
-Sinapsi s(0.5, 10 * n * A, 0, 1, 5 * ms);
-rete.connettiNeuroni(s);
+// Add a neuron to the network
+rete.aggiungiNeurone(101,NeuronModel::Exp, 'K');
+
+// Modifying the biological parameters of the first 20 neurons
+for (auto i=0;i<20;i++)
+  rete.modificaParametriNeurone(i,modifica1);
+
+// Connect neuron 0 -> neuron 1 
+rete.connettiNeuroni(0,1,SynapseModel::Conductance);
 
 // Create a 500 ms simulation with dt = 0.1 ms
 Simulazione sim(rete, 0.1 * ms, 500.0 * ms);
 
 // Inject a constant current into neuron 0 for the first 100 ms
 std::vector<int> ids = {0};
-std::vector<parametriStimoloCostante> params = {{0.0, 100.0 * ms, 0.5 * n * A}};
+std::vector<parametriStimoloCostante> params = {{0.0 * ms , 100.0 * ms, 0.5 * n * A}}; 
 sim.iniettaStimoloCostante(ids, params);
 
 // Run and export

@@ -234,6 +234,17 @@ int main() {
     // test_neuroni_exp();
     // test_conductance_syn();
 
+    Rete rete(100, NeuronModel::LIF,'E');
+
+    rete.aggiungiNeurone(101,NeuronModel::Exp, 'K');
+
+    patchLIF modifica1{.C = 30 * n* F,.timeAbsolute = 2 * ms};
+
+    for (auto i=0;i<20;i++)
+        rete.modificaParametriNeurone(i,modifica1);
+
+    rete.connettiNeuroni(0,1,SynapseModel::Conductance);
+
     std::cout << "\n══════════════════════════════════════════\n";
     std::cout << "  Tutti i test completati.\n";
     std::cout << "══════════════════════════════════════════\n\n";
