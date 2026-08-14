@@ -32,19 +32,16 @@ void Simulazione::iniettaStimoli(const std::vector<stimolo>& stimoli) {
     RegistroStimoli_.reserve(RegistroStimoli_.size() + stimoli.size());
 
     // 2. Aggiungere tutti gli stimoli nel registro degli stimoli
-    for (const auto& [id, params] : stimoli) {
+    for (const auto& [idx, params] : stimoli) {
 
-        // 2.1 Controllo ID dei neuroni che ricevono gli stimoli
-        if (!rete_.hasNeurone(id)) {
-            std::cerr << "[Simulazione] errore: neurone ID " << id << " non trovato.\n";
+        // 2.1 Controllo indice dei neuroni che ricevono gli stimoli
+        if (!rete_.hasNeurone(idx)) {
+            std::cerr << "[Simulazione] errore: neurone indice " << idx << " non trovato.\n";
             return;
         }
 
-        // 2.2 Calcolo indice del neurone target
-        size_t indexNeurone = rete_.getIndex(id);
-
-        // 2.3 Aggiungo stimolo al registro :  stimolo (ID - parametri ) --> record  registro (indice - parametri)
-        RegistroStimoli_.push_back({indexNeurone, params});
+        // 2.2 Aggiungo stimolo al registro :  stimolo (ID - parametri ) --> record  registro (indice - parametri)
+        RegistroStimoli_.push_back({idx, params});
     }
 }
 

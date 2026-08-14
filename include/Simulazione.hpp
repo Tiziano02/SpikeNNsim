@@ -66,8 +66,8 @@ class Simulazione {
     // -- ATTRIBUTI PRIVATI ----------------------------------------------------------------------------------------
 
     // Topologia e Dati
-    Rete rete_;                                  // Copia isolata della rete da simulare
-    std::vector<recordStimolo> RegistroStimoli_; // Registro degli stimoli da iniettare
+    Rete rete_;                            // Copia isolata della rete da simulare
+    std::vector<stimolo> RegistroStimoli_; // Registro degli stimoli da iniettare
 
     // Controllo Temporale
     double dt_;        // Passo temporale di integrazione [s]

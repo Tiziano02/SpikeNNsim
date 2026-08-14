@@ -50,18 +50,7 @@ using typeParameters = std::variant<configConstantStimulus, configSinStimulus>;
  * @details L'utente crea vettori di questo tipo per passarli a `Simulazione::iniettaStimoli()`.
  */
 struct stimolo {
-    int IDneurone;            ///< ID pubblico del neurone bersaglio
-    typeParameters parametri; ///< Forma d'onda e parametri della corrente
-};
-
-/**
- * @ingroup internals
- * @brief Struttura interna (Cache-friendly) per l'elaborazione degli stimoli.
- * @details Traduce l'ID pubblico in un indice di vettore diretto, evitando
- * lente ricerche in mappa durante il loop temporale.
- */
-struct recordStimolo {
-    size_t indexNeurone;      ///< Indice diretto nel vettore neuroni_
+    std::size_t indexNeurone; ///< ID pubblico del neurone bersaglio
     typeParameters parametri; ///< Forma d'onda e parametri della corrente
 };
 

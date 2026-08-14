@@ -12,7 +12,6 @@
 #include "Neurone.hpp"
 #include "Sinapsi.hpp"
 #include <cstddef>
-#include <unordered_map>
 #include <vector>
 
 /**
@@ -46,36 +45,35 @@ class Rete {
 
     /**
      * @brief Inserisce un singolo neurone nella topologia della rete.
-     * @param ID Identificativo univoco definito dall'utente.
      * @param typeNeurone Modello del neurone (es. NeuronModel::Exp).
      * @param typeIntegratore Metodo di risoluzione ODE ('E' o 'R').
      */
-    void aggiungiNeurone(int ID, NeuronModel typeNeurone, char typeIntegratore);
+    std::size_t aggiungiNeurone(NeuronModel typeNeurone, char typeIntegratore);
 
     /**
      * @brief Modifica a runtime il risolutore numerico di un neurone specifico.
-     * @param ID Identificativo del neurone bersaglio.
+     * @param idx Identificativo del neurone bersaglio.
      * @param typeIntegratore Nuovo metodo ('E' o 'R').
      */
-    void modificaIntegratoreNeurone(int ID, char typeIntegratore);
+    void modificaIntegratoreNeurone(size_t idx, char typeIntegratore);
 
     /**
      * @brief Inietta una modifica parziale (Patch) nei parametri di un neurone.
-     * @param id Identificativo del neurone bersaglio.
+     * @param idx Identificativo del neurone bersaglio.
      * @param patch Struttura dati contenente solo i parametri da sovrascrivere.
      */
-    void modificaParametriNeurone(int id, const TypePatchNeuron& patch);
+    void modificaParametriNeurone(size_t idx, const TypePatchNeuron& patch);
 
     // -- GESTIONE SINAPSI (API PUBBLICA) ----------------------------------------------------------------------
 
     /**
      * @brief Crea una connessione unidirezionale tra due neuroni.
-     * @param IDpre ID del neurone sorgente (pre-sinaptico).
-     * @param IDpost ID del neurone bersaglio (post-sinaptico).
+     * @param IDXpre indice del neurone sorgente (pre-sinaptico).
+     * @param IDXpost indice del neurone bersaglio (post-sinaptico).
      * @param typeSynapse Modello matematico della sinapsi.
      * @return L'ID univoco assegnato automaticamente alla nuova sinapsi, o -1 in caso di errore.
      */
-    int connettiNeuroni(int IDpre, int IDpost, SynapseModel typeSynapse);
+    int connettiNeuroni(size_t IDXpre, size_t IDXpost, SynapseModel typeSynapse);
 
     /**
      * @brief Aggiorna i parametri di una sinapsi esistente.
@@ -83,7 +81,7 @@ class Rete {
      * @param patch Struttura dati contenente le modifiche da applicare.
      * @warning Deve essere chiamata prima dell'avvio della simulazione (prima di prepare()).
      */
-    void modificaSinapsi(int IDsin, const TypePatchSyn& patch);
+    void modificaSinapsi(size_t IDsin, const TypePatchSyn& patch);
 
     /**
      * @brief Ricerca tutte le sinapsi che collegano una specifica coppia di neuroni.
@@ -91,7 +89,7 @@ class Rete {
      * @param post ID del neurone bersaglio.
      * @return Vettore contenente gli ID delle sinapsi trovate.
      */
-    std::vector<int> findSinapsi(int pre, int post) const;
+    std::vector<int> findSinapsi(size_t pre, size_t post) const;
 
   private:
     // -- ATTRIBUTI PRIVATI (Topologia e Stato) --------------------------------------------------------------
@@ -99,9 +97,8 @@ class Rete {
     std::vector<TypeNeuron> neuroni_; // Lista dei neuroni
     std::vector<TypeSyn> sinapsi_;    // Lista delle sinapsi
 
-    std::unordered_map<int, size_t> idToIndex_;    // Mappa: ID Utente -> Indice Vettore Neuroni
-    std::unordered_map<int, size_t> idToIndexSyn_; // Mappa: ID Generato -> Indice Vettore Sinapsi
-    int prossimoIdSyn_ = 0;                        // Contatore auto-incrementante per gli ID sinapsi
+    // std::unordered_map<int, size_t> idToIndexSyn_; // Mappa: ID Generato -> Indice Vettore Sinapsi
+    // int prossimoIdSyn_ = 0;                        // Contatore auto-incrementante per gli ID sinapsi
 
     std::vector<double> stimoli_;     // Correnti esterne calcolate dalla simuazione
     std::vector<double> inputTotale_; // Somma stimoli + correnti sinaptiche
@@ -126,11 +123,11 @@ class Rete {
     const std::vector<double>& getPointerStatoSinapsi() const { return statoSinapsi_; }
     int32_t getNumNeuroni() const { return neuroni_.size(); }
     int32_t getNumSinapsi() const { return sinapsi_.size(); }
-    size_t getIndex(int id) const { return idToIndex_.at(id); }
+    // size_t getIndex(int id) const { return idToIndex_.at(id); }
 
     // 4. Metodi di controllo
-    bool hasNeurone(int id) const { return idToIndex_.count(id) > 0; }
-    bool hasSinapsi(int id) const { return idToIndexSyn_.count(id) > 0; }
+    bool hasNeurone(size_t idx) const { return idx < neuroni_.size() - 1; }
+    bool hasSinapsi(size_t idx) const { return idx < sinapsi_.size() - 1; }
 };
 
 #endif // RETE_HPP

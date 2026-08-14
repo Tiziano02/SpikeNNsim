@@ -64,16 +64,14 @@ class LIF {
   public:
     /**
      * @brief Costruttore interno utilizzato da Rete.
-     * @param ID Identificatore univoco del neurone nella rete.
      * @param typeIntegratore Metodo di integrazione: 'E' (Eulero in avanti) o 'R' (Runge-Kutta 4).
      */
-    LIF(int ID, char typeIntegratore) : ID_(ID), tipoIntegratore_(typeIntegratore) {}
+    LIF(char typeIntegratore) : tipoIntegratore_(typeIntegratore) {}
     ~LIF() = default;
 
   private:
     // -- ATTRIBUTI FISICI E DI STATO -----------------------------------------
 
-    int ID_;                          // Identificatore univoco
     double V_ = -65.0 * mV;           // Stato: Potenziale di membrana corrente
     double Vth_ = -50.0 * mV;         // Stato: Soglia adattiva corrente
     double VthMin_ = -50.0 * mV;      // Parametro: Soglia di riposo
@@ -98,7 +96,6 @@ class LIF {
     // 2. Metodi getter
     bool hasFired() const { return fired_; }
     double getPotential() const { return V_; }
-    int getId() const { return ID_; }
     inline double getTau() const { return R_ * C_; }
     inline double getTauRelative() const { return timeRelative_ / 3.0; }
 

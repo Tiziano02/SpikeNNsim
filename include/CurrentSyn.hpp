@@ -63,20 +63,16 @@ class Current {
      * @brief Costruttore interno utilizzato da Rete.
      * @param indexPre Indice del neurone pre-sinaptico nel vettore di Rete.
      * @param indexPost Indice del neurone post-sinaptico nel vettore di Rete.
-     * @param idPre ID utente del neurone pre-sinaptico.
-     * @param idPost ID utente del neurone post-sinaptico.
      */
-    Current(size_t indexPre, size_t indexPost, int idPre, int idPost)
-        : idPre_(idPre), idPost_(idPost), indexPre_(indexPre), indexPost_(indexPost) {}
+    Current(size_t indexPre, size_t indexPost) : indexPre_(indexPre), indexPost_(indexPost) {}
 
     ~Current() = default;
 
   private:
     // -- ATTRIBUTI FISICI E DI STATO --------------------------------------------------------------------------
 
-    // Topologia (Routing)
-    int idPre_, idPost_;          // Identificatori pubblici scelti dall'utente
-    size_t indexPre_, indexPost_; // Indici interni per accesso rapido ai vettori di Rete (Cache)
+    // Topologia
+    size_t indexPre_, indexPost_; // Indici neuroni della sinapsi
 
     // Stato Dinamico
     double Isyn_ = 0.0 * A; // Corrente sinaptica calcolata in questo step [A]
@@ -99,8 +95,6 @@ class Current {
 
     // 2. Metodi getter
     inline double getCurrent() const { return Isyn_; }
-    inline int getIdPre() const { return idPre_; }
-    inline int getIdPost() const { return idPost_; }
     inline size_t getIndexPre() const { return indexPre_; }
     inline size_t getIndexPost() const { return indexPost_; }
 

@@ -237,7 +237,28 @@ int main() {
     std::cout << "  Tutti i test completati.\n";
     std::cout << "══════════════════════════════════════════\n\n";
 
+    // 1. Creazione neuroni
+
+    // 1.1 creazione di 100 neuroni standard con stesso tipo di integratore
     Rete rete(100, NeuronModel::Exp, 'E');
+
+    // 1.2 Aggiungere singoli neuroni ad una rete
+    rete.aggiungiNeurone(100, NeuronModel::Exp, 'E');
+
+    // ------------------------------------------------------------------------------
+
+    // 2. Modifica parametri fisici tutti i
+
+    // Modifica param
+
+    // 2.1 Modifica parametri fisici singoli neuroni
+    patchExp neuroniA;
+    neuroniA.R = 1.0 * Mohm;
+
+    rete.modificaParametriNeurone(0, neuroniA);
+
+    // 3.1 Modifica integratore singoli neuroni
+    rete.modificaIntegratoreNeurone(0, 'K');
 }
 /*
 #include "Exp.hpp"

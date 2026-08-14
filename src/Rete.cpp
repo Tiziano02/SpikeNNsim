@@ -3,7 +3,7 @@
 #include <iostream>
 
 // -----------------------------------------------------------------------------
-// Costruttore
+// Costruttore - andrà modificato perchè dovrebbe creare una popolazione e non neuroni sparsi
 // -----------------------------------------------------------------------------
 
 Rete::Rete(int N, NeuronModel typeNeurone, char typeintegratore) {
@@ -17,7 +17,7 @@ Rete::Rete(int N, NeuronModel typeNeurone, char typeintegratore) {
 
     // 2. Csostruzione singola dei neuroni con parametri di default
     for (int i = 0; i < N; ++i) {
-        aggiungiNeurone(i, typeNeurone, typeintegratore);
+        aggiungiNeurone(typeNeurone, typeintegratore);
     }
 }
 
@@ -25,13 +25,7 @@ Rete::Rete(int N, NeuronModel typeNeurone, char typeintegratore) {
 // Neuroni
 // -----------------------------------------------------------------------------
 
-void Rete::aggiungiNeurone(int ID, NeuronModel typeNeurone, char typeIntegratore) {
-
-    // 1. Controllo ID
-    if (hasNeurone(ID)) {
-        std::cerr << "[Rete] errore: neurone con ID " << ID << " già presente.\n";
-        return;
-    }
+size_t Rete::aggiungiNeurone(NeuronModel typeNeurone, char typeIntegratore) {
 
     // 2. Variabile per la condizione inziale dei neuroni
     double initial_V = 0.0;
@@ -40,18 +34,18 @@ void Rete::aggiungiNeurone(int ID, NeuronModel typeNeurone, char typeIntegratore
     switch (typeNeurone) {
 
     case NeuronModel::LIF: {
-        auto& n = neuroni_.emplace_back(std::in_place_type<LIF>, ID, typeIntegratore);
-        initial_V = std::get<LIF>(n).V_; // Prende il default dalla classe
+        auto& n = neuroni_.emplace_back(std::in_place_type<LIF>, typeIntegratore);
+        initial_V = std::get<LIF>(n).V_; // Prende il valore di default dalla classe
         break;
     }
     case NeuronModel::Exp: {
-        auto& n = neuroni_.emplace_back(std::in_place_type<Exp>, ID, typeIntegratore);
-        initial_V = std::get<Exp>(n).V_; // Prende il default dalla classe
+        auto& n = neuroni_.emplace_back(std::in_place_type<Exp>, typeIntegratore);
+        initial_V = std::get<Exp>(n).V_; // Prende il valore di default dalla classe
         break;
     }
     default: {
         std::cerr << "[Rete] errore: tipo neurone non supportato.\n";
-        return;
+        return 0;
     }
     }
 
@@ -61,37 +55,30 @@ void Rete::aggiungiNeurone(int ID, NeuronModel typeNeurone, char typeIntegratore
     stimoli_.push_back(0.0);
     statoFiring_.push_back(0.0);
 
-    // 5. Aggiornamento mappa indici-ID
-    idToIndex_[ID] = neuroni_.size() - 1;
+    return neuroni_.size() - 1;
 }
 
-void Rete::modificaIntegratoreNeurone(int ID, char typeIntegratore) {
+void Rete::modificaIntegratoreNeurone(size_t idx, char typeIntegratore) {
 
-    // 1. Controllo ID neurone
-    if (!hasNeurone(ID)) {
-        std::cerr << "[Rete] errore: neurone con ID " << ID << " non esiste.\n";
+    // 1. Controllo indice neurone
+    if (!hasNeurone(idx)) {
+        std::cerr << "[Rete] errore: neurone con indice " << idx << " non esiste.\n";
         return;
     }
 
-    // 2. Calcolo indice neurone da modificare
-    size_t index = getIndex(ID);
-
-    // 3. Modifica dell'integratore numerico
-    std::visit([&](auto& n) { n.tipoIntegratore_ = typeIntegratore; }, neuroni_[index]);
+    // 2. Modifica dell'integratore numerico
+    std::visit([&](auto& n) { n.tipoIntegratore_ = typeIntegratore; }, neuroni_[idx]);
 }
 
-void Rete::modificaParametriNeurone(int id, const TypePatchNeuron& patch) {
+void Rete::modificaParametriNeurone(size_t idx, const TypePatchNeuron& patch) {
 
-    // 1. Controllo ID neurone da modificare
-    if (!hasNeurone(id)) {
-        std::cerr << "[Rete] errore: neurone con ID " << id << " non esiste.\n";
+    // 1. Controllo indice neurone da modificare
+    if (!hasNeurone(idx)) {
+        std::cerr << "[Rete] errore: neurone con indice " << idx << " non esiste.\n";
         return;
     }
 
-    // 2. Calcolo indice del neurone da modificare
-    size_t index = getIndex(id);
-
-    // 3. Modifica dei parametri
+    // 2. Modifica dei parametri
     std::visit(
         [&](auto& n) {
             using T = std::decay_t<decltype(n)>;
@@ -157,43 +144,39 @@ void Rete::modificaParametriNeurone(int id, const TypePatchNeuron& patch) {
                 }
             }
         },
-        neuroni_[index]);
+        neuroni_[idx]);
 
     // 4. Aggiornamento dello stato della Rete
-    statoNeuroni_[index] = std::visit([](const auto& n) { return n.getPotential(); }, neuroni_[index]);
-    bool fire = std::visit([](const auto& n) { return n.hasFired(); }, neuroni_[index]);
-    statoFiring_[index] = fire ? 1.0 : 0.0;
+    statoNeuroni_[idx] = std::visit([](const auto& n) { return n.getPotential(); }, neuroni_[idx]);
+    bool fire = std::visit([](const auto& n) { return n.hasFired(); }, neuroni_[idx]);
+    statoFiring_[idx] = fire ? 1.0 : 0.0;
 }
 
 // -----------------------------------------------------------------------------
 // Sinapsi
 // -----------------------------------------------------------------------------
 
-int Rete::connettiNeuroni(int IDpre, int IDpost, SynapseModel typeSynapse) {
+int Rete::connettiNeuroni(size_t indexPre, size_t indexPost, SynapseModel typeSynapse) {
 
-    // 1. Controllo ID neuroni da connettere
-    if (!hasNeurone(IDpre) || !hasNeurone(IDpost)) {
-        std::cerr << "[Rete] errore: uno o entrambi i neuroni (pre=" << IDpre << ", post=" << IDpost
+    // 1. Controllo indici neuroni da connettere
+    if (!hasNeurone(indexPre) || !hasNeurone(indexPost)) {
+        std::cerr << "[Rete] errore: uno o entrambi i neuroni (pre=" << indexPre << ", post=" << indexPost
                   << ") non esistono nella rete.\n";
-        return -1; // ID invalido come segnale di errore
+        return -1; // IDX invalido come segnale di errore
     }
 
-    // 2. Calcolo indici dei neuroni da connettere
-    size_t indexPre = idToIndex_[IDpre];
-    size_t indexPost = idToIndex_[IDpost];
-
-    // 3. Variabile per la condizione inizale della sinapsi
+    // 2. Variabile per la condizione inizale della sinapsi
     double initial_Isyn = 0.0;
 
-    // 4. Chiamata del costrutture a seconda della tipologia di sinapsi e inserimento nella rete
+    // 3. Chiamata del costrutture a seconda della tipologia di sinapsi e inserimento nella rete
     switch (typeSynapse) {
     case SynapseModel::Conductance: {
-        auto& s = sinapsi_.emplace_back(std::in_place_type<Conductance>, indexPre, indexPost, IDpre, IDpost);
+        auto& s = sinapsi_.emplace_back(std::in_place_type<Conductance>, indexPre, indexPost);
         initial_Isyn = std::get<Conductance>(s).Isyn_;
         break;
     }
     case SynapseModel::Current: {
-        auto& s = sinapsi_.emplace_back(std::in_place_type<Current>, indexPre, indexPost, IDpre, IDpost);
+        auto& s = sinapsi_.emplace_back(std::in_place_type<Current>, indexPre, indexPost);
         initial_Isyn = std::get<Current>(s).Isyn_;
         break;
     }
@@ -207,26 +190,19 @@ int Rete::connettiNeuroni(int IDpre, int IDpost, SynapseModel typeSynapse) {
     // 5. Inizializzazione stato sinapse nela rete
     statoSinapsi_.push_back(initial_Isyn);
 
-    // 6. Assegna e registra nella mappa l'ID della sinapsi
-    int idAssegnato = prossimoIdSyn_++;
-    idToIndexSyn_[idAssegnato] = sinapsi_.size() - 1;
-
-    // 7. Restituzione dell'ID della sinapsi per eventuali modificiche dei paramtri
-    return idAssegnato;
+    // 6. Restituzione dell'indice della sinapsi per eventuali modificiche dei paramtri
+    return sinapsi_.size() - 1;
 }
 
-void Rete::modificaSinapsi(int IDsin, const TypePatchSyn& patch) {
+void Rete::modificaSinapsi(size_t indexSyn, const TypePatchSyn& patch) {
 
     // 1. Controllo ID della sinapsi
-    if (!hasSinapsi(IDsin)) {
-        std::cerr << "[Rete] errore: sinapsi con ID " << IDsin << " non esiste.\n";
+    if (!hasSinapsi(indexSyn)) {
+        std::cerr << "[Rete] errore: sinapsi con ID " << indexSyn << " non esiste.\n";
         return;
     }
 
-    // 2. Calcolo indice della sinapsi
-    size_t index = idToIndexSyn_[IDsin];
-
-    // 3. Modifica dei parametri della sinapsi
+    // 2. Modifica dei parametri della sinapsi
     std::visit(
         [&](auto& syn) {
             using TSyn = std::decay_t<decltype(syn)>;
@@ -241,8 +217,8 @@ void Rete::modificaSinapsi(int IDsin, const TypePatchSyn& patch) {
 
                     if (cfg->Isyn.has_value()) {
                         syn.Isyn_ = cfg->Isyn.value();
-                        statoSinapsi_[index] = syn.Isyn_; // a differenza della conductance-based si deve aggiornare lo
-                                                          // stato della sinapse nella rete
+                        statoSinapsi_[indexSyn] = syn.Isyn_; // a differenza della conductance-based si deve aggiornare
+                                                             // lo stato della sinapse nella rete
                     }
                     if (cfg->peso.has_value())
                         syn.peso_ = cfg->peso.value();
@@ -276,32 +252,32 @@ void Rete::modificaSinapsi(int IDsin, const TypePatchSyn& patch) {
                 }
             }
         },
-        sinapsi_[index]);
+        sinapsi_[indexSyn]);
 }
 
-std::vector<int> Rete::findSinapsi(int pre, int post) const {
+std::vector<int> Rete::findSinapsi(size_t pre, size_t post) const {
     // 1. vettore di indici di sinapsi tra due ID di neuroni
-    std::vector<int> ids;
+    std::vector<int> indexes;
 
-    // 2. Scorro tutta la mappa [indice - ID] delle sinapsi
-    for (const auto& [id, index] : idToIndexSyn_) {
+    // 2. Scorro tutta lista delle sinapsi
+    for (size_t indexSyn = 0; indexSyn < sinapsi_.size(); indexSyn++) {
 
-        // 2.1 seleziono una sinapsi
-        const auto& syn = sinapsi_[index];
+        // 2.1 estraggo una sinapsi
+        const auto& syn = sinapsi_[indexSyn];
 
-        // 2.2 estraggo gli ID dei neuroni
-        int IDpre = std::visit([](const auto& s) { return s.getIdPre(); }, syn);
-        int IDpost = std::visit([](const auto& s) { return s.getIdPost(); }, syn);
+        // 2.2 estraggo gli indici dei neuroni della sinapis syn
+        size_t indexPre = std::visit([](const auto& s) { return s.getIndexPre(); }, syn);
+        size_t indexPost = std::visit([](const auto& s) { return s.getIndexPost(); }, syn);
 
         // 2.3 se corrispondo entrambi agli ID target signfica che ho trovato una sinapsi
-        if (IDpre == pre && IDpost == post) {
-            // aggiungo l'ID della sinapsi nella lista di ID di sinaspsi tra due ID di neuroni
-            ids.push_back(id);
+        if (indexPre == pre && indexPost == post) {
+            // aggiungo l'indice della sinapsi nella lista di indici di sinaspsi tra due indici di neuroni
+            indexes.push_back(indexSyn);
         }
     }
 
     // 3. Restituisco tutti gli id delle sinapsi cercate
-    return ids;
+    return indexes;
 }
 
 // -----------------------------------------------------------------------------
@@ -316,10 +292,6 @@ void Rete::prepare(double dt) {
     }
 
     // ... nel futuro può fare altre cose : chiamato in automatico prima di ogni simulazione
-    // aggiungere un metodo di blocco rete --> dopo aver chiamato blocco rete l'utente non può più modificare la rete
-    // la simulazione invece può modificare la rete
-    // una simulazione non può partire se blocco rete non è attivo
-    // tutte le modifiche alla rete non vengono eseguite se il blocco rete è attivo
 }
 
 void Rete::step(double dt) {
