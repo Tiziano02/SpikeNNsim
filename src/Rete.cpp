@@ -3,34 +3,46 @@
 #include <iostream>
 
 // -----------------------------------------------------------------------------
-// Costruttore - andrà modificato perchè dovrebbe creare una popolazione e non neuroni sparsi
+// POPOLAZIONI
 // -----------------------------------------------------------------------------
 
-Rete::Rete(int N, NeuronModel typeNeurone, char typeintegratore) {
+size_t Rete::addPopulation(size_t size, NeuronModel typeNeuron = NeuronModel::LIF, char typeIntegratore = 'E',
+                           std::optional<TypePatchNeuron> config = std::nullopt) {
 
-    // 1. Accantonamento dello spazio necessario
-    neuroni_.reserve(N);
-    statoNeuroni_.reserve(N);
-    inputTotale_.reserve(N);
-    stimoli_.reserve(N);
-    statoFiring_.reserve(N);
+    // 1. Riservo lo spazio per i neuroni della popolazione
+    neuroni_.reserve(neuroni_.size() + size);
+    inputTotale_.reserve(inputTotale_.size() + size);
+    stimoli_.reserve(stimoli_.size() + size);
+    statoNeuroni_.reserve(statoNeuroni_.size() + size);
+    statoFiring_.reserve(statoFiring_.size() + size);
 
-    // 2. Csostruzione singola dei neuroni con parametri di default
-    for (int i = 0; i < N; ++i) {
-        aggiungiNeurone(typeNeurone, typeintegratore);
+    // 2. Aggiungo i neuroni della popolazione e in caso modifico i parametri con la patch passata
+    size_t start = neuroni_.size();
+    for (size_t i = 0; i < size; ++i) {
+        size_t idx = aggiungiNeurone(typeNeuron, typeIntegratore);
+        if (config.has_value()) {
+            modificaParametriNeurone(idx, config.value());
+        }
     }
+
+    // 3. Creo la popolazione e la aggiungo alla lista delle popolazioni
+    Popolazione pop(start, size);
+    popolazioni_.push_back(pop);
+
+    // 4. Restituisco l'indice del primo neurone della popolazione
+    return start - 1;
 }
 
 // -----------------------------------------------------------------------------
-// Neuroni
+// NEURONI
 // -----------------------------------------------------------------------------
 
 size_t Rete::aggiungiNeurone(NeuronModel typeNeurone, char typeIntegratore) {
 
-    // 2. Variabile per la condizione inziale dei neuroni
+    // 1. Variabile per la condizione inziale dei neuroni
     double initial_V = 0.0;
 
-    // 3. Chiamata costruttore a seconda del tipo di neurone e inserimento nella rete
+    // 2. Chiamata costruttore a seconda del tipo di neurone e inserimento nella rete
     switch (typeNeurone) {
 
     case NeuronModel::LIF: {
@@ -49,7 +61,7 @@ size_t Rete::aggiungiNeurone(NeuronModel typeNeurone, char typeIntegratore) {
     }
     }
 
-    // 4. Inizializzazione dello stato della rete
+    // 3. Inizializzazione dello stato della rete
     statoNeuroni_.push_back(initial_V);
     inputTotale_.push_back(0.0);
     stimoli_.push_back(0.0);

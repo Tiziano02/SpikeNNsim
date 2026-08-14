@@ -11,8 +11,10 @@
 
 #include "Neurone.hpp"
 #include "Sinapsi.hpp"
+#include "Popolazione.hpp"
 #include <cstddef>
 #include <vector>
+#include <optional>
 
 /**
  * @ingroup publicapi
@@ -32,16 +34,13 @@ class Rete {
 
   public:
     /**
-     * @brief Costruttore principale: alloca e inizializza una popolazione omogenea.
-     * @param N Numero di neuroni da creare.
-     * @param typeNeurone Modello fisico dei neuroni (es. NeuronModel::LIF).
-     * @param typeintegratore Metodo numerico: 'E' (Eulero) o 'R' (Runge-Kutta 4). Default 'E'.
+     * @brief Costruttore default : crea una rete vuota
      */
-    Rete(int N, NeuronModel typeNeurone, char typeintegratore = 'E');
+    Rete();
 
     ~Rete() = default;
 
-    // -- GESTIONE NEURONI (API PUBBLICA) ---------------------------------------------------------------------
+    // -- GESTIONE SINGOLO NEURONE (API PUBBLICA) ---------------------------------------------------------------------
 
     /**
      * @brief Inserisce un singolo neurone nella topologia della rete.
@@ -64,6 +63,60 @@ class Rete {
      */
     void modificaParametriNeurone(size_t idx, const TypePatchNeuron& patch);
 
+    // -- GESTIONE POPOLAZIONI (API PUBBLICA) -----------------------------------------------------------------
+
+    /**
+     * @brief Aggiunge una popolazione di neuroni alla rete
+     *
+     * @param indexStart Indice di partenza della popolazione di neuroni
+     * @param size Numero di neuroni nella popolazione
+     * @param typeNeuron Tipologia di neuroni all'interno della popolazione
+     * @param typeIntegratore metodo di integrazione
+     * @param config configurazione dei parametri dei neuroni della popolazione
+     * @return Popolazione
+     */
+    size_t addPopulation(size_t size, NeuronModel typeNeuron, char typeIntegratore,
+                         std::optional<TypePatchNeuron> config);
+
+    /**
+     * @brief Modifica i parametri dei neuroni della popolazione.
+     * @param patch Struttura dati contenente i parametri da modificare.
+     * @details Per ogni parametro specificato in `patch`, il valore viene applicato
+     *          a tutti i neuroni della popolazione.
+     */
+    void modificaParametriPopolazione(Popolazione& pop, const TypePatchNeuron& patch);
+
+    /**
+     * @brief Randomizza i parametri dei neuroni della popolazione.
+     * @param patch Struttura dati contenente i parametri da randomizzare.
+     * @param distribuzione Distribuzione statistica da utilizzare per la randomizzazione.
+     * @details Per ogni parametro specificato in `patch`, viene generato un valore casuale
+     *          secondo la distribuzione specificata e applicato a tutti i neuroni della popolazione.
+     */
+    void randomizzaParametriPopolazione(Popolazione& pop, const TypePatchNeuron& patch, const std::string& distrib);
+
+    /**
+     * @brief eteroegenizza la popolazione con diversi parametri.
+     * @param patches Vettore di patch contenenti i parametri per ogni neurone.
+     * @param probabilita Vettore di probabilità per ogni patch.
+     */
+    void eteroegenizzaPopolazione(Popolazione& pop, const std::vector<TypePatchNeuron>& patches,
+                                  std::vector<double> probabilita);
+
+    // -- GESTIONE CONNESSIONI POPOLAZIONI -----------------------------------------------------------------
+
+    /**
+     * @brief Crea connessioni sinaptiche sparse tra due popolazioni.
+     * @param other Popolazione bersaglio (post-sinaptica).
+     * @param prob Probabilità di connessione per ogni coppia di neuroni (0..1).
+     * @param tipo Modello di sinapsi (Current o Conductance).
+     * @param params Configurazione opzionale dei parametri sinaptici.
+     * @details Itera su tutte le coppie (pre, post) e crea una sinapsi con probabilità `prob`.
+     *          Se `params` non è vuoto, viene applicato a tutte le sinapsi create.
+     */
+    void connectTo(Popolazione& src, Popolazione& dest, double prob, SynapseModel tipo,
+                   const TypePatchSyn& params = {});
+
     // -- GESTIONE SINAPSI (API PUBBLICA) ----------------------------------------------------------------------
 
     /**
@@ -77,16 +130,16 @@ class Rete {
 
     /**
      * @brief Aggiorna i parametri di una sinapsi esistente.
-     * @param IDsin ID univoco della sinapsi (restituito da connettiNeuroni).
+     * @param indexSyn Indice univoco della sinapsi (restituito da connettiNeuroni).
      * @param patch Struttura dati contenente le modifiche da applicare.
      * @warning Deve essere chiamata prima dell'avvio della simulazione (prima di prepare()).
      */
-    void modificaSinapsi(size_t IDsin, const TypePatchSyn& patch);
+    void modificaSinapsi(size_t indexSyn, const TypePatchSyn& patch);
 
     /**
      * @brief Ricerca tutte le sinapsi che collegano una specifica coppia di neuroni.
-     * @param pre ID del neurone sorgente.
-     * @param post ID del neurone bersaglio.
+     * @param pre indice del neurone sorgente.
+     * @param post indice del neurone bersaglio.
      * @return Vettore contenente gli ID delle sinapsi trovate.
      */
     std::vector<int> findSinapsi(size_t pre, size_t post) const;
@@ -94,11 +147,9 @@ class Rete {
   private:
     // -- ATTRIBUTI PRIVATI (Topologia e Stato) --------------------------------------------------------------
 
-    std::vector<TypeNeuron> neuroni_; // Lista dei neuroni
-    std::vector<TypeSyn> sinapsi_;    // Lista delle sinapsi
-
-    // std::unordered_map<int, size_t> idToIndexSyn_; // Mappa: ID Generato -> Indice Vettore Sinapsi
-    // int prossimoIdSyn_ = 0;                        // Contatore auto-incrementante per gli ID sinapsi
+    std::vector<TypeNeuron> neuroni_;      // Lista dei neuroni
+    std::vector<Popolazione> popolazioni_; // Lista delle popolazioni di neuroni
+    std::vector<TypeSyn> sinapsi_;         // Lista delle sinapsi
 
     std::vector<double> stimoli_;     // Correnti esterne calcolate dalla simuazione
     std::vector<double> inputTotale_; // Somma stimoli + correnti sinaptiche
@@ -126,8 +177,8 @@ class Rete {
     // size_t getIndex(int id) const { return idToIndex_.at(id); }
 
     // 4. Metodi di controllo
-    bool hasNeurone(size_t idx) const { return idx < neuroni_.size() - 1; }
-    bool hasSinapsi(size_t idx) const { return idx < sinapsi_.size() - 1; }
+    bool hasNeurone(size_t idx) const { return idx < neuroni_.size(); } // vero --> neurone esiste
+    bool hasSinapsi(size_t idx) const { return idx < sinapsi_.size(); } // vero --> sinapsi esiste
 };
 
 #endif // RETE_HPP
