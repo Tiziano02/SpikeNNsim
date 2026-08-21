@@ -12,9 +12,11 @@
 #include "Neurone.hpp"
 #include "Sinapsi.hpp"
 #include "Popolazione.hpp"
+#include "Utility.hpp"
 #include <cstddef>
 #include <vector>
 #include <optional>
+#include <deque>
 
 /**
  * @ingroup publicapi
@@ -36,7 +38,7 @@ class Rete {
     /**
      * @brief Costruttore default : crea una rete vuota
      */
-    Rete();
+    Rete() = default;
 
     ~Rete() = default;
 
@@ -63,6 +65,15 @@ class Rete {
      */
     void modificaParametriNeurone(size_t idx, const TypePatchNeuron& patch);
 
+    /**
+     * @brief Randomizza i parametri di un neurone secondo una distribuzione statistica.
+     * @param idx Identificativo del neurone bersaglio.
+     * @param patch Struttura dati contenente i parametri da randomizzare.
+     * @param tipoDist Tipo di distribuzione (Gaussian, Uniform, LogNormal).
+     * @param dispersione Ampiezza della dispersione relativa (es. 0.1 = ±10%).
+     */
+    void randomizzaParametriNeurone(size_t idx, const TypePatchNeuron& patch, DistType tipoDist, double dispersione);
+
     // -- GESTIONE POPOLAZIONI (API PUBBLICA) -----------------------------------------------------------------
 
     /**
@@ -75,8 +86,8 @@ class Rete {
      * @param config configurazione dei parametri dei neuroni della popolazione
      * @return Popolazione
      */
-    size_t addPopulation(size_t size, NeuronModel typeNeuron, char typeIntegratore,
-                         std::optional<TypePatchNeuron> config);
+    Popolazione& addPopulation(size_t size, NeuronModel typeNeuron = NeuronModel::LIF, char typeIntegratore = 'E',
+                               std::optional<TypePatchNeuron> config = std::nullopt);
 
     /**
      * @brief Modifica i parametri dei neuroni della popolazione.
@@ -84,38 +95,44 @@ class Rete {
      * @details Per ogni parametro specificato in `patch`, il valore viene applicato
      *          a tutti i neuroni della popolazione.
      */
-    void modificaParametriPopolazione(Popolazione& pop, const TypePatchNeuron& patch);
+    void modificaParametriPopolazione(size_t indicePopolazione, const TypePatchNeuron& patch);
 
     /**
      * @brief Randomizza i parametri dei neuroni della popolazione.
+     * @param indicePopolazione Indice della popolazione da modificare.
      * @param patch Struttura dati contenente i parametri da randomizzare.
      * @param distribuzione Distribuzione statistica da utilizzare per la randomizzazione.
      * @details Per ogni parametro specificato in `patch`, viene generato un valore casuale
      *          secondo la distribuzione specificata e applicato a tutti i neuroni della popolazione.
      */
-    void randomizzaParametriPopolazione(Popolazione& pop, const TypePatchNeuron& patch, const std::string& distrib);
+    void randomizzaParametriPopolazione(size_t indicePopolazione, const TypePatchNeuron& patch, DistType distribuzione,
+                                        double dispersione);
 
     /**
-     * @brief eteroegenizza la popolazione con diversi parametri.
-     * @param patches Vettore di patch contenenti i parametri per ogni neurone.
-     * @param probabilita Vettore di probabilità per ogni patch.
+     * @brief Aggiunge una popolazione eterogenea di neuroni alla rete.
+     * @param size Numero totale di neuroni nella popolazione.
+     * @param typesNeuroni Vettore contenente i tipi di neuroni da inserire.
+     * @param probabilita Vettore contenente le probabilità di ciascun tipo di neurone.
+     * @param typesIntegratori Vettore contenente i tipi di integratori per ciascun tipo di neurone.
+     * @param configs (opzionale) Vettore di configurazioni (Patch) per ciascun tipo di neurone.
+     * @return Vettore contenente gli indici di partenza delle sub-popolazioni create.
+     * @details
+     * La funzione divide la popolazione in sub-popolazioni omogenee secondo le
+     * probabilità specificate. Ogni sub-popolazione viene creata con il tipo
+     * di neurone e integratore corrispondente, e opzionalmente con la configurazione specificata.
+     * Se `configs` non è fornito, i neuroni vengono creati con i parametri di default.
+     * @note Le dimensioni dei vettori `typesNeuroni`, `probabilita`, `typesIntegratori` e `configs` devono essere
+     * coerenti.
+     * @warning La somma delle probabilità deve essere 1.0. In caso contrario, le probabilità verranno normalizzate
+     * automaticamente.
+     * @warning Se la dimensione della popolazione è 0 o se i vettori di input sono vuoti, la funzione restituirà un
+     * vettore vuoto e stamperà un messaggio di errore.
      */
-    void eteroegenizzaPopolazione(Popolazione& pop, const std::vector<TypePatchNeuron>& patches,
-                                  std::vector<double> probabilita);
+    Popolazione& addPopolazioneEterogenea(size_t size, std::vector<NeuronModel> typesNeuroni,
+                                          std::vector<double> probabilita, std::vector<char> typesIntegratori,
+                                          std::optional<std::vector<TypePatchNeuron>> configs = std::nullopt);
 
-    // -- GESTIONE CONNESSIONI POPOLAZIONI -----------------------------------------------------------------
-
-    /**
-     * @brief Crea connessioni sinaptiche sparse tra due popolazioni.
-     * @param other Popolazione bersaglio (post-sinaptica).
-     * @param prob Probabilità di connessione per ogni coppia di neuroni (0..1).
-     * @param tipo Modello di sinapsi (Current o Conductance).
-     * @param params Configurazione opzionale dei parametri sinaptici.
-     * @details Itera su tutte le coppie (pre, post) e crea una sinapsi con probabilità `prob`.
-     *          Se `params` non è vuoto, viene applicato a tutte le sinapsi create.
-     */
-    void connectTo(Popolazione& src, Popolazione& dest, double prob, SynapseModel tipo,
-                   const TypePatchSyn& params = {});
+    // -- GESTIONE CONNESSIONI POPOLAZIONI ---------------------------------------------------------------------
 
     // -- GESTIONE SINAPSI (API PUBBLICA) ----------------------------------------------------------------------
 
@@ -147,9 +164,9 @@ class Rete {
   private:
     // -- ATTRIBUTI PRIVATI (Topologia e Stato) --------------------------------------------------------------
 
-    std::vector<TypeNeuron> neuroni_;      // Lista dei neuroni
-    std::vector<Popolazione> popolazioni_; // Lista delle popolazioni di neuroni
-    std::vector<TypeSyn> sinapsi_;         // Lista delle sinapsi
+    std::vector<TypeNeuron> neuroni_;     // Lista dei neuroni
+    std::deque<Popolazione> popolazioni_; // Lista delle popolazioni di neuroni
+    std::vector<TypeSyn> sinapsi_;        // Lista delle sinapsi
 
     std::vector<double> stimoli_;     // Correnti esterne calcolate dalla simuazione
     std::vector<double> inputTotale_; // Somma stimoli + correnti sinaptiche
@@ -167,13 +184,15 @@ class Rete {
     // 2. Metodi applicativi
     double getMinTau() const;
     void prepare(double dt);
+    size_t allocazioneNeuroni(size_t size, NeuronModel type, char integratore,
+                              std::optional<TypePatchNeuron> config = {});
 
     // 3. Metodi getter
-    const std::vector<double>& getPointerStatoNeuroni() const { return statoNeuroni_; }
-    const std::vector<double>& getPointerStatoFiring() const { return statoFiring_; }
-    const std::vector<double>& getPointerStatoSinapsi() const { return statoSinapsi_; }
-    int32_t getNumNeuroni() const { return neuroni_.size(); }
-    int32_t getNumSinapsi() const { return sinapsi_.size(); }
+    const std::vector<double>& getPointerStatoNeuroni() const { return statoNeuroni_; };
+    const std::vector<double>& getPointerStatoFiring() const { return statoFiring_; };
+    const std::vector<double>& getPointerStatoSinapsi() const { return statoSinapsi_; };
+    int32_t getNumNeuroni() const { return neuroni_.size(); };
+    int32_t getNumSinapsi() const { return sinapsi_.size(); };
     // size_t getIndex(int id) const { return idToIndex_.at(id); }
 
     // 4. Metodi di controllo

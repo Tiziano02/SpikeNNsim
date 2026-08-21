@@ -1,4 +1,5 @@
 #include "Rete.hpp"
+// #include "Simulazione.hpp"
 #include <iostream>
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -240,10 +241,10 @@ int main() {
     // 1. Creazione neuroni
 
     // 1.1 creazione di 100 neuroni standard con stesso tipo di integratore
-    Rete rete(100, NeuronModel::Exp, 'E');
+    Rete rete;
 
     // 1.2 Aggiungere singoli neuroni ad una rete
-    rete.aggiungiNeurone(100, NeuronModel::Exp, 'E');
+    rete.aggiungiNeurone(NeuronModel::Exp, 'E');
 
     // ------------------------------------------------------------------------------
 
@@ -252,13 +253,13 @@ int main() {
     // Modifica param
 
     // 2.1 Modifica parametri fisici singoli neuroni
-    patchExp neuroniA;
-    neuroniA.R = 1.0 * Mohm;
+    // patchExp neuroniA;
+    // neuroniA.R = 1.0 * Mohm;
 
-    rete.modificaParametriNeurone(0, neuroniA);
+    // rete.modificaParametriNeurone(0, neuroniA);
 
     // 3.1 Modifica integratore singoli neuroni
-    rete.modificaIntegratoreNeurone(0, 'K');
+    // rete.modificaIntegratoreNeurone(0, 'K');
 }
 /*
 #include "Exp.hpp"

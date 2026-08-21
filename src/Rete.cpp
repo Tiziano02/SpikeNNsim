@@ -1,4 +1,5 @@
 #include "Rete.hpp"
+#include "Utility.hpp"
 #include <cstddef>
 #include <iostream>
 
@@ -6,31 +7,128 @@
 // POPOLAZIONI
 // -----------------------------------------------------------------------------
 
-size_t Rete::addPopulation(size_t size, NeuronModel typeNeuron = NeuronModel::LIF, char typeIntegratore = 'E',
-                           std::optional<TypePatchNeuron> config = std::nullopt) {
+size_t Rete::allocazioneNeuroni(size_t size, NeuronModel type, char integratore,
+                                std::optional<TypePatchNeuron> config) {
 
-    // 1. Riservo lo spazio per i neuroni della popolazione
+    // 1. Calcolo indice iniziale blocco di neuroni
+    size_t start = neuroni_.size();
+
+    // 2. Riservo lo spazio per i vettori di stato e di topologia
     neuroni_.reserve(neuroni_.size() + size);
     inputTotale_.reserve(inputTotale_.size() + size);
     stimoli_.reserve(stimoli_.size() + size);
     statoNeuroni_.reserve(statoNeuroni_.size() + size);
     statoFiring_.reserve(statoFiring_.size() + size);
 
-    // 2. Aggiungo i neuroni della popolazione e in caso modifico i parametri con la patch passata
-    size_t start = neuroni_.size();
+    // 3. Aggiungo neuroni e campio i parametri se necessario
     for (size_t i = 0; i < size; ++i) {
-        size_t idx = aggiungiNeurone(typeNeuron, typeIntegratore);
+        size_t idx = aggiungiNeurone(type, integratore);
         if (config.has_value()) {
             modificaParametriNeurone(idx, config.value());
         }
     }
+    return start;
+}
 
-    // 3. Creo la popolazione e la aggiungo alla lista delle popolazioni
+Popolazione& Rete::addPopulation(size_t size, NeuronModel typeNeuron, char typeIntegratore,
+                                 std::optional<TypePatchNeuron> config) {
+
+    // 1. Alloco blocco di neuroni
+    size_t start = allocazioneNeuroni(size, typeNeuron, typeIntegratore, config);
+
+    // 2. Creo la popolazione e la aggiungo alla lista delle popolazioni
     Popolazione pop(start, size);
     popolazioni_.push_back(pop);
 
-    // 4. Restituisco l'indice del primo neurone della popolazione
-    return start - 1;
+    // 4. Restituisco riferimeneto alla popolazione nel vettore popolazioni_
+    return popolazioni_.back();
+}
+
+void Rete::modificaParametriPopolazione(size_t indicePopolazione, const TypePatchNeuron& patch) {
+
+    // 1. Ricavo la popolazione dalla lista delle popolazioni
+    Popolazione& pop = popolazioni_.at(indicePopolazione);
+
+    // 2. Modifico i parametri di tutti i neuroni della popolazione
+    for (size_t i = 0; i < pop.getSize(); ++i) {
+        size_t idx = pop.getStart() + i;
+        modificaParametriNeurone(idx, patch);
+    }
+}
+
+void Rete::randomizzaParametriPopolazione(size_t indicePopolazione, const TypePatchNeuron& patch,
+                                          DistType distribuzione, double dispersione) {
+
+    // 1. Ricavo la popolazione dalla lista delle popolazioni
+    Popolazione& pop = popolazioni_.at(indicePopolazione);
+
+    // 2. Itero su tutti i neuroni della popolazione e randomizzo i parametri
+    for (size_t i = 0; i < pop.getSize(); ++i) {
+        size_t idx = pop.getStart() + i;
+        randomizzaParametriNeurone(idx, patch, distribuzione, dispersione);
+    }
+}
+
+Popolazione& Rete::addPopolazioneEterogenea(size_t size, std::vector<NeuronModel> typesNeuroni,
+                                            std::vector<double> probabilita, std::vector<char> typesIntegratori,
+                                            std::optional<std::vector<TypePatchNeuron>> configs) {
+
+    // 1. Controllo che le dimensioni dei vettori siano coerenti
+    if (typesNeuroni.size() != probabilita.size() || typesNeuroni.size() != typesIntegratori.size() ||
+        (configs.has_value() && typesNeuroni.size() != configs->size())) {
+        throw std::invalid_argument("[Rete] errore: le dimensioni dei vettori di input non sono coerenti.");
+    } else if (size == 0) {
+        throw std::invalid_argument("[Rete] errore: la dimensione della popolazione deve essere maggiore di zero.");
+    } else if (typesNeuroni.empty() || probabilita.empty() || typesIntegratori.empty()) {
+        throw std::invalid_argument("[Rete] errore: uno o più vettori di input sono vuoti.");
+    }
+
+    // 2. Controllo e normalizzazione delle probabilità - Creazione vettore size per le sub-popolazioni
+
+    // 2.1 Calcolo la somma delle probabilità
+    double sumProb = std::accumulate(probabilita.begin(), probabilita.end(), 0.0);
+
+    // 2.2 Inizializzo il vettore delle dimensioni delle sub-popolazioni
+    std::vector<size_t> sizes(typesNeuroni.size(), 0);
+
+    // 2.3 Controllo che la somma delle probabilità sia maggiore di zero
+    if (sumProb <= 0.0) {
+        throw std::invalid_argument("Rete] errore: la somma delle probabilità deve essere maggiore di zero.");
+    }
+
+    // 2.4 Normalizzo le probabilità e calcolo le dimensioni delle sub-popolazioni
+    for (size_t i = 0; i < probabilita.size(); ++i) {
+        // 2.4.1 Normalizzo la probabilità
+        probabilita[i] /= sumProb;
+        // 2.4.2 Calcolo dimensionid delle sub-popolazione tramite arrotondamento
+        sizes[i] = static_cast<size_t>(std::round(probabilita[i] * size));
+    }
+
+    // 3. Randomizzo dimensione delle sub-popolazioni
+    generaAttornoVettore(sizes, 0.1, DistType::Gaussian, false, true);
+
+    // 4. Creazione della popolazione eterogena
+    size_t indexStart = neuroni_.size();
+    Popolazione pop(indexStart, size);
+
+    // 5.Aggiungo popolazione al vettore popolazioni_
+    popolazioni_.push_back(pop);
+
+    // 6. Allocazione blocchi di neuroni e inserimento degli indici delle sub-popolazioni
+    for (size_t i = 0; i < sizes.size(); i++) {
+        if (configs.has_value()) {
+            allocazioneNeuroni(sizes[i], typesNeuroni[i], typesIntegratori[i], configs->at(i));
+        } else {
+            allocazioneNeuroni(sizes[i], typesNeuroni[i], typesIntegratori[i]);
+        }
+        // 6.2 Creo sub-popolazione
+        Popolazione subPop(indexStart, sizes[i]);
+        indexStart += sizes[i];
+        popolazioni_.back().subPop_.push_back(&subPop);
+    }
+
+    // 7. Restitiusco riferimeto ad ultima popolazione in popolazioni_
+    return popolazioni_.back();
 }
 
 // -----------------------------------------------------------------------------
@@ -164,12 +262,82 @@ void Rete::modificaParametriNeurone(size_t idx, const TypePatchNeuron& patch) {
     statoFiring_[idx] = fire ? 1.0 : 0.0;
 }
 
+// Osservazioni: ogni parametro ha la stessa dispersione relativa, in futuro si potrebbe permettere di specificare
+// dispersioni diverse per ogni parametro, "complicato" da implementare ma possibile.
+void Rete::randomizzaParametriNeurone(size_t idx, const TypePatchNeuron& patch, DistType tipoDist, double dispersione) {
+
+    // 1. Controllo indice neurone da modificare
+    if (!hasNeurone(idx)) {
+        std::cerr << "[Rete] errore: neurone con indice " << idx << " non esiste.\n";
+        return;
+    }
+
+    // 2. Randomizzazione dei parametri
+    std::visit(
+        [&](auto& n) {
+            using T = std::decay_t<decltype(n)>;
+
+            // 2.1 Controllo della tipologia di neurone
+            if constexpr (std::is_same_v<T, LIF>) {
+                // 2.2 Controllo corrispondenza tra tipo di neurone e patch
+                if (auto cfg = std::get_if<patchLIF>(&patch)) {
+
+                    // 2.3 Controllo quali parametri si devono randomizzare e li randomizzo
+                    if (cfg->V.has_value())
+                        n.V_ = generaAttorno(cfg->V.value(), dispersione, tipoDist);
+                    if (cfg->Vth.has_value())
+                        n.Vth_ = generaAttorno(cfg->Vth.value(), dispersione, tipoDist);
+                    if (cfg->VthMin.has_value())
+                        n.VthMin_ = generaAttorno(cfg->VthMin.value(), dispersione, tipoDist);
+                    if (cfg->VthMax.has_value())
+                        n.VthMax_ = generaAttorno(cfg->VthMax.value(), dispersione, tipoDist);
+                    if (cfg->Vrest.has_value())
+                        n.Vrest_ = generaAttorno(cfg->Vrest.value(), dispersione, tipoDist);
+                    if (cfg->Vreset.has_value())
+                        n.Vreset_ = generaAttorno(cfg->Vreset.value(), dispersione, tipoDist);
+                    if (cfg->R.has_value())
+                        n.R_ = generaAttorno(cfg->R.value(), dispersione, tipoDist);
+                    if (cfg->C.has_value())
+                        n.C_ = generaAttorno(cfg->C.value(), dispersione, tipoDist);
+                    if (cfg->timeAbsolute.has_value())
+                        n.timeAbsolute_ = generaAttorno(cfg->timeAbsolute.value(), dispersione, tipoDist);
+                }
+            }
+            if constexpr (std::is_same_v<T, Exp>) {
+
+                if (auto cfg = std::get_if<patchExp>(&patch)) {
+
+                    if (cfg->V.has_value())
+                        n.V_ = generaAttorno(cfg->V.value(), dispersione, tipoDist);
+                    if (cfg->Vth.has_value())
+                        n.Vth_ = generaAttorno(cfg->Vth.value(), dispersione, tipoDist);
+                    if (cfg->VthMin.has_value())
+                        n.VthMin_ = generaAttorno(cfg->VthMin.value(), dispersione, tipoDist);
+                    if (cfg->VthMax.has_value())
+                        n.VthMax_ = generaAttorno(cfg->VthMax.value(), dispersione, tipoDist);
+                    if (cfg->Vrest.has_value())
+                        n.Vrest_ = generaAttorno(cfg->Vrest.value(), dispersione, tipoDist);
+                    if (cfg->Vreset.has_value())
+                        n.Vreset_ = generaAttorno(cfg->Vreset.value(), dispersione, tipoDist);
+                    if (cfg->R.has_value())
+                        n.R_ = generaAttorno(cfg->R.value(), dispersione, tipoDist);
+                    if (cfg->C.has_value())
+                        n.C_ = generaAttorno(cfg->C.value(), dispersione, tipoDist);
+                    if (cfg->timeAbsolute.has_value())
+                        n.timeAbsolute_ = generaAttorno(cfg->timeAbsolute.value(), dispersione, tipoDist);
+                    if (cfg->sharpness.has_value())
+                        n.sharpness_ = generaAttorno(cfg->sharpness.value(), dispersione, tipoDist);
+                }
+            }
+        },
+        neuroni_[idx]);
+}
+
 // -----------------------------------------------------------------------------
 // Sinapsi
 // -----------------------------------------------------------------------------
 
 int Rete::connettiNeuroni(size_t indexPre, size_t indexPost, SynapseModel typeSynapse) {
-
     // 1. Controllo indici neuroni da connettere
     if (!hasNeurone(indexPre) || !hasNeurone(indexPost)) {
         std::cerr << "[Rete] errore: uno o entrambi i neuroni (pre=" << indexPre << ", post=" << indexPost
@@ -207,7 +375,6 @@ int Rete::connettiNeuroni(size_t indexPre, size_t indexPost, SynapseModel typeSy
 }
 
 void Rete::modificaSinapsi(size_t indexSyn, const TypePatchSyn& patch) {
-
     // 1. Controllo ID della sinapsi
     if (!hasSinapsi(indexSyn)) {
         std::cerr << "[Rete] errore: sinapsi con ID " << indexSyn << " non esiste.\n";
@@ -222,15 +389,16 @@ void Rete::modificaSinapsi(size_t indexSyn, const TypePatchSyn& patch) {
             // 3.1 Controllo tipo di sinapsi
             if constexpr (std::is_same_v<TSyn, Current>) {
 
-                // 3.2 Controllo che il tipo di sinapsi individuata dall'ID e il tipo di parametri passati corrispondono
+                // 3.2 Controllo che il tipo di sinapsi individuata dall'ID e il tipo di parametri passati
+                // corrispondono
                 if (auto cfg = std::get_if<patchCurrent>(&patch)) {
 
                     // 3.3 Controllo parametri da modificare e modifica
 
                     if (cfg->Isyn.has_value()) {
                         syn.Isyn_ = cfg->Isyn.value();
-                        statoSinapsi_[indexSyn] = syn.Isyn_; // a differenza della conductance-based si deve aggiornare
-                                                             // lo stato della sinapse nella rete
+                        statoSinapsi_[indexSyn] = syn.Isyn_; // a differenza della conductance-based si deve
+                                                             // aggiornare lo stato della sinapse nella rete
                     }
                     if (cfg->peso.has_value())
                         syn.peso_ = cfg->peso.value();
@@ -297,7 +465,6 @@ std::vector<int> Rete::findSinapsi(size_t pre, size_t post) const {
 // -----------------------------------------------------------------------------
 
 void Rete::prepare(double dt) {
-
     // 1. Inizializzo il ringDelay di ogni sinapsi
     for (auto& s : sinapsi_) {
         std::visit([&](auto& syn) { syn.setDelayRing(dt); }, s);
@@ -307,7 +474,6 @@ void Rete::prepare(double dt) {
 }
 
 void Rete::step(double dt) {
-
     // 1. Azzeramento dell'input totale di tutti i neuroni
     std::fill(inputTotale_.begin(), inputTotale_.end(), 0.0);
 
@@ -352,7 +518,6 @@ void Rete::step(double dt) {
 }
 
 void Rete::aggiornaStatoRete() {
-
     // 1. Aggirnamento dei potenziali d'azione e dello stato dei neuroni
     for (size_t i = 0; i < neuroni_.size(); i++) {
         statoNeuroni_[i] = std::visit([](const auto& n) { return n.getPotential(); }, neuroni_[i]);
@@ -367,7 +532,6 @@ void Rete::aggiornaStatoRete() {
 }
 
 double Rete::getMinTau() const {
-
     // 1. Inizializzazione
     double minTau = std::numeric_limits<double>::max();
 

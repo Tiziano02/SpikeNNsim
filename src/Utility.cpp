@@ -1,7 +1,11 @@
 #include "Utility.hpp"
 
-#include <iostream>
-#include <algorithm> // per std::min e std::max
+// #include <iostream>
+// #include <algorithm> // per std::min e std::max
+// #include <random>
+// #include <type_traits>
+// #include <cmath>
+// #include <stdexcept>
 
 // Includi gli header di sistema corretti in base all'OS
 #if defined(_WIN32)
