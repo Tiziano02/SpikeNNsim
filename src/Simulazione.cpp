@@ -2,6 +2,7 @@
 #include "Utility.hpp"
 #include <algorithm>
 #include <cmath>
+#include <cstdint>  // per int32_t
 #include <fstream>
 #include <iostream>
 
