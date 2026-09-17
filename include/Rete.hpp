@@ -132,7 +132,45 @@ class Rete {
                                           std::vector<double> probabilita, std::vector<char> typesIntegratori,
                                           std::optional<std::vector<TypePatchNeuron>> configs = std::nullopt);
 
+    /**
+     * @brief Modifica i parametri di una sub-popolazione.
+     * @param indicePopolazione Indice della popolazione contenente la sub-popolazione.
+     * @param indiceSubPopolazione Indice della sub-popolazione da modificare.
+     * @param patch Struttura dati contenente le modifiche da applicare.
+     */
+    void modificaParametriSubPopolazione(size_t indicePopolazione, size_t indiceSubPopolazione,
+                                         const TypePatchNeuron& patch);
+
+    /**
+     * @brief Randomizza i parametri di una sub-popolazione.
+     * @param indicePopolazione Indice della popolazione contenente la sub-popolazione.
+     * @param indiceSubPopolazione Indice della sub-popolazione da randomizzare.
+     * @param patch Struttura dati contenente le modifiche da applicare.
+     * @param distribuzione Tipo di distribuzione per il randomizzazione.
+     * @param dispersione Valore di dispersione per il randomizzazione.
+     */
+    void randomizzaParametriSubPopolazione(size_t indicePopolazione, size_t indiceSubPopolazione,
+                                           const TypePatchNeuron& patch, DistType distribuzione, double dispersione);
+
     // -- GESTIONE CONNESSIONI POPOLAZIONI ---------------------------------------------------------------------
+
+    /**
+     * @brief Crea connessioni casuali tra tutti i neuroni di una popolazione.
+     * @param indicePopolazione Indice della popolazione da connettere.
+     * @param probabilitaConnessione Probabilità di connessione tra due neuroni.
+     * @param typeSynapse Modello matematico della sinapsi da utilizzare.
+     */
+    void connettiPopolazione(size_t indicePopolazione, double probabilitaConnessione, SynapseModel typeSynapse);
+
+    /**
+     * @brief Crea connessioni casuali tra i neuroni di due popolazioni.
+     * @param indicePopPre Indice della popolazione sorgente.
+     * @param indicePopPost Indice della popolazione bersaglio.
+     * @param probabilitaConnessione Probabilità di connessione tra due neuroni.
+     * @param typeSynapse Modello matematico della sinapsi da utilizzare.
+     */
+    void connettiPopolazioni(size_t indicePopPre, size_t indicePopPost, double probabilitaConnessione,
+                             SynapseModel typeSynapse);
 
     // -- GESTIONE SINAPSI (API PUBBLICA) ----------------------------------------------------------------------
 

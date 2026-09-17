@@ -40,7 +40,7 @@ Popolazione& Rete::addPopulation(size_t size, NeuronModel typeNeuron, char typeI
     Popolazione pop(start, size);
     popolazioni_.push_back(pop);
 
-    // 4. Restituisco riferimeneto alla popolazione nel vettore popolazioni_
+    // 3. Restituisco riferimeneto alla popolazione nel vettore popolazioni_
     return popolazioni_.back();
 }
 
@@ -129,6 +129,38 @@ Popolazione& Rete::addPopolazioneEterogenea(size_t size, std::vector<NeuronModel
 
     // 7. Restitiusco riferimeto ad ultima popolazione in popolazioni_
     return popolazioni_.back();
+}
+
+void Rete::modificaParametriSubPopolazione(size_t indicePopolazione, size_t indiceSubPopolazione,
+                                           const TypePatchNeuron& patch) {
+
+    // 1. Ricavo la popolazione dalla lista delle popolazioni
+    Popolazione& pop = popolazioni_.at(indicePopolazione);
+
+    // 2. Ricavo la sub-popolazione dalla lista delle sub-popolazioni
+    Popolazione* subPop = pop.getSubPopIndex(indiceSubPopolazione);
+
+    // 3. Modifico i parametri di tutti i neuroni della sub-popolazione
+    for (size_t i = 0; i < subPop->getSize(); ++i) {
+        size_t idx = subPop->getStart() + i;
+        modificaParametriNeurone(idx, patch);
+    }
+}
+
+void Rete::randomizzaParametriSubPopolazione(size_t indicePopolazione, size_t indiceSubPopolazione,
+                                             const TypePatchNeuron& patch, DistType distribuzione, double dispersione) {
+
+    // 1. Ricavo la popolazione dalla lista delle popolazioni
+    Popolazione& pop = popolazioni_.at(indicePopolazione);
+
+    // 2. Ricavo la sub-popolazione dalla lista delle sub-popolazioni
+    Popolazione* subPop = pop.getSubPopIndex(indiceSubPopolazione);
+
+    // 3. Itero su tutti i neuroni della sub-popolazione e randomizzo i parametri
+    for (size_t i = 0; i < subPop->getSize(); ++i) {
+        size_t idx = subPop->getStart() + i;
+        randomizzaParametriNeurone(idx, patch, distribuzione, dispersione);
+    }
 }
 
 // -----------------------------------------------------------------------------
@@ -458,6 +490,68 @@ std::vector<int> Rete::findSinapsi(size_t pre, size_t post) const {
 
     // 3. Restituisco tutti gli id delle sinapsi cercate
     return indexes;
+}
+
+void Rete::connettiPopolazione(size_t indicePopolazione, double probabilitaConnessione, SynapseModel typeSynapse) {
+    // 1. Controllo che l'indice della popolazione sia valido
+    if (indicePopolazione >= popolazioni_.size()) {
+        std::cerr << "[Rete] errore: indice popolazione " << indicePopolazione << " non valido.\n";
+        return;
+    }
+
+    // 2. Ricavo la popolazione dalla lista delle popolazioni
+    const Popolazione& pop = popolazioni_[indicePopolazione];
+
+    // 3. Itero su tutti i neuroni della popolazione e creo connessioni casuali
+    for (size_t i = 0; i < pop.getSize(); ++i) {
+        size_t indexPre = pop.getStart() + i;
+
+        for (size_t j = 0; j < pop.getSize(); ++j) {
+            size_t indexPost = pop.getStart() + j;
+
+            // Evito di connettere un neurone a se stesso
+            if (indexPre != indexPost) {
+                // Genero un numero casuale tra 0 e 1
+                double randomValue = static_cast<double>(rand()) / RAND_MAX;
+
+                // Se il numero casuale è minore della probabilità di connessione, creo la sinapsi
+                if (randomValue < probabilitaConnessione) {
+                    connettiNeuroni(indexPre, indexPost, typeSynapse);
+                }
+            }
+        }
+    }
+}
+
+void Rete::connettiPopolazioni(size_t indicePopPre, size_t indicePopPost, double probabilitaConnessione,
+                               SynapseModel typeSynapse) {
+    // 1. Controllo che gli indici delle popolazioni siano validi
+    if (indicePopPre >= popolazioni_.size() || indicePopPost >= popolazioni_.size()) {
+        std::cerr << "[Rete] errore: uno o entrambi gli indici delle popolazioni (" << indicePopPre << ", "
+                  << indicePopPost << ") non sono validi.\n";
+        return;
+    }
+
+    // 2. Ricavo le popolazioni dalla lista delle popolazioni
+    const Popolazione& popPre = popolazioni_[indicePopPre];
+    const Popolazione& popPost = popolazioni_[indicePopPost];
+
+    // 3. Itero su tutti i neuroni della popolazione pre e creo connessioni casuali con la popolazione post
+    for (size_t i = 0; i < popPre.getSize(); ++i) {
+        size_t indexPre = popPre.getStart() + i;
+
+        for (size_t j = 0; j < popPost.getSize(); ++j) {
+            size_t indexPost = popPost.getStart() + j;
+
+            // Genero un numero casuale tra 0 e 1
+            double randomValue = static_cast<double>(rand()) / RAND_MAX;
+
+            // Se il numero casuale è minore della probabilità di connessione, creo la sinapsi
+            if (randomValue < probabilitaConnessione) {
+                connettiNeuroni(indexPre, indexPost, typeSynapse);
+            }
+        }
+    }
 }
 
 // -----------------------------------------------------------------------------

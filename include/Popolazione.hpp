@@ -68,6 +68,13 @@ class Popolazione {
     // 1. metodi getter
     inline size_t getStart() const { return indexStart_; }
     inline size_t getSize() const { return size_; }
+    inline Popolazione* getSubPopIndex(size_t idx) const {
+        if (idx < subPop_.size()) {
+            return subPop_[idx];
+        } else {
+            return nullptr; // oppure lancia un'eccezione
+        }
+    }
 
     // 2. metodi controllo
     bool isEterogenea() const { return !subPop_.empty(); }
