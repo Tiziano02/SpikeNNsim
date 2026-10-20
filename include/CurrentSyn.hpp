@@ -63,7 +63,8 @@ class Current {
      * @brief Costruttore interno utilizzato da Rete.
      * @param indexPre Indice del neurone pre-sinaptico nel vettore di Rete.
      * @param indexPost Indice del neurone post-sinaptico nel vettore di Rete.
-     * @param typeIntegratore Metodo di integrazione: 'A' (Analitico esatto), 'E' (Eulero in avanti), 'R' (Runge-Kutta 4).
+     * @param typeIntegratore Metodo di integrazione: 'A' (Analitico esatto), 'E' (Eulero in avanti), 'R' (Runge-Kutta
+     * 4).
      */
     Current(size_t indexPre, size_t indexPost, char typeIntegratore = 'E')
         : indexPre_(indexPre), indexPost_(indexPost), tipoIntegratore_(typeIntegratore) {}
@@ -90,7 +91,9 @@ class Current {
     size_t presentStep_ = 0;        // Indice di lettura corrente nel ring buffer
     size_t delayStep_ = 0;          // Numero di step temporali corrispondenti al delay_
     std::vector<double> delayRing_; // Ring buffer per immagazzinare gli spike in transito
-    double decayFactor_ = 0.0;      // Fattore di decadimento analitico esatto: exp(-dt / tau_)
+
+    // Coefficienti per il calcolo analitico
+    double decayFactor_ = 0.0; // Fattore di decadimento analitico esatto: exp(-dt / tau_)
 
     // -- METODI PRIVATI --------------------------------------------------------------------------------------
 
@@ -98,7 +101,7 @@ class Current {
     void update(double dt, bool preFired);
     void euleroInAvanti(double dt);
     void rungeKutta(double dt);
-    void analiticoEsatto(double dt);
+    void analiticoEsatto();
 
     // 2. Metodi getter
     inline double getCurrent() const { return Isyn_; }

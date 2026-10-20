@@ -67,6 +67,13 @@ class Rete {
     void modificaIntegratoreNeurone(size_t idx, char typeIntegratore);
 
     /**
+     * @brief Modifica il risolutore numerico di una lista di neuroni.
+     * @param idxs Vettore contenente gli indici dei neuroni bersaglio.
+     * @param typeIntegratore Nuovo metodo ('A' = Analitico esatto, 'E' = Eulero, 'R' = Runge-Kutta 4).
+     */
+    void modificaIntegratoreNeuroni(const std::vector<size_t>& idxs, char typeIntegratore);
+
+    /**
      * @brief Modifica i parametri di un neurone attraverso una patch.
      * @param idx Identificativo del neurone bersaglio.
      * @param patch Struttura dati contenente i parametri da randomizzare.
@@ -124,6 +131,13 @@ class Rete {
                                       DistType distribuzione = DistType::Gaussian);
 
     /**
+     * @brief Modifica il risolutore numerico di tutti i neuroni di una popolazione.
+     * @param indicePopolazione Indice della popolazione da modificare.
+     * @param typeIntegratore Nuovo metodo ('A' = Analitico esatto, 'E' = Eulero, 'R' = Runge-Kutta 4).
+     */
+    void modificaIntegratorePopolazione(size_t indicePopolazione, char typeIntegratore);
+
+    /**
      * @brief Aggiunge una popolazione eterogenea di neuroni alla rete.
      * @param size Numero totale di neuroni nella popolazione.
      * @param typesNeuroni Vettore contenente i tipi di neuroni da inserire.
@@ -159,6 +173,15 @@ class Rete {
     void modificaParametriSubPopolazione(size_t indicePopolazione, size_t indiceSubPopolazione,
                                          const TypePatchNeuron& patch, double dispersione = 0.0,
                                          DistType distribuzione = DistType::Gaussian);
+
+    /**
+     * @brief Modifica il risolutore numerico di una specifica sub-popolazione.
+     * @param indicePopolazione Indice della popolazione contenente la sub-popolazione.
+     * @param indiceSubPopolazione Indice della sub-popolazione da modificare.
+     * @param typeIntegratore Nuovo metodo ('A' = Analitico esatto, 'E' = Eulero, 'R' = Runge-Kutta 4).
+     */
+    void modificaIntegratoreSubPopolazione(size_t indicePopolazione, size_t indiceSubPopolazione,
+                                         char typeIntegratore);
 
     // -- CONDIZIONI INIZIALI POTENZIALI (SYNTACTIC SUGAR) ---------------------------------------------------
 
@@ -227,6 +250,22 @@ class Rete {
                                     DistType tipoDist = DistType::Gaussian);
 
     /**
+     * @brief Modifica il risolutore di tutte le sinapsi interne (ricorrenti) di una popolazione.
+     * @param indicePopolazione Indice della popolazione bersaglio.
+     * @param typeIntegratore Nuovo metodo ('A' = Analitico esatto, 'E' = Eulero in avanti, 'R' = Runge-Kutta 4).
+     */
+    void modificaIntegratoreSinapsiPopolazione(size_t indicePopolazione, char typeIntegratore);
+
+    /**
+     * @brief Modifica il risolutore di tutte le sinapsi interne di una sub-popolazione.
+     * @param indicePopolazione Indice della popolazione contenente la sub-popolazione.
+     * @param indiceSubPopolazione Indice della sub-popolazione bersaglio.
+     * @param typeIntegratore Nuovo metodo ('A' = Analitico esatto, 'E' = Eulero in avanti, 'R' = Runge-Kutta 4).
+     */
+    void modificaIntegratoreSinapsiSubPopolazione(size_t indicePopolazione, size_t indiceSubPopolazione,
+                                                  char typeIntegratore);
+
+    /**
      * @brief Crea connessioni casuali tra i neuroni di due popolazioni distinte.
      * @param indicePopPre Indice della popolazione sorgente (presinaptica).
      * @param indicePopPost Indice della popolazione bersaglio (postsinaptica).
@@ -285,6 +324,13 @@ class Rete {
     void modificaIntegratoreSinapsi(size_t idx, char typeIntegratore);
 
     /**
+     * @brief Modifica il risolutore numerico/analitico di una lista di sinapsi.
+     * @param idxs Vettore contenente gli indici delle sinapsi da modificare.
+     * @param typeIntegratore Nuovo metodo ('A' = Analitico esatto, 'E' = Eulero in avanti, 'R' = Runge-Kutta 4).
+     */
+    void modificaIntegratoreSinapsi(const std::vector<size_t>& idxs, char typeIntegratore);
+
+    /**
      * @brief Aggiorna i parametri di una sinapsi esistente.
      * @param indexSyn Indice univoco della sinapsi (restituito da connettiNeuroni).
      * @param patch Struttura dati contenente le modifiche da applicare.
@@ -325,6 +371,8 @@ class Rete {
     double getPesoSinapsi(size_t idx) const;
     double getDelaySinapsi(size_t idx) const;
     double getTauSinapsi(size_t idx) const;
+    char getIntegratoreNeurone(size_t idx) const;
+    char getIntegratoreSinapsi(size_t idx) const;
 
     // 2. metodi controllo
     bool hasNeurone(size_t idx) const { return idx < neuroni_.size(); }

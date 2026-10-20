@@ -92,14 +92,13 @@ class LIF {
     double C1_ = 0.0;           // Termine di riposo: Vrest * (1 - P)
     double C2_ = 0.0;           // Termine di corrente: R * (1 - P)
     double P_th_ = 0.0;         // Decadimento della soglia adattiva: exp(-dt / tau_rel)
-    bool isPrepared_ = false;   // Flag di validità dei coefficienti analitici
 
     // -- METODI INTERNI ------------------------------------------------------
 
     // 1. Integratori numerici e analitici
     void euleroInAvanti(double correnteTotale, double dt);
     void rungeKutta(double correnteTotale, double dt);
-    void analiticoEsatto(double correnteTotale, double dt);
+    void analiticoEsatto(double correnteTotale);
     void prepare(double dt);
 
     // 2. Metodi getter

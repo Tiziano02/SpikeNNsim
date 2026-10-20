@@ -4,10 +4,7 @@ void Conductance::euleroInAvanti(double dt) {
     gsyn_ += dt * (-gsyn_ / tau_);
 }
 
-void Conductance::analiticoEsatto(double dt) {
-    if (decayFactor_ == 0.0) {
-        decayFactor_ = std::exp(-dt / tau_);
-    }
+void Conductance::analiticoEsatto() {
     gsyn_ *= decayFactor_;
 }
 
@@ -22,7 +19,7 @@ void Conductance::update(double dt, bool preFired, double Vpost) {
 
     // 1. Decadimento della conduttanza in base al risolutore ODE scelto
     if (tipoIntegratore_ == 'A') {
-        analiticoEsatto(dt);
+        analiticoEsatto();
     } else if (tipoIntegratore_ == 'R') {
         rungeKutta(dt);
     } else {

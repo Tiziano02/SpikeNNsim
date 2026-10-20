@@ -74,6 +74,21 @@ void Rete::modificaParametriPopolazione(size_t indicePopolazione, const TypePatc
     }
 }
 
+void Rete::modificaIntegratorePopolazione(size_t indicePopolazione, char typeIntegratore) {
+    verificaNonBloccata("modificaIntegratorePopolazione");
+
+    if (indicePopolazione >= popolazioni_.size()) {
+        std::cerr << "[Rete] errore: indice popolazione " << indicePopolazione << " non valido.\n";
+        return;
+    }
+
+    const Popolazione& pop = popolazioni_[indicePopolazione];
+    for (size_t i = 0; i < pop.size_; ++i) {
+        size_t idx = pop.indexStart_ + i;
+        std::visit([&](auto& n) { n.tipoIntegratore_ = typeIntegratore; }, neuroni_[idx]);
+    }
+}
+
 size_t Rete::addPopolazioneEterogenea(size_t size, std::vector<NeuronModel>& typesNeuroni,
                                       std::vector<double>& probabilita, std::vector<char>& typesIntegratori,
                                       std::optional<std::vector<TypePatchNeuron>> configs) {
@@ -160,6 +175,28 @@ void Rete::modificaParametriSubPopolazione(size_t indicePopolazione, size_t indi
     for (size_t i = 0; i < subPop.size_; ++i) {
         size_t idx = subPop.indexStart_ + i;
         modificaParametriNeurone(idx, patch, dispersione, distribuzione);
+    }
+}
+
+void Rete::modificaIntegratoreSubPopolazione(size_t indicePopolazione, size_t indiceSubPopolazione,
+                                             char typeIntegratore) {
+    verificaNonBloccata("modificaIntegratoreSubPopolazione");
+
+    if (indicePopolazione >= popolazioni_.size()) {
+        std::cerr << "[Rete] errore: indice popolazione " << indicePopolazione << " non valido.\n";
+        return;
+    }
+
+    const Popolazione& pop = popolazioni_[indicePopolazione];
+    if (indiceSubPopolazione >= pop.subPop_.size()) {
+        std::cerr << "[Rete] errore: indice sub-popolazione " << indiceSubPopolazione << " non valido.\n";
+        return;
+    }
+
+    const Popolazione& subPop = pop.subPop_[indiceSubPopolazione];
+    for (size_t i = 0; i < subPop.size_; ++i) {
+        size_t idx = subPop.indexStart_ + i;
+        std::visit([&](auto& n) { n.tipoIntegratore_ = typeIntegratore; }, neuroni_[idx]);
     }
 }
 
@@ -258,6 +295,17 @@ void Rete::modificaIntegratoreNeurone(size_t idx, char typeIntegratore) {
     std::visit([&](auto& n) { n.tipoIntegratore_ = typeIntegratore; }, neuroni_[idx]);
 }
 
+void Rete::modificaIntegratoreNeuroni(const std::vector<size_t>& idxs, char typeIntegratore) {
+    verificaNonBloccata("modificaIntegratoreNeuroni");
+    for (size_t idx : idxs) {
+        if (hasNeurone(idx)) {
+            std::visit([&](auto& n) { n.tipoIntegratore_ = typeIntegratore; }, neuroni_[idx]);
+        } else {
+            std::cerr << "[Rete] errore: neurone con indice " << idx << " non esiste.\n";
+        }
+    }
+}
+
 // Osservazione: chiamando più volte con patch diverse posso modificare la diepsione di ongi siignolo paramteor
 void Rete::modificaParametriNeurone(size_t idx, const TypePatchNeuron& patch, double dispersione, DistType tipoDist) {
     verificaNonBloccata("modificaParametriNeurone");
@@ -299,8 +347,6 @@ void Rete::modificaParametriNeurone(size_t idx, const TypePatchNeuron& patch, do
                         n.timeAbsolute_ = generaAttorno(cfg->timeAbsolute.value(), dispersione, tipoDist);
                     if (cfg->timeRelative.has_value())
                         n.timeRelative_ = generaAttorno(cfg->timeRelative.value(), dispersione, tipoDist);
-
-                    n.isPrepared_ = false; // Invalida i coefficienti precalcolati per ricalcolo
                 }
             }
             if constexpr (std::is_same_v<T, Exp>) {
@@ -413,6 +459,17 @@ void Rete::modificaIntegratoreSinapsi(size_t idx, char typeIntegratore) {
     std::visit([&](auto& s) { s.tipoIntegratore_ = typeIntegratore; }, sinapsi_[idx]);
 }
 
+void Rete::modificaIntegratoreSinapsi(const std::vector<size_t>& idxs, char typeIntegratore) {
+    verificaNonBloccata("modificaIntegratoreSinapsi");
+    for (size_t idx : idxs) {
+        if (hasSinapsi(idx)) {
+            std::visit([&](auto& s) { s.tipoIntegratore_ = typeIntegratore; }, sinapsi_[idx]);
+        } else {
+            std::cerr << "[Rete] errore: sinapsi con ID " << idx << " non esiste.\n";
+        }
+    }
+}
+
 void Rete::modificaSinapsi(size_t indexSyn, const TypePatchSyn& patch, double dispersione, DistType tipoDist) {
     verificaNonBloccata("modificaSinapsi");
     // 1. Controllo ID della sinapsi
@@ -444,10 +501,8 @@ void Rete::modificaSinapsi(size_t indexSyn, const TypePatchSyn& patch, double di
                         syn.peso_ = generaAttorno(cfg->peso.value(), dispersione, tipoDist);
                     if (cfg->Ipeak.has_value())
                         syn.Ipeak_ = generaAttorno(cfg->Ipeak.value(), dispersione, tipoDist);
-                    if (cfg->tau.has_value()) {
+                    if (cfg->tau.has_value())
                         syn.tau_ = generaAttorno(cfg->tau.value(), dispersione, tipoDist);
-                        syn.decayFactor_ = 0.0;
-                    }
                     if (cfg->delay.has_value())
                         syn.delay_ = generaAttorno(cfg->delay.value(), dispersione, tipoDist);
                 } else {
@@ -465,10 +520,8 @@ void Rete::modificaSinapsi(size_t indexSyn, const TypePatchSyn& patch, double di
                     }
                     if (cfg->gpeak.has_value())
                         syn.gpeak_ = generaAttorno(cfg->gpeak.value(), dispersione, tipoDist);
-                    if (cfg->tau.has_value()) {
+                    if (cfg->tau.has_value())
                         syn.tau_ = generaAttorno(cfg->tau.value(), dispersione, tipoDist);
-                        syn.decayFactor_ = 0.0;
-                    }
                     if (cfg->delay.has_value())
                         syn.delay_ = generaAttorno(cfg->delay.value(), dispersione, tipoDist);
                     if (cfg->Erev.has_value())
@@ -621,6 +674,33 @@ void Rete::modificaSinapsiPopolazione(size_t indicePopolazione, const TypePatchS
     modificaSinapsi(popolazioni_[indicePopolazione].sinapsiInterne_, patch, dispersione, tipoDist);
 }
 
+void Rete::modificaIntegratoreSinapsiPopolazione(size_t indicePopolazione, char typeIntegratore) {
+    verificaNonBloccata("modificaIntegratoreSinapsiPopolazione");
+    if (indicePopolazione >= popolazioni_.size()) {
+        std::cerr << "[Rete] errore: indice popolazione " << indicePopolazione << " non valido.\n";
+        return;
+    }
+
+    modificaIntegratoreSinapsi(popolazioni_[indicePopolazione].sinapsiInterne_, typeIntegratore);
+}
+
+void Rete::modificaIntegratoreSinapsiSubPopolazione(size_t indicePopolazione, size_t indiceSubPopolazione,
+                                                    char typeIntegratore) {
+    verificaNonBloccata("modificaIntegratoreSinapsiSubPopolazione");
+    if (indicePopolazione >= popolazioni_.size()) {
+        std::cerr << "[Rete] errore: indice popolazione " << indicePopolazione << " non valido.\n";
+        return;
+    }
+
+    const Popolazione& pop = popolazioni_[indicePopolazione];
+    if (indiceSubPopolazione >= pop.subPop_.size()) {
+        std::cerr << "[Rete] errore: indice sub-popolazione " << indiceSubPopolazione << " non valido.\n";
+        return;
+    }
+
+    modificaIntegratoreSinapsi(pop.subPop_[indiceSubPopolazione].sinapsiInterne_, typeIntegratore);
+}
+
 // -----------------------------------------------------------------------------
 // Metodi operativi interni
 // -----------------------------------------------------------------------------
@@ -762,4 +842,16 @@ double Rete::getTauSinapsi(size_t idx) const {
     if (!hasSinapsi(idx))
         return 0.0;
     return std::visit([](const auto& s) { return s.tau_; }, sinapsi_[idx]);
+}
+
+char Rete::getIntegratoreNeurone(size_t idx) const {
+    if (!hasNeurone(idx))
+        return ' ';
+    return std::visit([](const auto& n) { return n.tipoIntegratore_; }, neuroni_[idx]);
+}
+
+char Rete::getIntegratoreSinapsi(size_t idx) const {
+    if (!hasSinapsi(idx))
+        return ' ';
+    return std::visit([](const auto& s) { return s.tipoIntegratore_; }, sinapsi_[idx]);
 }

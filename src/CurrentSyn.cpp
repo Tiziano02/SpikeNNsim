@@ -4,10 +4,7 @@ void Current::euleroInAvanti(double dt) {
     Isyn_ += dt * (-Isyn_ / tau_);
 }
 
-void Current::analiticoEsatto(double dt) {
-    if (decayFactor_ == 0.0) {
-        decayFactor_ = std::exp(-dt / tau_);
-    }
+void Current::analiticoEsatto() {
     Isyn_ *= decayFactor_;
 }
 
@@ -22,7 +19,7 @@ void Current::update(double dt, bool preFired) {
 
     // 1. Decadimento della corrente sinaptica in base al risolutore ODE scelto
     if (tipoIntegratore_ == 'A') {
-        analiticoEsatto(dt);
+        analiticoEsatto();
     } else if (tipoIntegratore_ == 'R') {
         rungeKutta(dt);
     } else {

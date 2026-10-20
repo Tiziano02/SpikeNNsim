@@ -95,7 +95,15 @@ void esempio2_popolazioni() {
     rete.modificaParametriSubPopolazione(popMista, 1, patchInibitori);
     std::cout << "[OK] Aggiornato parametro 'sharpness' solo per la sub-popolazione Exp\n";
 
-    // 5. Inizializzazione rapida dei Potenziali V(0):
+    // 5. Modifica del metodo di integrazione su Popolazione e Sub-Popolazione:
+    rete.modificaIntegratorePopolazione(popEccitatoria, 'A');
+    std::cout << "[OK] Convertito integratore a 'A' (Analitico) per tutti gli 80 neuroni della popolazione " << popEccitatoria
+              << " (Verifica N0: '" << rete.getIntegratoreNeurone(0) << "')\n";
+
+    rete.modificaIntegratoreSubPopolazione(popMista, 0, 'A');
+    std::cout << "[OK] Convertito integratore a 'A' solo per la sub-popolazione 0 (LIF) della popolazione mista " << popMista << "\n";
+
+    // 6. Inizializzazione rapida dei Potenziali V(0):
     // 5a. Distribuzione gaussiana attorno al riposo per la popolazione omogenea:
     rete.setCondizioneInizialePopolazione(popEccitatoria, -65.0 * mV, 0.05, DistType::Gaussian);
     std::cout << "[OK] Condizione iniziale V(0) ~ N(-65 mV, 5%) impostata per la popolazione " << popEccitatoria << "\n";
@@ -135,6 +143,12 @@ void esempio3_eterogeneita_e_batch() {
     rete.modificaParametriNeuroni(neuroniBersaglio, patchSpeciale, 0.05, DistType::Uniform);
     std::cout << "[OK] Modifica batch applicata a " << neuroniBersaglio.size()
               << " neuroni specifici con dispersione Uniforme\n";
+
+    // 3. Modifica del metodo di integrazione su lista di indici (batch):
+    rete.modificaIntegratoreNeuroni(neuroniBersaglio, 'A');
+    std::cout << "[OK] Convertito integratore ad 'A' per la lista di " << neuroniBersaglio.size()
+              << " neuroni bersaglio (Verifica N" << neuroniBersaglio[0] << ": '"
+              << rete.getIntegratoreNeurone(neuroniBersaglio[0]) << "')\n";
 }
 
 // ---------------------------------------------------------------------------------------
@@ -229,6 +243,19 @@ void esempio5_connettivita_popolazione() {
         patchCurrent patchSpecifica{.delay = 2.5 * ms};
         rete.modificaSinapsi(sottoinsieme, patchSpecifica);
         std::cout << "[OK] Aggiornato delay a 2.5 ms per 3 sinapsi tramite modificaSinapsi(vector)\n";
+    }
+
+    // 5. Modifica del metodo di integrazione per le sinapsi:
+    // 5a. Su tutte le sinapsi interne di una popolazione:
+    rete.modificaIntegratoreSinapsiPopolazione(popEcc, 'A');
+    std::cout << "[OK] Convertito integratore di tutte le sinapsi ricorrenti della popolazione " << popEcc
+              << " ad Analitico 'A' (Verifica prima sinapsi: '" << rete.getIntegratoreSinapsi(sinapsiRicorrenti[0]) << "')\n";
+
+    // 5b. Su lista arbitraria di sinapsi (batch):
+    if (sinapsiInter.size() >= 2) {
+        std::vector<size_t> primeDue = {sinapsiInter[0], sinapsiInter[1]};
+        rete.modificaIntegratoreSinapsi(primeDue, 'R');
+        std::cout << "[OK] Convertito integratore per lista di sinapsi a Runge-Kutta 'R'\n";
     }
 }
 

@@ -139,6 +139,23 @@ Per modelli fisici con equazioni differenziali lineari a tratti, SpikeNNsim supp
      - **Stabilità incondizionata:** Non risente del limite di Nyquist/Courant ($dt < \tau$), non esplode mai numericamente.
      - **Costo computazionale inferiore:** Nel loop di simulazione richiede solo 2 moltiplicazioni e 2 addizioni (nessuna divisione o ricalcolo di derivate).
 
+5. **Modifica a Runtime del Risolutore Numerico su 4 Livelli di Granularità:**
+   - SpikeNNsim offre la stessa simmetria e granularità sia per la modifica dei parametri fisici sia per la selezione dell'integratore (`'A'`, `'E'`, `'R'`):
+     1. **Singolo elemento:**
+        - `rete.modificaIntegratoreNeurone(idx, type)`
+        - `rete.modificaIntegratoreSinapsi(idx, type)`
+     2. **Lista batch di indici:**
+        - `rete.modificaIntegratoreNeuroni(idxs, type)`
+        - `rete.modificaIntegratoreSinapsi(idxs, type)`
+     3. **Popolazione intera:**
+        - `rete.modificaIntegratorePopolazione(idxPop, type)`
+        - `rete.modificaIntegratoreSinapsiPopolazione(idxPop, type)`
+     4. **Sub-popolazione:**
+        - `rete.modificaIntegratoreSubPopolazione(idxPop, idxSubPop, type)`
+        - `rete.modificaIntegratoreSinapsiSubPopolazione(idxPop, idxSubPop, type)`
+   - Ciascun metodo verifica lo stato di congelamento (`verificaNonBloccata`) e valida rigorosamente i limiti dimensionali.
+
+
 
 
 
