@@ -28,12 +28,12 @@
  * - I_syn < 0 -> Eccitatoria (alza il potenziale post-sinaptico)
  */
 struct patchConductance {
-    std::optional<double> peso;  ///< Parametro: Forza adimensionale della sinapsi (moltiplicatore)
-    std::optional<double> gpeak; ///< Parametro: Conduttanza di picco aggiunta per ogni spike [S]
-    std::optional<double> gsyn;  ///< Stato: Conduttanza dinamica attuale [S]
-    std::optional<double> tau;   ///< Parametro: Scala temporale di decadimento della conduttanza [s]
-    std::optional<double> delay; ///< Parametro: Ritardo di conduzione sinaptica (delay) [s]
-    std::optional<double> Erev;  ///< Parametro: Potenziale di inversione (Reversal potential) [V]
+    std::optional<double> peso = std::nullopt;  ///< Parametro: Forza adimensionale della sinapsi (moltiplicatore)
+    std::optional<double> gpeak = std::nullopt; ///< Parametro: Conduttanza di picco aggiunta per ogni spike [S]
+    std::optional<double> gsyn = std::nullopt;  ///< Stato: Conduttanza dinamica attuale [S]
+    std::optional<double> tau = std::nullopt;   ///< Parametro: Scala temporale di decadimento della conduttanza [s]
+    std::optional<double> delay = std::nullopt; ///< Parametro: Ritardo di conduzione sinaptica (delay) [s]
+    std::optional<double> Erev = std::nullopt;  ///< Parametro: Potenziale di inversione (Reversal potential) [V]
 };
 
 /**
@@ -63,8 +63,10 @@ class Conductance {
      * @brief Costruttore interno utilizzato da Rete.
      * @param indexPre Indice del neurone pre-sinaptico nel vettore di Rete.
      * @param indexPost Indice del neurone post-sinaptico nel vettore di Rete.
+     * @param typeIntegratore Metodo di integrazione: 'A' (Analitico esatto), 'E' (Eulero in avanti), 'R' (Runge-Kutta 4).
      */
-    Conductance(size_t indexPre, size_t indexPost) : indexPre_(indexPre), indexPost_(indexPost) {}
+    Conductance(size_t indexPre, size_t indexPost, char typeIntegratore = 'E')
+        : indexPre_(indexPre), indexPost_(indexPost), tipoIntegratore_(typeIntegratore) {}
 
     ~Conductance() = default;
 
@@ -75,8 +77,9 @@ class Conductance {
     size_t indexPre_, indexPost_; // Indici interni per accesso rapido ai vettori di Rete (Cache)
 
     // Stato Dinamico
-    double Isyn_ = 0.0 * A; // Corrente sinaptica calcolata in questo step [A]
-    double gsyn_ = 0.0 * S; // Conduttanza dinamica corrente [S]
+    double Isyn_ = 0.0 * A;      // Corrente sinaptica calcolata in questo step [A]
+    double gsyn_ = 0.0 * S;      // Conduttanza dinamica corrente [S]
+    char tipoIntegratore_ = 'E'; // Risolutore ODE ('A' = Analitico, 'E' = Eulero, 'R' = Runge-Kutta)
 
     // Parametri Fisici
     double peso_ = 1.0;          // Forza adimensionale della sinapsi
@@ -89,23 +92,41 @@ class Conductance {
     size_t presentStep_ = 0;        // Indice di lettura corrente nel ring buffer
     size_t delayStep_ = 0;          // Numero di step temporali corrispondenti al delay_
     std::vector<double> delayRing_; // Ring buffer per immagazzinare gli spike in transito
+    double decayFactor_ = 0.0;      // Fattore di decadimento analitico esatto: exp(-dt / tau_)
 
     // -- METODI PRIVATI --------------------------------------------------------------------------------------
 
     // 1. Gestione evoluzione temporale
     void update(double dt, bool preFired, double V_post);
+    void euleroInAvanti(double dt);
+    void rungeKutta(double dt);
+    void analiticoEsatto(double dt);
 
     // 2. Metodi getter
     inline double getCurrent() const { return Isyn_; }
     inline size_t getIndexPre() const { return indexPre_; }
     inline size_t getIndexPost() const { return indexPost_; }
 
-    // 3. Metodi setter
+    // 3. Metodi di preparazione e configurazione interna
     inline void setIndexPre(size_t idx) { indexPre_ = idx; }
     inline void setIndexPost(size_t idx) { indexPost_ = idx; }
+
+    /**
+     * @brief Inizializza il buffer circolare per il ritardo di conduzione.
+     * @param dt Passo di integrazione temporale [s].
+     */
     inline void setDelayRing(double dt) {
         delayStep_ = static_cast<size_t>(std::round(delay_ / dt));
         delayRing_.assign(delayStep_ + 1, 0.0);
+    }
+
+    /**
+     * @brief Prepara la sinapsi prima della simulazione (buffer delay + coefficienti analitici).
+     * @param dt Passo di integrazione temporale [s].
+     */
+    inline void prepare(double dt) {
+        setDelayRing(dt);
+        decayFactor_ = std::exp(-dt / tau_);
     }
 };
 

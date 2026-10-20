@@ -22,17 +22,17 @@
  * * I valori fisici devono essere passati in unità del Sistema Internazionale (SI).
  */
 struct patchExp {
-    std::optional<double> V;            ///< Potenziale di membrana attuale [V]
-    std::optional<double> Vth;          ///< Soglia dinamica attuale [V]
-    std::optional<double> VthMin;       ///< Parametro: Soglia minima (asintoto di riposo) [V]
-    std::optional<double> VthMax;       ///< Parametro: Soglia massima (picco post-spike) [V]
-    std::optional<double> Vrest;        ///< Parametro: Potenziale di riposo [V]
-    std::optional<double> Vreset;       ///< Parametro: Potenziale di reset post-spike [V]
-    std::optional<double> sharpness;    ///< Parametro: Fattore di pendenza esponenziale (Delta T) [V]
-    std::optional<double> R;            ///< Parametro: Resistenza di membrana [Ω]
-    std::optional<double> C;            ///< Parametro: Capacità di membrana [F]
-    std::optional<double> timeAbsolute; ///< Parametro: Durata del periodo refrattario assoluto [s]
-    std::optional<double> timeRelative; ///< Parametro: Durata del periodo refrattario relativo [s]
+    std::optional<double> V = std::nullopt;            ///< Potenziale di membrana attuale [V]
+    std::optional<double> Vth = std::nullopt;          ///< Soglia dinamica attuale [V]
+    std::optional<double> VthMin = std::nullopt;       ///< Parametro: Soglia minima (asintoto di riposo) [V]
+    std::optional<double> VthMax = std::nullopt;       ///< Parametro: Soglia massima (picco post-spike) [V]
+    std::optional<double> Vrest = std::nullopt;        ///< Parametro: Potenziale di riposo [V]
+    std::optional<double> Vreset = std::nullopt;       ///< Parametro: Potenziale di reset post-spike [V]
+    std::optional<double> sharpness = std::nullopt;    ///< Parametro: Fattore di pendenza esponenziale (Delta T) [V]
+    std::optional<double> R = std::nullopt;            ///< Parametro: Resistenza di membrana [Ω]
+    std::optional<double> C = std::nullopt;            ///< Parametro: Capacità di membrana [F]
+    std::optional<double> timeAbsolute = std::nullopt; ///< Parametro: Durata del periodo refrattario assoluto [s]
+    std::optional<double> timeRelative = std::nullopt; ///< Parametro: Durata del periodo refrattario relativo [s]
 };
 
 /**

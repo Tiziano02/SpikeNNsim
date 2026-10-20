@@ -20,9 +20,9 @@
 size_t getAvailableRAM();
 
 enum class DistType {
-    Gaussian, ///< Distribuzione normale
-    Uniform,  ///< Distribuzione uniforme
-    LogNormal ///< Distribuzione log-normale
+    Gaussian,  ///< Distribuzione normale
+    Uniform,   ///< Distribuzione uniforme
+    LogNormal, ///< Distribuzione log-normale
 };
 
 // Da commentare e controlare - Fatto da Deepseek e Gemini interamente
@@ -119,7 +119,7 @@ template <typename T> std::vector<T> generaNumeroVettore(size_t n, T min, T max,
 }
 
 template <typename T>
-T generaAttorno(T mean, double dispersione, DistType tipo = DistType::Gaussian, bool absolute = true) {
+T generaAttorno(T mean, double dispersione, DistType tipo = DistType::Gaussian, bool absolute = false) {
     // Motori indipendenti per ogni thread: zero colli di bottiglia nel calcolo parallelo!
     static thread_local std::random_device rd;
     static thread_local std::mt19937 gen(rd());
@@ -128,7 +128,7 @@ T generaAttorno(T mean, double dispersione, DistType tipo = DistType::Gaussian, 
         return mean;
 
     double mean_d = static_cast<double>(mean);
-    double sigma = absolute ? dispersione : std::abs(mean_d) * dispersione;
+    double sigma = (absolute || mean_d == 0.0) ? dispersione : std::abs(mean_d) * dispersione;
 
     // Gestione rigorosa degli errori tramite eccezioni
     if (tipo == DistType::LogNormal && mean_d <= 0.0) {

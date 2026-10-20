@@ -1,12 +1,12 @@
 /**
- * @file Input.hpp
+ * @file Stimoli.hpp
  * @brief Definizione degli stimoli esterni (correnti iniettabili) per la rete.
  * * Fornisce le strutture per creare correnti nel dominio del tempo
  * (costanti o sinusoidali) da applicare a specifici neuroni bersaglio.
  */
 
-#ifndef INPUT_HPP
-#define INPUT_HPP
+#ifndef STIMOLI_HPP
+#define STIMOLI_HPP
 
 #include <variant>
 #include <cstddef>
@@ -54,4 +54,4 @@ struct stimolo {
     typeParameters parametri; ///< Forma d'onda e parametri della corrente
 };
 
-#endif // INPUT_HPP
+#endif // STIMOLI_HPP

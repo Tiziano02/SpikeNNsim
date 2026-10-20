@@ -19,7 +19,7 @@
  */
 enum class NeuronModel {
     LIF, ///< Leaky Integrate-and-Fire standard
-    Exp  // /< Integrate-and-Fire Esponenziale (AdEx semplificato)
+    Exp  ///< Integrate-and-Fire Esponenziale (AdEx semplificato)
 };
 
 /**

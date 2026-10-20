@@ -2,16 +2,23 @@
 #include "Utility.hpp"
 #include <algorithm>
 #include <cmath>
-#include <cstdint>  // per int32_t
+#include <cstdint> // per int32_t
 #include <fstream>
 #include <iostream>
+#include <stdexcept>
 
-// -----------------------------------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 // COSTRUTTORE
-// -----------------------------------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 
 Simulazione::Simulazione(const Rete& rete, double dt, double T)
     : rete_(rete), dt_(dt), stepCorrente_(0), stepTotali_(static_cast<int>(std::round(T / dt))) {
+
+    // 0. Controllo che la rete sia stata bloccata prima di inizializzare la simulazione
+    if (!rete_.isBloccata()) {
+        throw std::logic_error(
+            "[Simulazione] Errore: la rete non e' bloccata. Chiamare rete.bloccaRete() prima di creare la Simulazione.");
+    }
 
     // 1. Controllo del tau minimo per il metodo di integrazione Eulero in avanti
     double tauMin = rete_.getMinTau();
@@ -235,7 +242,13 @@ void Simulazione::loadStatoRete(double time) {
 void Simulazione::avviaSimulazione(const std::string& filenameV, const std::string& filenameF,
                                    const std::string& filenameS) {
 
-    // 1. Isnizializza il tempo della simulazione e il passo attuale a zero
+    // 0. Controllo di sicurezza: rete bloccata
+    if (!rete_.isBloccata()) {
+        throw std::logic_error(
+            "[Simulazione] Errore: la rete non e' bloccata. Chiamare rete.bloccaRete() prima di avviare la simulazione.");
+    }
+
+    // 1. Inizializza il tempo della simulazione e il passo attuale a zero
     double time = 0.0;
     stepCorrente_ = 0;
 
@@ -250,7 +263,7 @@ void Simulazione::avviaSimulazione(const std::string& filenameV, const std::stri
     // 4. Per adesso : creazione della dimensione dei ring per il ritardo sinaptico
     rete_.prepare(dt_);
 
-    // 5. Avvio della simualzione
+    // 5. Avvio della simulazione
     for (; stepCorrente_ < stepTotali_; ++stepCorrente_) {
 
         // 1. Applica gli stimoli al tempo corrente

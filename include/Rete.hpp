@@ -17,6 +17,8 @@
 #include <vector>
 #include <optional>
 #include <deque>
+#include <string>
+#include <stdexcept>
 
 /**
  * @ingroup publicapi
@@ -47,66 +49,79 @@ class Rete {
     /**
      * @brief Inserisce un singolo neurone nella topologia della rete.
      * @param typeNeurone Modello del neurone (es. NeuronModel::Exp).
-     * @param typeIntegratore Metodo di risoluzione ODE ('E' o 'R').
+     * @param typeIntegratore Metodo di risoluzione ODE ('A' = Analitico esatto per LIF, 'E' = Eulero, 'R' = Runge-Kutta 4).
+     * @param config (opzionale) Configurazione (Patch) iniziale per il neurone.
+     * @param dispersione Ampiezza della dispersione relativa della distribuzione (default 0.0).
+     * @param tipoDist Tipo di distribuzione per la randomizzazione (default Gaussian).
+     * @return Indice univoco assegnato al nuovo neurone.
      */
-    std::size_t aggiungiNeurone(NeuronModel typeNeurone, char typeIntegratore);
+    std::size_t aggiungiNeurone(NeuronModel typeNeurone, char typeIntegratore = 'E',
+                                std::optional<TypePatchNeuron> config = std::nullopt, double dispersione = 0.0,
+                                DistType tipoDist = DistType::Gaussian);
 
     /**
      * @brief Modifica a runtime il risolutore numerico di un neurone specifico.
      * @param idx Identificativo del neurone bersaglio.
-     * @param typeIntegratore Nuovo metodo ('E' o 'R').
+     * @param typeIntegratore Nuovo metodo ('A' = Analitico esatto, 'E' = Eulero, 'R' = Runge-Kutta 4).
      */
     void modificaIntegratoreNeurone(size_t idx, char typeIntegratore);
 
     /**
-     * @brief Inietta una modifica parziale (Patch) nei parametri di un neurone.
-     * @param idx Identificativo del neurone bersaglio.
-     * @param patch Struttura dati contenente solo i parametri da sovrascrivere.
-     */
-    void modificaParametriNeurone(size_t idx, const TypePatchNeuron& patch);
-
-    /**
-     * @brief Randomizza i parametri di un neurone secondo una distribuzione statistica.
+     * @brief Modifica i parametri di un neurone attraverso una patch.
      * @param idx Identificativo del neurone bersaglio.
      * @param patch Struttura dati contenente i parametri da randomizzare.
-     * @param tipoDist Tipo di distribuzione (Gaussian, Uniform, LogNormal).
-     * @param dispersione Ampiezza della dispersione relativa (es. 0.1 = ±10%).
+     * @param tipoDist Tipo di distribuzione per la randomizzazione di default ho Gaussian(Gaussian, Uniform,
+     * LogNormal).
+     * @param dispersione Ampiezza della dispersione relativa della distribuzione se nulla si ha una distribuzione Delta
+     * (default)(es. 0.1 = ±10%).
      */
-    void randomizzaParametriNeurone(size_t idx, const TypePatchNeuron& patch, DistType tipoDist, double dispersione);
+    void modificaParametriNeurone(size_t idx, const TypePatchNeuron& patch, double dispersione = 0.0,
+                                  DistType tipoDist = DistType::Gaussian);
 
+    /**
+     * @brief Modifica i parametri di una lista di neuroni attraverso una patch.
+     * @param idxs Vettore contenente gli indici dei neuroni bersaglio.
+     * @param patch Struttura dati contenente i parametri da randomizzare.
+     * @param dispersione Ampiezza della dispersione relativa della distribuzione (default 0.0).
+     * @param tipoDist Tipo di distribuzione per la randomizzazione (default Gaussian).
+     */
+    void modificaParametriNeuroni(const std::vector<size_t>& idxs, const TypePatchNeuron& patch,
+                                  double dispersione = 0.0, DistType tipoDist = DistType::Gaussian);
     // -- GESTIONE POPOLAZIONI (API PUBBLICA) -----------------------------------------------------------------
 
     /**
-     * @brief Aggiunge una popolazione di neuroni alla rete
-     *
-     * @param indexStart Indice di partenza della popolazione di neuroni
-     * @param size Numero di neuroni nella popolazione
-     * @param typeNeuron Tipologia di neuroni all'interno della popolazione
-     * @param typeIntegratore metodo di integrazione
-     * @param config configurazione dei parametri dei neuroni della popolazione
-     * @return Popolazione
+     * @brief Aggiunge una popolazione di neuroni alla rete.
+     * @param size Numero di neuroni nella popolazione.
+     * @param typeNeuron Tipologia di neuroni all'interno della popolazione.
+     * @param typeIntegratore Metodo di integrazione ('A' = Analitico esatto, 'E' = Eulero, 'R' = Runge-Kutta 4).
+     * @param config (opzionale) Configurazione (Patch) iniziale per i neuroni della popolazione.
+     * @param dispersione Ampiezza della dispersione relativa per la randomizzazione (default 0.0).
+     * @param tipoDist Tipo di distribuzione per la randomizzazione (default Gaussian).
+     * @return Indice univoco assegnato alla nuova popolazione.
      */
-    Popolazione& addPopulation(size_t size, NeuronModel typeNeuron = NeuronModel::LIF, char typeIntegratore = 'E',
-                               std::optional<TypePatchNeuron> config = std::nullopt);
+    size_t addPopolazione(size_t size, NeuronModel typeNeuron = NeuronModel::LIF, char typeIntegratore = 'E',
+                          std::optional<TypePatchNeuron> config = std::nullopt, double dispersione = 0.0,
+                          DistType tipoDist = DistType::Gaussian) {
+        return addPopulation(size, typeNeuron, typeIntegratore, config, dispersione, tipoDist);
+    }
+
+    // Alias per retrocompatibilità
+    size_t addPopulation(size_t size, NeuronModel typeNeuron = NeuronModel::LIF, char typeIntegratore = 'E',
+                         std::optional<TypePatchNeuron> config = std::nullopt, double dispersione = 0.0,
+                         DistType tipoDist = DistType::Gaussian);
 
     /**
      * @brief Modifica i parametri dei neuroni della popolazione.
-     * @param patch Struttura dati contenente i parametri da modificare.
-     * @details Per ogni parametro specificato in `patch`, il valore viene applicato
-     *          a tutti i neuroni della popolazione.
-     */
-    void modificaParametriPopolazione(size_t indicePopolazione, const TypePatchNeuron& patch);
-
-    /**
-     * @brief Randomizza i parametri dei neuroni della popolazione.
      * @param indicePopolazione Indice della popolazione da modificare.
      * @param patch Struttura dati contenente i parametri da randomizzare.
      * @param distribuzione Distribuzione statistica da utilizzare per la randomizzazione.
+     * @param dispersione  Valore di dispersione per la randomizzazione, se è zero (default) inseriesce solo il valore
+     * nella patch
      * @details Per ogni parametro specificato in `patch`, viene generato un valore casuale
      *          secondo la distribuzione specificata e applicato a tutti i neuroni della popolazione.
      */
-    void randomizzaParametriPopolazione(size_t indicePopolazione, const TypePatchNeuron& patch, DistType distribuzione,
-                                        double dispersione);
+    void modificaParametriPopolazione(size_t indicePopolazione, const TypePatchNeuron& patch, double dispersione = 0.0,
+                                      DistType distribuzione = DistType::Gaussian);
 
     /**
      * @brief Aggiunge una popolazione eterogenea di neuroni alla rete.
@@ -128,29 +143,53 @@ class Rete {
      * @warning Se la dimensione della popolazione è 0 o se i vettori di input sono vuoti, la funzione restituirà un
      * vettore vuoto e stamperà un messaggio di errore.
      */
-    Popolazione& addPopolazioneEterogenea(size_t size, std::vector<NeuronModel> typesNeuroni,
-                                          std::vector<double> probabilita, std::vector<char> typesIntegratori,
-                                          std::optional<std::vector<TypePatchNeuron>> configs = std::nullopt);
+    size_t addPopolazioneEterogenea(size_t size, std::vector<NeuronModel>& typesNeuroni,
+                                    std::vector<double>& probabilita, std::vector<char>& typesIntegratori,
+                                    std::optional<std::vector<TypePatchNeuron>> configs = std::nullopt);
 
     /**
      * @brief Modifica i parametri di una sub-popolazione.
      * @param indicePopolazione Indice della popolazione contenente la sub-popolazione.
-     * @param indiceSubPopolazione Indice della sub-popolazione da modificare.
-     * @param patch Struttura dati contenente le modifiche da applicare.
-     */
-    void modificaParametriSubPopolazione(size_t indicePopolazione, size_t indiceSubPopolazione,
-                                         const TypePatchNeuron& patch);
-
-    /**
-     * @brief Randomizza i parametri di una sub-popolazione.
-     * @param indicePopolazione Indice della popolazione contenente la sub-popolazione.
      * @param indiceSubPopolazione Indice della sub-popolazione da randomizzare.
      * @param patch Struttura dati contenente le modifiche da applicare.
-     * @param distribuzione Tipo di distribuzione per il randomizzazione.
-     * @param dispersione Valore di dispersione per il randomizzazione.
+     * @param distribuzione Tipo di distribuzione per la randomizzazione.
+     * @param dispersione Valore di dispersione per la randomizzazione, se è zero (default) inseriesce solo il valore
+     * nella patch
      */
-    void randomizzaParametriSubPopolazione(size_t indicePopolazione, size_t indiceSubPopolazione,
-                                           const TypePatchNeuron& patch, DistType distribuzione, double dispersione);
+    void modificaParametriSubPopolazione(size_t indicePopolazione, size_t indiceSubPopolazione,
+                                         const TypePatchNeuron& patch, double dispersione = 0.0,
+                                         DistType distribuzione = DistType::Gaussian);
+
+    // -- CONDIZIONI INIZIALI POTENZIALI (SYNTACTIC SUGAR) ---------------------------------------------------
+
+    /**
+     * @brief Imposta la condizione iniziale del potenziale di membrana V(0) su tutta la rete.
+     * @param V Valore del potenziale di membrana (in Volt).
+     * @param dispersione Ampiezza della dispersione relativa (default 0.0). Se 0.0 la condizione e' deterministica.
+     * @param tipoDist Tipo di distribuzione statistica per la randomizzazione (default Gaussian).
+     */
+    void setCondizioneInizialeRete(double V, double dispersione = 0.0, DistType tipoDist = DistType::Gaussian);
+
+    /**
+     * @brief Imposta la condizione iniziale del potenziale di membrana V(0) per una specifica popolazione.
+     * @param indicePopolazione Indice della popolazione bersaglio.
+     * @param V Valore del potenziale di membrana (in Volt).
+     * @param dispersione Ampiezza della dispersione relativa (default 0.0). Se 0.0 la condizione e' deterministica.
+     * @param tipoDist Tipo di distribuzione statistica per la randomizzazione (default Gaussian).
+     */
+    void setCondizioneInizialePopolazione(size_t indicePopolazione, double V, double dispersione = 0.0,
+                                         DistType tipoDist = DistType::Gaussian);
+
+    /**
+     * @brief Imposta la condizione iniziale del potenziale di membrana V(0) su un intervallo contiguo [start, end).
+     * @param start Indice del primo neurone dell'intervallo.
+     * @param end Indice successivo all'ultimo neurone dell'intervallo (escluso).
+     * @param V Valore del potenziale di membrana (in Volt).
+     * @param dispersione Ampiezza della dispersione relativa (default 0.0). Se 0.0 la condizione e' deterministica.
+     * @param tipoDist Tipo di distribuzione statistica per la randomizzazione (default Gaussian).
+     */
+    void setCondizioneInizialeIntervallo(size_t start, size_t end, double V, double dispersione = 0.0,
+                                        DistType tipoDist = DistType::Gaussian);
 
     // -- GESTIONE CONNESSIONI POPOLAZIONI ---------------------------------------------------------------------
 
@@ -159,18 +198,59 @@ class Rete {
      * @param indicePopolazione Indice della popolazione da connettere.
      * @param probabilitaConnessione Probabilità di connessione tra due neuroni.
      * @param typeSynapse Modello matematico della sinapsi da utilizzare.
+     * @param typeIntegratore Metodo di integrazione ('A' = Analitico esatto, 'E' = Eulero, 'R' = Runge-Kutta 4).
+     * @param config (opzionale) Configurazione (Patch) iniziale da applicare alle sinapsi create.
+     * @param dispersione Ampiezza della dispersione relativa per la randomizzazione dei parametri (default 0.0).
+     * @param tipoDist Tipo di distribuzione statistica per la randomizzazione (default Gaussian).
+     * @return Vettore contenente gli ID di tutte le sinapsi create.
      */
-    void connettiPopolazione(size_t indicePopolazione, double probabilitaConnessione, SynapseModel typeSynapse);
+    std::vector<size_t> connettiPopolazione(size_t indicePopolazione, double probabilitaConnessione,
+                                            SynapseModel typeSynapse, char typeIntegratore = 'E',
+                                            std::optional<TypePatchSyn> config = std::nullopt,
+                                            double dispersione = 0.0, DistType tipoDist = DistType::Gaussian);
+
+    // Overload per retrocompatibilità quando config viene passata direttamente
+    std::vector<size_t> connettiPopolazione(size_t indicePopolazione, double probabilitaConnessione,
+                                            SynapseModel typeSynapse, const TypePatchSyn& config,
+                                            double dispersione = 0.0, DistType tipoDist = DistType::Gaussian) {
+        return connettiPopolazione(indicePopolazione, probabilitaConnessione, typeSynapse, 'E', config, dispersione, tipoDist);
+    }
 
     /**
-     * @brief Crea connessioni casuali tra i neuroni di due popolazioni.
-     * @param indicePopPre Indice della popolazione sorgente.
-     * @param indicePopPost Indice della popolazione bersaglio.
+     * @brief Modifica i parametri di tutte le sinapsi interne (ricorrenti) di una popolazione.
+     * @param indicePopolazione Indice della popolazione bersaglio.
+     * @param patch Struttura dati contenente le modifiche da applicare.
+     * @param dispersione Ampiezza della dispersione relativa (default 0.0).
+     * @param tipoDist Tipo di distribuzione statistica per la randomizzazione (default Gaussian).
+     */
+    void modificaSinapsiPopolazione(size_t indicePopolazione, const TypePatchSyn& patch, double dispersione = 0.0,
+                                    DistType tipoDist = DistType::Gaussian);
+
+    /**
+     * @brief Crea connessioni casuali tra i neuroni di due popolazioni distinte.
+     * @param indicePopPre Indice della popolazione sorgente (presinaptica).
+     * @param indicePopPost Indice della popolazione bersaglio (postsinaptica).
      * @param probabilitaConnessione Probabilità di connessione tra due neuroni.
      * @param typeSynapse Modello matematico della sinapsi da utilizzare.
+     * @param typeIntegratore Metodo di integrazione ('A' = Analitico esatto, 'E' = Eulero, 'R' = Runge-Kutta 4).
+     * @param config (opzionale) Configurazione (Patch) iniziale da applicare alle sinapsi create.
+     * @param dispersione Ampiezza della dispersione relativa per la randomizzazione dei parametri (default 0.0).
+     * @param tipoDist Tipo di distribuzione statistica per la randomizzazione (default Gaussian).
+     * @return Vettore contenente gli ID di tutte le sinapsi create.
      */
-    void connettiPopolazioni(size_t indicePopPre, size_t indicePopPost, double probabilitaConnessione,
-                             SynapseModel typeSynapse);
+    std::vector<size_t> connettiPopolazioni(size_t indicePopPre, size_t indicePopPost,
+                                            double probabilitaConnessione, SynapseModel typeSynapse,
+                                            char typeIntegratore = 'E',
+                                            std::optional<TypePatchSyn> config = std::nullopt,
+                                            double dispersione = 0.0, DistType tipoDist = DistType::Gaussian);
+
+    // Overload per retrocompatibilità quando config viene passata direttamente
+    std::vector<size_t> connettiPopolazioni(size_t indicePopPre, size_t indicePopPost,
+                                            double probabilitaConnessione, SynapseModel typeSynapse,
+                                            const TypePatchSyn& config,
+                                            double dispersione = 0.0, DistType tipoDist = DistType::Gaussian) {
+        return connettiPopolazioni(indicePopPre, indicePopPost, probabilitaConnessione, typeSynapse, 'E', config, dispersione, tipoDist);
+    }
 
     // -- GESTIONE SINAPSI (API PUBBLICA) ----------------------------------------------------------------------
 
@@ -179,17 +259,51 @@ class Rete {
      * @param IDXpre indice del neurone sorgente (pre-sinaptico).
      * @param IDXpost indice del neurone bersaglio (post-sinaptico).
      * @param typeSynapse Modello matematico della sinapsi.
-     * @return L'ID univoco assegnato automaticamente alla nuova sinapsi, o -1 in caso di errore.
+     * @param typeIntegratore Metodo di risoluzione ODE ('A' = Analitico esatto, 'E' = Eulero in avanti, 'R' = Runge-Kutta 4).
+     * @param config (opzionale) Configurazione (Patch) iniziale per la sinapsi.
+     * @param dispersione Ampiezza della dispersione relativa per la randomizzazione dei parametri (default 0.0).
+     * @param tipoDist Tipo di distribuzione statistica per la randomizzazione (default Gaussian).
+     * @return L'ID univoco assegnato automaticamente alla nuova sinapsi, o static_cast<size_t>(-1) in caso di errore.
      */
-    int connettiNeuroni(size_t IDXpre, size_t IDXpost, SynapseModel typeSynapse);
+    size_t connettiNeuroni(size_t IDXpre, size_t IDXpost, SynapseModel typeSynapse,
+                           char typeIntegratore = 'E',
+                           std::optional<TypePatchSyn> config = std::nullopt, double dispersione = 0.0,
+                           DistType tipoDist = DistType::Gaussian);
+
+    // Overload per retrocompatibilità quando config viene passata direttamente
+    size_t connettiNeuroni(size_t IDXpre, size_t IDXpost, SynapseModel typeSynapse,
+                           const TypePatchSyn& config, double dispersione = 0.0,
+                           DistType tipoDist = DistType::Gaussian) {
+        return connettiNeuroni(IDXpre, IDXpost, typeSynapse, 'E', config, dispersione, tipoDist);
+    }
+
+    /**
+     * @brief Modifica a runtime il risolutore numerico/analitico di una specifica sinapsi.
+     * @param idx Identificativo della sinapsi bersaglio.
+     * @param typeIntegratore Nuovo metodo ('A' = Analitico esatto, 'E' = Eulero in avanti, 'R' = Runge-Kutta 4).
+     */
+    void modificaIntegratoreSinapsi(size_t idx, char typeIntegratore);
 
     /**
      * @brief Aggiorna i parametri di una sinapsi esistente.
      * @param indexSyn Indice univoco della sinapsi (restituito da connettiNeuroni).
      * @param patch Struttura dati contenente le modifiche da applicare.
+     * @param dispersione Ampiezza della dispersione relativa (default 0.0).
+     * @param tipoDist Tipo di distribuzione statistica per la randomizzazione (default Gaussian).
      * @warning Deve essere chiamata prima dell'avvio della simulazione (prima di prepare()).
      */
-    void modificaSinapsi(size_t indexSyn, const TypePatchSyn& patch);
+    void modificaSinapsi(size_t indexSyn, const TypePatchSyn& patch, double dispersione = 0.0,
+                         DistType tipoDist = DistType::Gaussian);
+
+    /**
+     * @brief Modifica i parametri di una lista di sinapsi attraverso una patch.
+     * @param idxs Vettore contenente gli indici delle sinapsi da modificare.
+     * @param patch Struttura dati contenente le modifiche da applicare.
+     * @param dispersione Ampiezza della dispersione relativa (default 0.0).
+     * @param tipoDist Tipo di distribuzione statistica per la randomizzazione (default Gaussian).
+     */
+    void modificaSinapsi(const std::vector<size_t>& idxs, const TypePatchSyn& patch, double dispersione = 0.0,
+                         DistType tipoDist = DistType::Gaussian);
 
     /**
      * @brief Ricerca tutte le sinapsi che collegano una specifica coppia di neuroni.
@@ -197,10 +311,56 @@ class Rete {
      * @param post indice del neurone bersaglio.
      * @return Vettore contenente gli ID delle sinapsi trovate.
      */
-    std::vector<int> findSinapsi(size_t pre, size_t post) const;
+    std::vector<size_t> findSinapsi(size_t pre, size_t post) const;
+
+    // -- METODI DI ISPEZIONE (API PUBBLICA) -------------------------------------------------------------------
+
+    // 1. metodi getter
+    size_t getNumNeuroni() const { return neuroni_.size(); }
+    size_t getNumSinapsi() const { return sinapsi_.size(); }
+    size_t getNumPopolazioni() const { return popolazioni_.size(); }
+    double getResistenzaNeurone(size_t idx) const;
+    double getCapacitaNeurone(size_t idx) const;
+    double getSogliaNeurone(size_t idx) const;
+    double getPesoSinapsi(size_t idx) const;
+    double getDelaySinapsi(size_t idx) const;
+    double getTauSinapsi(size_t idx) const;
+
+    // 2. metodi controllo
+    bool hasNeurone(size_t idx) const { return idx < neuroni_.size(); }
+    bool hasSinapsi(size_t idx) const { return idx < sinapsi_.size(); }
+
+    // -- CONTROLLO STATO E CONGELAMENTO RETE -----------------------------------------------------------------
+
+    /**
+     * @brief Blocca (congela) la topologia e i parametri della rete.
+     * @details Una volta bloccata la rete, qualsiasi tentativo successivo di aggiungere neuroni,
+     *          sinapsi, popolazioni o modificare parametri statici solleva un'eccezione `std::logic_error`.
+     *          La chiamata a questo metodo e' obbligatoria prima di creare e avviare la `Simulazione`.
+     */
+    void bloccaRete();
+
+    /// Alias per brevita' sintattica
+    void blocca() { bloccaRete(); }
+
+    /**
+     * @brief Sblocca la rete consentendo nuovamente modifiche a topologia e parametri.
+     */
+    void sbloccaRete();
+
+    /// Alias per brevita' sintattica
+    void sblocca() { sbloccaRete(); }
+
+    /**
+     * @brief Verifica se la rete e' attualmente bloccata/congelata.
+     * @return true se la rete e' bloccata, false altrimenti.
+     */
+    bool isBloccata() const { return isBloccata_; }
 
   private:
     // -- ATTRIBUTI PRIVATI (Topologia e Stato) --------------------------------------------------------------
+
+    bool isBloccata_ = false; // Flag che indica se la rete e' bloccata/congelata
 
     std::vector<TypeNeuron> neuroni_;     // Lista dei neuroni
     std::deque<Popolazione> popolazioni_; // Lista delle popolazioni di neuroni
@@ -222,20 +382,15 @@ class Rete {
     // 2. Metodi applicativi
     double getMinTau() const;
     void prepare(double dt);
+    void verificaNonBloccata(const std::string& operazione) const;
     size_t allocazioneNeuroni(size_t size, NeuronModel type, char integratore,
-                              std::optional<TypePatchNeuron> config = {});
+                              std::optional<TypePatchNeuron> config = std::nullopt, double dispersione = 0.0,
+                              DistType tipoDist = DistType::Gaussian);
 
-    // 3. Metodi getter
+    // 3. Metodi getter interni
     const std::vector<double>& getPointerStatoNeuroni() const { return statoNeuroni_; };
     const std::vector<double>& getPointerStatoFiring() const { return statoFiring_; };
     const std::vector<double>& getPointerStatoSinapsi() const { return statoSinapsi_; };
-    int32_t getNumNeuroni() const { return neuroni_.size(); };
-    int32_t getNumSinapsi() const { return sinapsi_.size(); };
-    // size_t getIndex(int id) const { return idToIndex_.at(id); }
-
-    // 4. Metodi di controllo
-    bool hasNeurone(size_t idx) const { return idx < neuroni_.size(); } // vero --> neurone esiste
-    bool hasSinapsi(size_t idx) const { return idx < sinapsi_.size(); } // vero --> sinapsi esiste
 };
 
 #endif // RETE_HPP

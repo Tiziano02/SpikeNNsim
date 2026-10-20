@@ -34,22 +34,8 @@ class Popolazione {
      * @brief Costruttore con parametri.
      * @param start Indice del primo neurone della popolazione.
      * @param size Numero di neuroni nella popolazione.
-     * @param
      */
     Popolazione(size_t start, size_t size) : indexStart_(start), size_(size) {}
-
-    /**
-     * @brief Metodo getter. Restitusce indici in neuroni_ delle sub-popolazioni
-     *
-     * @return const std::vector<size_t>
-     */
-    const std::vector<size_t> getSubPopIndex() const {
-        std::vector<size_t> tmp;
-        for (auto i : subPop_) {
-            tmp.push_back(i->indexStart_);
-        }
-        return tmp;
-    }
 
     /**
      * @brief Distruttore di default.
@@ -59,22 +45,14 @@ class Popolazione {
   private:
     // -- ATTRIBUTI PRIVATI --------------------------------------------------------------
 
-    size_t indexStart_;                ///< Indice del primo neurone nel vettore neuroni_ di Rete
-    size_t size_;                      ///< Numero di neuroni nella popolazione
-    std::vector<Popolazione*> subPop_; ///< sotto popolazioni all'interno di una popolazione eterogenea
+    size_t indexStart_;               ///< Indice del primo neurone nel vettore neuroni_ di Rete
+    size_t size_;                     ///< Numero di neuroni nella popolazione
+    std::vector<Popolazione> subPop_; ///< sotto popolazioni all'interno di una popolazione eterogenea
+    std::vector<size_t> sinapsiInterne_; ///< ID delle sinapsi ricorrenti (intra-popolazione)
 
     // -- METODI PRIVATI -----------------------------------------------------------------
 
     // 1. metodi getter
-    inline size_t getStart() const { return indexStart_; }
-    inline size_t getSize() const { return size_; }
-    inline Popolazione* getSubPopIndex(size_t idx) const {
-        if (idx < subPop_.size()) {
-            return subPop_[idx];
-        } else {
-            return nullptr; // oppure lancia un'eccezione
-        }
-    }
 
     // 2. metodi controllo
     bool isEterogenea() const { return !subPop_.empty(); }

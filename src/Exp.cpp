@@ -53,7 +53,10 @@ void Exp::update(double correnteTotale, double dt) {
     // 4. Integrazione del Potenziale
     if (tipoIntegratore_ == 'E') {
         euleroInAvanti(correnteTotale, dt);
-    } else if (tipoIntegratore_ == 'R') {
+    } else {
+        // 'R' (Runge-Kutta 4) è il solutore ad alta precisione per Exp.
+        // Nota: se viene richiesto 'A', Exp fa fallback su Runge-Kutta poiché il termine
+        // esponenziale non-lineare non ammette soluzione analitica elementare in forma chiusa.
         rungeKutta(correnteTotale, dt);
     }
 

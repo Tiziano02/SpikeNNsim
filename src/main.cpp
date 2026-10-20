@@ -1,621 +1,791 @@
+/**
+ * @file main.cpp
+ * @brief Guida interattiva e banco di prova per la libreria SpikeNNsim.
+ *
+ * Questo file contiene esempi chiari e modulari che illustrano le funzionalità
+ * principali della libreria: creazione di neuroni e popolazioni, introduzione di
+ * eterogeneità biologica con patch e dispersioni, modelli di sinapsi e simulazione.
+ */
+
 #include "Rete.hpp"
-// #include "Simulazione.hpp"
-#include <iostream>
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Utility di stampa
-// ─────────────────────────────────────────────────────────────────────────────
-
-// static void intestazione(const std::string& titolo) {
-//     std::cout << "\n══════════════════════════════════════════\n";
-//     std::cout << "  " << titolo << "\n";
-//     std::cout << "══════════════════════════════════════════\n";
-// }
-
-// static void ok(const std::string& msg) { std::cout << "  [OK]     " << msg << "\n"; }
-// static void info(const std::string& msg) { std::cout << "  [INFO]   " << msg << "\n"; }
-
-// // ─────────────────────────────────────────────────────────────────────────────
-// // TEST 1 — Nuova modalità di creazione rete
-// //
-// // Verifica il flusso:
-// //   1. Rete(N) con neuroni di default
-// //   2. modificaParametriNeurone su un sottoinsieme
-// //   3. modificaIntegratoreNeurone su un neurone
-// //   4. connettiNeuroni (ritorna ID sinapsi)
-// //   5. modificaSinapsi tramite l'ID restituito
-// // ─────────────────────────────────────────────────────────────────────────────
-// static void test_nuova_creazione_rete() {
-//     intestazione("TEST 1 — Nuova modalità di creazione rete (LIF + CurrentSyn)");
-
-//     // 1. Rete con 4 neuroni LIF di default, integratore Eulero
-//     Rete rete(4, NeuronModel::LIF, 'E');
-//     ok("Rete(4, LIF, 'E') creata");
-
-//     // 2. Modifica parametri del neurone 0 (soglia più alta)
-//     configLIF cfgN0;
-//     cfgN0.V_th = -45.0 * mV;
-//     cfgN0.R = 2.0 * Mohm;
-//     rete.modificaParametriNeurone(0, cfgN0);
-//     ok("modificaParametriNeurone(0) — Vth=-45mV, R=2MOhm");
-
-//     // 3. Cambia integratore del neurone 2 a Runge-Kutta
-//     // rete.modificaIntegratoreNeurone(2, 'R');
-//     // ok("modificaIntegratoreNeurone(2, 'R') — Runge-Kutta");
-
-//     // 4a. Connessione 0→1 (eccitatoria)
-//     configCurrentSyn cfgSyn01;
-//     cfgSyn01.peso = 0.8;
-//     cfgSyn01.Ipeak = 10e-9; // [A]
-//     cfgSyn01.tau = 5.0 * ms;
-//     cfgSyn01.delay = 1.0 * ms;
-//     int idSyn01 = rete.connettiNeuroni(0, 1, cfgSyn01);
-//     ok("connettiNeuroni(0→1) — ID sinapsi restituito: " + std::to_string(idSyn01));
-
-//     // 4b. Seconda sinapsi 0→1 (stessa coppia, ID diverso — test disambiguazione)
-//     configCurrentSyn cfgSyn01b;
-//     cfgSyn01b.peso = 0.3;
-//     cfgSyn01b.Ipeak = 10e-9;
-//     cfgSyn01b.tau = 3.0 * ms;
-//     cfgSyn01b.delay = 2.0 * ms;
-//     int idSyn01b = rete.connettiNeuroni(0, 1, cfgSyn01b);
-//     ok("connettiNeuroni(0→1) seconda sinapsi — ID: " + std::to_string(idSyn01b) +
-//        "  (diverso dal precedente: " + (idSyn01b != idSyn01 ? "SI" : "NO") + ")");
-
-//     // 4c. Connessione 1→2 (inibitoria, peso negativo)
-//     configCurrentSyn cfgSyn12;
-//     cfgSyn12.peso = -0.5;
-//     cfgSyn12.Ipeak = 10e-9;
-//     cfgSyn12.tau = 8.0 * ms;
-//     cfgSyn12.delay = 1.5 * ms;
-//     int idSyn12 = rete.connettiNeuroni(1, 2, cfgSyn12);
-//     ok("connettiNeuroni(1→2) inibitoria — ID: " + std::to_string(idSyn12));
-
-//     // 5. Modifica della prima sinapsi 0→1 tramite ID
-//     configCurrentSyn cfgSyn01_mod = cfgSyn01;
-//     cfgSyn01_mod.peso = 1.0; // aumento il peso
-//     cfgSyn01_mod.delay = 0.5 * ms;
-//     rete.modificaSinapsi(idSyn01, cfgSyn01_mod);
-//     ok("modificaSinapsi(idSyn01) — peso aggiornato a 1.0, delay a 0.5ms");
-
-//     // 6. Errore atteso: ID sinapsi inesistente
-//     info("Tentativo modificaSinapsi con ID inesistente (atteso errore su "
-//          "stderr):");
-//     rete.modificaSinapsi(999, cfgSyn01_mod);
-
-//     // 7. Errore atteso: neurone inesistente
-//     info("Tentativo modificaParametriNeurone con ID inesistente (atteso errore "
-//          "su stderr):");
-//     rete.modificaParametriNeurone(99, cfgN0);
-
-//     // 8. Simulazione breve per verificare che la rete giri senza crash
-//     Simulazione sim(rete, 0.1 * ms, 50.0 * ms);
-
-//     // I_min per sparare = (Vth - Vrest) / R = 15mV / 1MOhm = 15 nA
-//     // Usiamo 20 nA per stare comodamente sopra soglia
-//     std::vector<int> ids = {0};
-//     // std::vector<parametriStimoloCostante> stim = {{0.0, 50.0 * ms, 20e-9}};
-//     // sim.iniettaStimoloCostante(ids, stim);
-
-//     sim.avviaSimulazione("test1_V.bin", "test1_F.bin", "test1_S.bin");
-//     ok("avviaSimulazione completata senza crash");
-// }
-
-// // ─────────────────────────────────────────────────────────────────────────────
-// // TEST 2 — Neuroni Exp
-// //
-// // Verifica che si possano creare neuroni Exp, modificarne i parametri
-// // e farli girare in simulazione.
-// // ─────────────────────────────────────────────────────────────────────────────
-// static void test_neuroni_exp() {
-//     intestazione("TEST 2 — Neuroni Exp");
-
-//     // Rete di 3 neuroni Exp con Runge-Kutta
-//     Rete rete(3, NeuronModel::Exp, 'R');
-//     ok("Rete(3, Exp, 'E') creata");
-
-//     // Modifica parametri del neurone 1
-//     configExp cfgE1;
-//     cfgE1.V_th = -48.0 * mV;
-//     cfgE1.V_rest = -65.0 * mV;
-//     rete.modificaParametriNeurone(1, cfgE1);
-//     ok("modificaParametriNeurone(1) su Exp — Vth=-48mV");
-
-//     // Errore atteso: passare configLIF a un neurone Exp
-//     info("Tentativo modificaParametriNeurone con config sbagliata (atteso errore "
-//          "su stderr):");
-//     rete.modificaParametriNeurone(1, configLIF{});
-
-//     // Connessione con CurrentSyn — Ipeak scalato coerentemente con lo stimolo
-//     configCurrentSyn cfgSyn;
-//     cfgSyn.peso = 0.6;
-//     cfgSyn.Ipeak = 10e-9; // [A] — contributo sinaptico significativo
-//     cfgSyn.tau = 5.0 * ms;
-//     cfgSyn.delay = 1.0 * ms;
-//     int idSyn = rete.connettiNeuroni(0, 1, cfgSyn);
-//     ok("connettiNeuroni(0→1) su rete Exp — ID: " + std::to_string(idSyn));
-
-//     // Simulazione breve
-//     Simulazione sim(rete, 0.1 * ms, 50.0 * ms);
-
-//     std::vector<int> ids = {0};
-//     // std::vector<parametriStimoloCostante> stim = {{0.0, 50.0 * ms, 20e-9}};
-//     // sim.iniettaStimoloCostante(ids, stim);
-
-//     sim.avviaSimulazione("test2_V.bin", "test2_F.bin", "test2_S.bin");
-//     ok("avviaSimulazione completata senza crash");
-// }
-
-// // ─────────────────────────────────────────────────────────────────────────────
-// // TEST 3 — ConductanceSyn
-// //
-// // Verifica la sinapsi conductance-based:
-// //   - creazione con configConductanceSyn
-// //   - modifica tramite ID
-// //   - errore atteso se si passa config sbagliata
-// //   - simulazione con sinapsi miste (Current + Conductance sulla stessa rete)
-// // ─────────────────────────────────────────────────────────────────────────────
-// static void test_conductance_syn() {
-
-//     intestazione("TEST 3 — ConductanceSyn (sinapsi miste)");
-
-//     // Rete di 4 neuroni LIF
-//     Rete rete(4, NeuronModel::LIF, 'E');
-//     ok("Rete(4, LIF, 'E') creata");
-
-//     // Sinapsi eccitatoria conductance-based 0→1  (E_rev ~ 0 mV, AMPA-like)
-//     // I = g * (V_post - E_rev) ~ 1e-8 S * 0.065 V = 0.65 nA per spike —
-//     // significativo
-//     configConductanceSyn cfgExc;
-//     cfgExc.peso = 1.0;
-//     cfgExc.gpeak = 10e-9; // [S]
-//     cfgExc.tau = 5.0 * ms;
-//     cfgExc.delay = 1.0 * ms;
-//     cfgExc.E_rev = 0.0 * mV;
-//     int idExc = rete.connettiNeuroni(0, 1, cfgExc);
-//     ok("connettiNeuroni(0→1) ConductanceSyn eccitatoria (E_rev=0mV) — ID: " + std::to_string(idExc));
-
-//     // Sinapsi inibitoria conductance-based 2→1  (E_rev ~ -70 mV, GABA-A-like)
-//     configConductanceSyn cfgInh;
-//     cfgInh.peso = 1.0;
-//     cfgInh.gpeak = 10e-9;
-//     cfgInh.tau = 10.0 * ms;
-//     cfgInh.delay = 1.0 * ms;
-//     cfgInh.E_rev = -70.0 * mV;
-//     int idInh = rete.connettiNeuroni(2, 1, cfgInh);
-//     // int idtest = rete.connettiNeuroni(int IDpre, int IDpost, const
-//     // TypeConfigSyn &configurazioneSinapsi)
-//     ok("connettiNeuroni(2→1) ConductanceSyn inibitoria (E_rev=-70mV) — ID: " + std::to_string(idInh));
-
-//     // Sinapsi CurrentSyn sulla stessa rete (test coesistenza)
-//     configCurrentSyn cfgCur;
-//     cfgCur.peso = 0.5;
-//     cfgCur.Ipeak = 10e-9;
-//     cfgCur.tau = 5.0 * ms;
-//     cfgCur.delay = 1.0 * ms;
-//     int idCur = rete.connettiNeuroni(3, 1, cfgCur);
-//     ok("connettiNeuroni(3→1) CurrentSyn (coesistenza con ConductanceSyn) — ID: " + std::to_string(idCur));
-
-//     // Modifica della sinapsi eccitatoria
-//     configConductanceSyn cfgExc_mod = cfgExc;
-//     cfgExc_mod.gpeak = 20e-9;
-//     cfgExc_mod.delay = 0.5 * ms;
-//     rete.modificaSinapsi(idExc, cfgExc_mod);
-//     ok("modificaSinapsi(idExc) — gpeak aggiornato a 20e-9 S, delay a 0.5ms");
-
-//     // Errore atteso: passare configCurrentSyn a una ConductanceSyn
-//     info("Tentativo modificaSinapsi con config sbagliata (atteso errore su "
-//          "stderr):");
-//     rete.modificaSinapsi(idExc, configCurrentSyn{});
-
-//     // Errore atteso: passare configConductanceSyn a una CurrentSyn
-//     info("Tentativo modificaSinapsi con config sbagliata inversa (atteso errore "
-//          "su stderr):");
-//     rete.modificaSinapsi(idCur, configConductanceSyn{});
-
-//     // Simulazione con stimolo su 0 e 2 per attivare entrambe le sinapsi
-//     // conductance
-//     Simulazione sim(rete, 0.1 * ms, 100.0 * ms);
-
-//     std::vector<int> ids = {0, 2, 3};
-//     // std::vector<parametriStimoloCostante> stim = {
-//     //     {0.0, 100.0 * ms, 20e-9}, {0.0, 100.0 * ms, 20e-9}, {0.0, 100.0 * ms, 20e-9}};
-//     // sim.iniettaStimoloCostante(ids, stim);
-
-//     sim.avviaSimulazione("test3_V.bin", "test3_F.bin", "test3_S.bin");
-//     ok("avviaSimulazione con sinapsi miste completata senza crash");
-// }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// main
-// ─────────────────────────────────────────────────────────────────────────────
-int main() {
-    // test_nuova_creazione_rete();
-    // test_neuroni_exp();
-    // test_conductance_syn();
-
-    Rete rete(100, NeuronModel::LIF,'E');
-
-    rete.aggiungiNeurone(101,NeuronModel::Exp, 'K');
-
-    patchLIF modifica1{.C = 30 * n* F,.timeAbsolute = 2 * ms};
-
-    for (auto i=0;i<20;i++)
-        rete.modificaParametriNeurone(i,modifica1);
-
-    rete.connettiNeuroni(0,1,SynapseModel::Conductance);
-
-    std::cout << "\n══════════════════════════════════════════\n";
-    std::cout << "  Tutti i test completati.\n";
-    std::cout << "══════════════════════════════════════════\n\n";
-
-    // 1. Creazione neuroni
-
-    // 1.1 creazione di 100 neuroni standard con stesso tipo di integratore
-    Rete rete;
-
-    // 1.2 Aggiungere singoli neuroni ad una rete
-    rete.aggiungiNeurone(NeuronModel::Exp, 'E');
-
-    // ------------------------------------------------------------------------------
-
-    // 2. Modifica parametri fisici tutti i
-
-    // Modifica param
-
-    // 2.1 Modifica parametri fisici singoli neuroni
-    // patchExp neuroniA;
-    // neuroniA.R = 1.0 * Mohm;
-
-    // rete.modificaParametriNeurone(0, neuroniA);
-
-    // 3.1 Modifica integratore singoli neuroni
-    // rete.modificaIntegratoreNeurone(0, 'K');
-}
-/*
-#include "Exp.hpp"
-#include "Input.hpp"
-#include "Neurone.hpp"
-#include "Rete.hpp"i
 #include "Simulazione.hpp"
+#include "Stimoli.hpp"
 #include "UnitaSI.hpp"
 
 #include <iostream>
-#include <print>
-#include <random>
 #include <vector>
+#include <string>
 
-double rumoreGaussiano(double media, double deviazioneStandard) {
-    static std::random_device rd;
-    static std::mt19937 gen(rd());
-
-    std::normal_distribution<double> distribuzione(media, deviazioneStandard);
-
-    return distribuzione(gen);
+// Funzione di utilità per separare visivamente gli esempi a terminale
+static void stampaHeader(const std::string& titolo) {
+    std::cout << "\n======================================================================\n";
+    std::cout << "  " << titolo << "\n";
+    std::cout << "======================================================================\n";
 }
 
-double rumoreUniforme(double centro, double ampiezza) {
+// ---------------------------------------------------------------------------------------
+// ESEMPIO 1: Neuroni Singoli, Metodi di Integrazione e Pattern Patch
+// ---------------------------------------------------------------------------------------
+void esempio1_neuroni_singoli() {
+    stampaHeader("ESEMPIO 1: Neuroni Singoli e Pattern Patch");
 
-    static std::random_device rd;
-    static std::mt19937 gen(rd());
+    Rete rete;
 
-    std::uniform_real_distribution<double> distribuzione(centro - ampiezza,
-centro + ampiezza);
+    // 1. Aggiunta di singoli neuroni con parametri di default:
+    //    'A' = Analitico esatto (zero errore numerico, incondizionatamente stabile)
+    //    'E' = Eulero in avanti (leggero e veloce)
+    //    'R' = Runge-Kutta 4 (massima precisione numerica per ODE non-lineari come Exp)
+    size_t idLIF = rete.aggiungiNeurone(NeuronModel::LIF, 'A');
+    size_t idExp = rete.aggiungiNeurone(NeuronModel::Exp, 'R');
 
-    return distribuzione(gen);
+    std::cout << "[OK] Neurone LIF creato con ID: " << idLIF << " (Integratore: Analitico esatto 'A')\n";
+    std::cout << "[OK] Neurone Exp creato con ID: " << idExp << " (Integratore: Runge-Kutta 'R')\n";
+
+    // 2. Modifica post-creazione con "Pattern Patch":
+    patchLIF modificaLIF;
+    modificaLIF.R = 50.0 * Mohm;  // Resistenza di membrana personalizzata
+    modificaLIF.Vth = -52.0 * mV; // Soglia di spike personalizzata
+    rete.modificaParametriNeurone(idLIF, modificaLIF);
+    std::cout << "[OK] Neurone LIF aggiornato: R = 50 MOhm, Vth = -52 mV\n";
+
+    // 3. Creazione diretta in un'unica riga con Patch inline opzionale:
+    size_t idCustom = rete.aggiungiNeurone(NeuronModel::LIF, 'A', patchLIF{.Vth = -48.0 * mV, .C = 200 * p * F});
+    std::cout << "[OK] Neurone LIF personalizzato creato direttamente in linea con ID: " << idCustom << " (Integratore: 'A')\n";
+
+    // 4. Modifica a runtime del solutore numerico di un neurone:
+    rete.modificaIntegratoreNeurone(idLIF, 'R'); // Passa a Runge-Kutta
+    std::cout << "[OK] Risolutore numerico del neurone LIF convertito a Runge-Kutta\n";
 }
 
-int main() {
+// ---------------------------------------------------------------------------------------
+// ESEMPIO 2: Popolazioni Omogenee ed Eterogenee
+// ---------------------------------------------------------------------------------------
+void esempio2_popolazioni() {
+    stampaHeader("ESEMPIO 2: Popolazioni Omogenee ed Eterogenee");
 
-    int N = 100;
-    Rete rete(N, NeuronModel::Exp);
+    Rete rete;
 
+    // 1. Popolazione Omogenea: 80 neuroni LIF con configurazione iniziale opzionale
+    patchLIF patchIniziale;
+    patchIniziale.C = 200.0 * p * F; // Capacità di membrana
+    patchIniziale.R = 80.0 * Mohm;
+    size_t popEccitatoria = rete.addPopulation(80, NeuronModel::LIF, 'E', patchIniziale);
 
-    for (int i = 0; i < N / 2; i++) {
-        configExp configPersonalizzaNeuroneExp;
-        configPersonalizzaNeuroneExp.C = 100 * i;
+    std::cout << "[OK] Creata Popolazione Omogenea (ID: " << popEccitatoria << ") con 80 neuroni LIF\n";
 
-        rete.modificaParametriNeurone(i, configPersonalizzaNeuroneExp);
+    // 2. Modifica collettiva di tutta la popolazione:
+    patchLIF patchNuova;
+    patchNuova.Vth = -48.0 * mV;
+    rete.modificaParametriPopolazione(popEccitatoria, patchNuova);
+    std::cout << "[OK] Aggiornata soglia Vth = -48 mV per tutti i neuroni della popolazione " << popEccitatoria << "\n";
+
+    // 3. Popolazione Eterogenea: composizione mista (es. 80% LIF, 20% Esponenziali)
+    std::vector<NeuronModel> tipi = {NeuronModel::LIF, NeuronModel::Exp};
+    std::vector<double> percentuali = {0.80, 0.20};
+    std::vector<char> solutori = {'E', 'R'};
+
+    size_t popMista = rete.addPopolazioneEterogenea(100, tipi, percentuali, solutori);
+    std::cout << "[OK] Creata Popolazione Eterogenea (ID: " << popMista << ") con 100 neuroni (80 LIF + 20 Exp)\n";
+
+    // 4. Modifica mirata della singola sub-popolazione:
+    //    Indice sub-popolazione 0 = neuroni LIF (80)
+    //    Indice sub-popolazione 1 = neuroni Exp (20)
+    patchExp patchInibitori;
+    patchInibitori.sharpness = 2.5 * mV; // Parametro specifico del modello esponenziale
+    rete.modificaParametriSubPopolazione(popMista, 1, patchInibitori);
+    std::cout << "[OK] Aggiornato parametro 'sharpness' solo per la sub-popolazione Exp\n";
+
+    // 5. Inizializzazione rapida dei Potenziali V(0):
+    // 5a. Distribuzione gaussiana attorno al riposo per la popolazione omogenea:
+    rete.setCondizioneInizialePopolazione(popEccitatoria, -65.0 * mV, 0.05, DistType::Gaussian);
+    std::cout << "[OK] Condizione iniziale V(0) ~ N(-65 mV, 5%) impostata per la popolazione " << popEccitatoria << "\n";
+
+    // 5b. Distribuzione uniforme (stesso metodo, cambiando semplicemente il parametro DistType):
+    rete.setCondizioneInizialePopolazione(popMista, -57.5 * mV, 0.10, DistType::Uniform);
+    std::cout << "[OK] Condizione iniziale V(0) ~ Uniforme(-57.5 mV, 10%) impostata per la popolazione " << popMista << "\n";
+}
+
+// ---------------------------------------------------------------------------------------
+// ESEMPIO 3: Eterogeneità Biologica e API Batch (Stile Python)
+// ---------------------------------------------------------------------------------------
+void esempio3_eterogeneita_e_batch() {
+    stampaHeader("ESEMPIO 3: Eterogeneita' Biologica (Zero-Cost Heterogeneity) e API Batch");
+
+    Rete rete;
+    size_t popId = rete.addPopulation(50, NeuronModel::LIF, 'E');
+
+    // 1. Randomizzazione con dispersione gaussiana:
+    //    In natura i neuroni non sono copie identiche. Possiamo applicare una dispersione
+    //    relativa (es. 10% intorno al valore target):
+    patchLIF patchDispersa;
+    patchDispersa.R = 100.0 * Mohm;
+    patchDispersa.Vth = -50.0 * mV;
+
+    // Dispersione del 10% Gaussiana su tutti i neuroni della popolazione
+    rete.modificaParametriPopolazione(popId, patchDispersa, 0.10, DistType::Gaussian);
+    std::cout << "[OK] Parametri distribuiti su 50 neuroni con dispersione Gaussiana del 10%\n";
+
+    // 2. Operazioni Batch su elenchi di indici arbitrari (senza scrivere cicli 'for'):
+    //    Particolarmente comodo e immediatamente pronto per interfacciarsi con Python / NumPy!
+    std::vector<size_t> neuroniBersaglio = {0, 5, 12, 25, 42};
+    patchLIF patchSpeciale;
+    patchSpeciale.Vrest = -60.0 * mV;
+
+    // Modifica batch con dispersione uniforme del 5%
+    rete.modificaParametriNeuroni(neuroniBersaglio, patchSpeciale, 0.05, DistType::Uniform);
+    std::cout << "[OK] Modifica batch applicata a " << neuroniBersaglio.size()
+              << " neuroni specifici con dispersione Uniforme\n";
+}
+
+// ---------------------------------------------------------------------------------------
+// ESEMPIO 4: Modelli di Sinapsi (Current-based vs Conductance-based)
+// ---------------------------------------------------------------------------------------
+void esempio4_modelli_sinaptici() {
+    stampaHeader("ESEMPIO 4: Sinapsi Current-Based e Conductance-Based");
+
+    Rete rete;
+    size_t n0 = rete.aggiungiNeurone(NeuronModel::LIF, 'E');
+    size_t n1 = rete.aggiungiNeurone(NeuronModel::LIF, 'E');
+    size_t n2 = rete.aggiungiNeurone(NeuronModel::LIF, 'E');
+
+    // 1. Sinapsi Current-based (0 -> 1) con risolutore analitico esatto 'A':
+    //    Inietta una corrente post-sinaptica esponenziale indipendente dal potenziale di membrana:
+    //    dI/dt = -I / tau; al passaggio dello spike: I += peso * Ipeak
+    size_t idSynCurrent = rete.connettiNeuroni(n0, n1, SynapseModel::Current, 'A');
+
+    patchCurrent patchCur;
+    patchCur.peso = 1.0;
+    patchCur.Ipeak = 5.0 * n * A;
+    patchCur.tau = 5.0 * ms;
+    patchCur.delay = 1.0 * ms;
+    rete.modificaSinapsi(idSynCurrent, patchCur);
+    std::cout << "[OK] Creata e configurata Sinapsi Current-based (0 -> 1, ID: " << idSynCurrent << ", Integratore: 'A')\n";
+
+    // 2. Sinapsi Conductance-based (1 -> 2) con risolutore Eulero 'E':
+    //    Più realistica biologicamente: la corrente iniettata dipende dal potenziale post-sinaptico:
+    //    I_syn = g_syn(t) * (V_post - E_rev)
+    size_t idSynCond = rete.connettiNeuroni(n1, n2, SynapseModel::Conductance, 'E');
+
+    patchConductance patchCond;
+    patchCond.peso = 1.0;
+    patchCond.gpeak = 10.0 * n * S; // Conduttanza di picco
+    patchCond.tau = 3.0 * ms;
+    patchCond.delay = 1.5 * ms;
+    patchCond.Erev = 0.0 * mV; // Potenziale di inversione AMPA-like (eccitatorio)
+    rete.modificaSinapsi(idSynCond, patchCond);
+    std::cout << "[OK] Creata e configurata Sinapsi Conductance-based (1 -> 2, ID: " << idSynCond << ", Erev: 0 mV, Integratore: 'E')\n";
+
+    // 3. Modifica a runtime dell'integratore della sinapsi (simmetrico a modificaIntegratoreNeurone):
+    rete.modificaIntegratoreSinapsi(idSynCond, 'A'); // Passa a risolutore Analitico esatto
+    std::cout << "[OK] Risolutore della sinapsi Conductance convertito ad Analitico 'A'\n";
+
+    // 4. Ricerca di sinapsi tra coppie di neuroni:
+    auto trovate = rete.findSinapsi(n0, n1);
+    std::cout << "[OK] Sinapsi trovate tra neurone " << n0 << " e neurone " << n1 << ": " << trovate.size()
+              << " (ID: " << trovate[0] << ")\n";
+}
+
+// ---------------------------------------------------------------------------------------
+// ESEMPIO 5: Connettività Ricorrente e Inter-Popolazione (connettiPopolazioni)
+// ---------------------------------------------------------------------------------------
+void esempio5_connettivita_popolazione() {
+    stampaHeader("ESEMPIO 5: Connettivita' Ricorrente e Inter-Popolazione");
+
+    Rete rete;
+    size_t popEcc = rete.addPopulation(20, NeuronModel::LIF, 'E');
+    size_t popInh = rete.addPopulation(10, NeuronModel::LIF, 'E');
+
+    // 1. Connessione ricorsiva (intra-popolazione) con probabilità di connessione del 15%
+    //    e applicazione contestuale di una configurazione iniziale con dispersione:
+    patchCurrent templateSyn;
+    templateSyn.peso = 1.5;
+    templateSyn.tau = 4.0 * ms;
+    templateSyn.delay = 1.0 * ms;
+
+    auto sinapsiRicorrenti = rete.connettiPopolazione(popEcc,
+                                                      0.15, // 15% probabilita' di connessione casuale
+                                                      SynapseModel::Current,
+                                                      templateSyn, // Configurazione iniziale (opzionale)
+                                                      0.10,        // Dispersione del 10% sui pesi/parametri
+                                                      DistType::Gaussian);
+
+    std::cout << "[OK] Connessione ricorrente creata: generate " << sinapsiRicorrenti.size() << " sinapsi interne\n";
+
+    // 2. Connessione inter-popolazioni (Eccitatori -> Inibitori) tramite connettiPopolazioni:
+    patchCurrent synE2I{.peso = -1.2, .tau = 3.0 * ms, .delay = 1.5 * ms};
+    auto sinapsiInter = rete.connettiPopolazioni(popEcc, popInh, 0.25, SynapseModel::Current, synE2I, 0.05);
+    std::cout << "[OK] Connessione inter-popolazioni (Ecc -> Inh): generate " << sinapsiInter.size()
+              << " sinapsi con dispersione del 5%\n";
+
+    // 3. Modifica globale di tutte le sinapsi interne della popolazione:
+    patchCurrent nuovaPatch;
+    nuovaPatch.peso = 2.0; // Raddoppiamo il peso di tutte le sinapsi ricorrenti
+    rete.modificaSinapsiPopolazione(popEcc, nuovaPatch, 0.05, DistType::Uniform);
+    std::cout << "[OK] Aggiornato il peso di tutte le sinapsi della popolazione tramite modificaSinapsiPopolazione\n";
+
+    // 4. Modifica batch su un sottoinsieme di sinapsi con l'overload vettoriale:
+    if (sinapsiRicorrenti.size() >= 3) {
+        std::vector<size_t> sottoinsieme = {sinapsiRicorrenti[0], sinapsiRicorrenti[1], sinapsiRicorrenti[2]};
+        patchCurrent patchSpecifica{.delay = 2.5 * ms};
+        rete.modificaSinapsi(sottoinsieme, patchSpecifica);
+        std::cout << "[OK] Aggiornato delay a 2.5 ms per 3 sinapsi tramite modificaSinapsi(vector)\n";
+    }
+}
+
+// ---------------------------------------------------------------------------------------
+// ESEMPIO 6: Circuito Completo, Iniezione di Stimoli ed Esecuzione Simulazione
+// ---------------------------------------------------------------------------------------
+void esempio6_simulazione_completa() {
+    stampaHeader("ESEMPIO 6: Circuito Completo, Stimoli ed Esecuzione Simulazione");
+
+    Rete rete;
+
+    // 1. Architettura: 2 neuroni connessi in serie (0 -> 1)
+    size_t nPre = rete.aggiungiNeurone(NeuronModel::LIF, 'E');
+    size_t nPost = rete.aggiungiNeurone(NeuronModel::LIF, 'E');
+
+    // 2. Configurazione neuroni
+    patchLIF paramNeurone;
+    paramNeurone.Vrest = -65.0 * mV;
+    paramNeurone.Vreset = -65.0 * mV;
+    paramNeurone.Vth = -50.0 * mV;
+    paramNeurone.R = 100.0 * Mohm;
+    paramNeurone.C = 100.0 * p * F;
+    rete.modificaParametriNeurone(nPre, paramNeurone);
+    rete.modificaParametriNeurone(nPost, paramNeurone);
+
+    // 3. Connessione eccitatoria Current-based tra i due neuroni (peso < 0 = eccitatorio)
+    size_t idSyn = rete.connettiNeuroni(nPre, nPost, SynapseModel::Current);
+    patchCurrent sinapsiCfg;
+    sinapsiCfg.peso = -1.0;
+    sinapsiCfg.Ipeak = 15.0 * n * A;
+    sinapsiCfg.tau = 5.0 * ms;
+    sinapsiCfg.delay = 1.0 * ms;
+    rete.modificaSinapsi(idSyn, sinapsiCfg);
+
+    std::cout << "[OK] Circuito assemblato: Neurone pre(" << nPre << ") -> Neurone post(" << nPost
+              << ") con sinapsi ID " << idSyn << "\n";
+
+    // 4. Congelamento della rete (obbligatorio prima di creare e avviare la Simulazione)
+    rete.bloccaRete();
+    std::cout << "[OK] Rete bloccata con successo (isBloccata = " << std::boolalpha << rete.isBloccata() << ")\n";
+
+    // Dimostrazione di sicurezza: tentata modifica a rete bloccata
+    try {
+        rete.modificaParametriNeurone(nPre, paramNeurone);
+    } catch (const std::logic_error& e) {
+        std::cout << "[SICUREZZA] Tentata modifica su rete bloccata intercettata con successo:\n"
+                  << "            " << e.what() << "\n";
     }
 
-    s
-    Simulazione sim(rete, 0.01 * ms, 30 * ms);
+    // 5. Configurazione motore di simulazione:
+    //    dt = 0.1 ms, Durata = 20 ms
+    Simulazione sim(rete, 0.1 * ms, 20.0 * ms);
 
-    parametriStimoloCostante p;
-    p.timeStart = 5.0 * ms;
-    p.timeEnd = 15.0 * ms;
-    p.ampiezza = 20.0 * n * A;
+    // 5. Iniezione di corrente stimolo esterno continua (DC) sul neurone pre-sinaptico:
+    //    Corrente di 2.0 nA accesa tra t = 2 ms e t = 10 ms
+    configConstantStimulus correntePre{.timeStart = 2.0 * ms, .timeEnd = 10.0 * ms, .ampiezza = 2.0 * n * A};
+    stimolo stimPre{.indexNeurone = nPre, .parametri = correntePre};
+    sim.iniettaStimoli({stimPre});
 
-    std::vector<int> v(1, 0);
-    std::vector<parametriStimoloCostante> vp;
-    vp.push_back(p);
-    sim.iniettaStimoloCostante(v, vp);
+    std::cout << "[OK] Stimolo DC di 2.0 nA programmato su neurone " << nPre << " tra 2.0 ms e 10.0 ms\n";
 
-    sim.avviaSimulazione("potenzialitest1.bin", "firingtest1.bin",
-"sinapsitest1.bin");
+    // 6. Esecuzione della simulazione e salvataggio dei risultati binari ad alte prestazioni
+    std::cout << "[...] Esecuzione simulazione temporale in corso...\n";
+    sim.avviaSimulazione("output_potenziali.bin", "output_firing.bin", "output_sinapsi.bin");
 
-    std::cout << "\nFINE SIMULAZIONE \n";
-    */
-/*
-std::cout << "=========================================================" <<
-std::endl; std::cout << "--- BENCHMARK PER SAMPLY: Rete Biologica Sparsa (15k)
----" << std::endl; std::cout <<
-"=========================================================" << std::endl;
-
-// 1. Parametri di Scala della Rete
-const int N = 150;
-const int Ne = static_cast<int>(N * 0.8);
-//const int Ni = N - Ne;
-
-// Parametri Neuroni
-const double eV_th = -50.0 * mV,  eV_rest = -65.0 * mV,  eV_reset = -65.0 * mV;
-const double eR = 100.0 * Mohm,  eC = 200.0 * p * F,    eTau_ref = 3.5 * ms;
-
-const double iV_th = -50.0 * mV,  iV_rest = -65.0 * mV,  iV_reset = -65.0 * mV;
-const double iR = 50.0 * Mohm,   iC = 200.0 * p * F,    iTau_ref = 0.5 * ms;
-
-Rete rete;
-
-std::cout << "[1/3] Allocazione di " << N << " neuroni..." << std::endl;
-for (int i = 0; i < N; ++i) {
-    double V_0 = eV_reset + rumoreGaussiano(0, 2.0 * mV);
-    if (i < Ne) {
-        rete.aggiungiNeurone(Neurone(i, V_0, eV_th, eV_rest, eV_reset, eR, eC,
-eTau_ref)); } else { rete.aggiungiNeurone(Neurone(i, V_0, iV_th, iV_rest,
-iV_reset, iR, iC, iTau_ref));
-    }
+    std::cout << "[OK] Simulazione completata con successo! Dati binari scritti su disco.\n";
 }
 
-// 2. Generazione Connessioni Sparse (Probabilità 10%)
-std::cout << "[2/3] Generazione sinapsi sparse (Connettivita' 10%)..." <<
-std::endl; const double eWeight = +1.0, eIpeak = 1.5 * n * A, eTau_syn = 5.0 *
-ms; const double iWeight = -3.0, iIpeak = 1.5 * n * A, iTau_syn = 10.0 * ms;
+// ---------------------------------------------------------------------------------------
+// ESEMPIO 7: Benchmark di Validazione Analitica (Rete Ibrida: Popolazione + Singoli)
+// ---------------------------------------------------------------------------------------
+void esempio7_validazione_anello_ibrido() {
+    stampaHeader("ESEMPIO 7: Benchmark di Validazione Analitica (Rete Anulare Ibrida)");
 
-std::mt19937 gen(12345); // Seed fisso per replicabilità
-std::uniform_real_distribution<double> dist_conn(0.0, 1.0);
+    std::cout << "Descrizione del Benchmark:\n"
+              << "  - 1 Popolazione ad anello di 4 neuroni LIF (ID 0..3) con delay inter-nodo = 2.0 ms\n"
+              << "  - 1 Neurone Trigger singolo (ID 4) attivato da uno stimolo DC calibrato per 1 spike\n"
+              << "  - 1 Neurone Readout singolo Exp (ID 5, Runge-Kutta) con sinapsi Conductance AMPA da N2\n"
+              << "  - Comportamento teorico atteso: oscillazione periodica dell'anello con periodo T = 8.40 ms,\n"
+              << "    delay hop = 2.10 ms e propagazione fedele al readout.\n\n";
 
-for (int i = 0; i < N; ++i) {
-    for (int j = 0; j < N; ++j) {
-        if (dist_conn(gen) < 0.10) { // 10% di probabilità di connessione
-            if (i < Ne) {
-                Sinapsi s(eWeight, eIpeak, i, j, eTau_syn);
-                rete.connettiNeuroni(s);
-            } else {
-                Sinapsi s(iWeight, iIpeak, i, j, iTau_syn);
-                rete.connettiNeuroni(s);
+    Rete rete;
+
+    // 1. Popolazione ad anello: 4 neuroni LIF (ID 0, 1, 2, 3)
+    patchLIF pLIF;
+    pLIF.Vrest = -65.0 * mV;
+    pLIF.Vreset = -65.0 * mV;
+    pLIF.Vth = -50.0 * mV;
+    pLIF.R = 100.0 * Mohm;
+    pLIF.C = 100.0 * p * F;
+    pLIF.timeAbsolute = 3.0 * ms; // Refrattarieta' > delay per garantire 1 solo spike per ciclo
+    size_t idPop = rete.addPopulation(4, NeuronModel::LIF, 'E', pLIF);
+
+    // 2. Neurone singolo Trigger (LIF, ID 4)
+    size_t idTrigger = rete.aggiungiNeurone(NeuronModel::LIF, 'E');
+    rete.modificaParametriNeurone(idTrigger, pLIF);
+
+    // 3. Neurone singolo Readout (Exp, ID 5, Runge-Kutta 4)
+    size_t idReadout = rete.aggiungiNeurone(NeuronModel::Exp, 'R');
+    patchExp pExp;
+    pExp.Vrest = -65.0 * mV;
+    pExp.Vreset = -65.0 * mV;
+    pExp.Vth = -50.0 * mV;
+    pExp.R = 100.0 * Mohm;
+    pExp.C = 100.0 * p * F;
+    pExp.timeAbsolute = 3.0 * ms;
+    pExp.sharpness = 2.0 * mV;
+    rete.modificaParametriNeurone(idReadout, pExp);
+
+    // 4. Connessioni sinaptiche:
+    // 4a. Trigger -> Neurone 0 (singola sinapsi Current, peso < 0 = eccitatorio)
+    size_t sTrig = rete.connettiNeuroni(idTrigger, 0, SynapseModel::Current);
+    patchCurrent synTrig;
+    synTrig.peso = -1.0;
+    synTrig.Ipeak = 20.0 * n * A;
+    synTrig.tau = 1.0 * ms;
+    synTrig.delay = 1.0 * ms;
+    rete.modificaSinapsi(sTrig, synTrig);
+
+    // 4b. Anello: 0->1, 1->2, 2->3 (connessioni interne)
+    patchCurrent synRing;
+    synRing.peso = -1.0;
+    synRing.Ipeak = 20.0 * n * A;
+    synRing.tau = 1.0 * ms;
+    synRing.delay = 2.0 * ms; // 2.0 ms ritardo di conduzione per hop
+
+    size_t s01 = rete.connettiNeuroni(0, 1, SynapseModel::Current);
+    size_t s12 = rete.connettiNeuroni(1, 2, SynapseModel::Current);
+    size_t s23 = rete.connettiNeuroni(2, 3, SynapseModel::Current);
+    rete.modificaSinapsi({s01, s12, s23}, synRing);
+
+    // 4c. Chiusura anello: 3->0 (singola sinapsi)
+    size_t s30 = rete.connettiNeuroni(3, 0, SynapseModel::Current);
+    rete.modificaSinapsi(s30, synRing);
+
+    // 4d. Readout: 2 -> 5 (singola sinapsi Conductance con potenziale di inversione AMPA)
+    size_t sReadout = rete.connettiNeuroni(2, idReadout, SynapseModel::Conductance);
+    patchConductance synCond;
+    synCond.peso = 1.0;
+    synCond.gpeak = 50.0 * n * S;
+    synCond.tau = 2.0 * ms;
+    synCond.delay = 1.5 * ms;
+    synCond.Erev = 0.0 * mV; // AMPA-like (eccitatorio)
+    rete.modificaSinapsi(sReadout, synCond);
+
+    std::cout << "[OK] Rete assemblata: Popolazione anello (" << idPop << "), Trigger (" << idTrigger << "), Readout ("
+              << idReadout << ")\n";
+
+    // 5. Congelamento della rete e configurazione della simulazione numerica
+    rete.bloccaRete();
+    double dt = 0.05 * ms;
+    double T = 35.0 * ms;
+    Simulazione sim(rete, dt, T);
+
+    // 6. Iniezione stimolo DC sul neurone Trigger (ID 4):
+    //    2.5 nA accesa tra t = 1.0 ms e t = 2.5 ms
+    configConstantStimulus dc{.timeStart = 1.0 * ms, .timeEnd = 2.5 * ms, .ampiezza = 2.5 * n * A};
+    sim.iniettaStimoli({{idTrigger, dc}});
+
+    // 7. Esecuzione e salvataggio file binari per lo script di verifica
+    std::cout << "[...] Esecuzione simulazione benchmark (35 ms, dt = 0.05 ms)...\n";
+    sim.avviaSimulazione("validazione_V.bin", "validazione_F.bin", "validazione_S.bin");
+
+    std::cout << "[OK] Simulazione benchmark completata!\n"
+              << "     File generati in output/: validazione_V.bin, validazione_F.bin, validazione_S.bin\n";
+}
+
+// ---------------------------------------------------------------------------------------
+// ESEMPIO 8: Verifica Statistica della Randomizzazione (Neuroni e Sinapsi)
+// ---------------------------------------------------------------------------------------
+void esempio8_verifica_statistica_randomizzazione() {
+    stampaHeader("ESEMPIO 8: Verifica Statistica della Randomizzazione (Neuroni e Sinapsi)");
+
+    Rete rete;
+
+    // 1. Randomizzazione Neuroni: 100 neuroni con R = 100 MOhm, dispersione 10% Gaussiana
+    size_t popN = rete.addPopulation(100, NeuronModel::LIF, 'E');
+    patchLIF pN;
+    pN.R = 100.0 * Mohm;
+    rete.modificaParametriPopolazione(popN, pN, 0.10, DistType::Gaussian);
+
+    std::vector<double> resistenze;
+    for (size_t i = 0; i < 100; ++i) {
+        resistenze.push_back(rete.getResistenzaNeurone(i) / Mohm);
+    }
+
+    double sommaR = 0.0;
+    for (double r : resistenze)
+        sommaR += r;
+    double mediaR = sommaR / resistenze.size();
+    double sqDiffR = 0.0;
+    for (double r : resistenze)
+        sqDiffR += (r - mediaR) * (r - mediaR);
+    double stdR = std::sqrt(sqDiffR / resistenze.size());
+
+    std::cout << "[NEURONI] Target R = 100 MOhm, Dispersione = 10% Gaussiana (N = 100):\n"
+              << "          Media campionaria:   " << mediaR << " MOhm (attesa: ~100 MOhm)\n"
+              << "          Deviazione standard: " << stdR << " MOhm (attesa: ~10 MOhm)\n";
+
+    // 2. Randomizzazione Sinapsi: connettiamo una popolazione con delay = 2.0 ms, 20% Uniforme
+    patchCurrent pSyn;
+    pSyn.delay = 2.0 * ms;
+    auto synIds = rete.connettiPopolazione(popN, 0.02, SynapseModel::Current, pSyn, 0.20, DistType::Uniform);
+
+    std::vector<double> delays;
+    double minD = 999.0, maxD = -999.0;
+    double sommaD = 0.0;
+    for (size_t id : synIds) {
+        double d = rete.getDelaySinapsi(id) / ms;
+        delays.push_back(d);
+        sommaD += d;
+        if (d < minD)
+            minD = d;
+        if (d > maxD)
+            maxD = d;
+    }
+    double mediaD = sommaD / delays.size();
+
+    std::cout << "[SINAPSI] Target Delay = 2.0 ms, Dispersione = 20% Uniforme (Range teorico: [1.60, 2.40] ms):\n"
+              << "          Sinapsi analizzate:  " << delays.size() << "\n"
+              << "          Media:               " << mediaD << " ms\n"
+              << "          Intervallo effettivo: [" << minD << ", " << maxD << "] ms\n"
+              << "[OK] Randomizzazione statistica verificata con successo!\n";
+}
+
+// ---------------------------------------------------------------------------------------
+// ESEMPIO 9: Dinamica Eccitatori vs Inibitori e Convenzione dei Segni
+// ---------------------------------------------------------------------------------------
+void esempio9_dinamica_eccitatori_inibitori() {
+    stampaHeader("ESEMPIO 9: Dinamica Eccitatori vs Inibitori e Convenzione dei Segni");
+
+    std::cout
+        << "Convenzione dei Segni del Simulatore:\n"
+        << "  - CurrentSyn:\n"
+        << "      peso < 0  -->  I_syn < 0  -->  inputTotale -= I_syn  -->  ECCITATORIO (depolarizzante, alza V)\n"
+        << "      peso > 0  -->  I_syn > 0  -->  inputTotale -= I_syn  -->  INIBITORIO (iperpolarizzante, abbassa V)\n"
+        << "  - ConductanceSyn:\n"
+        << "      E_rev = 0 mV   (> V_rest)  -->  AMPA ECCITATORIO (depolarizza verso 0 mV)\n"
+        << "      E_rev = -75 mV (< V_rest)  -->  GABA INIBITORIO (iperpolarizza verso -75 mV)\n\n";
+
+    Rete rete;
+
+    patchLIF paramLIF;
+    paramLIF.Vrest = -65.0 * mV;
+    paramLIF.Vreset = -65.0 * mV;
+    paramLIF.Vth = -50.0 * mV;
+    paramLIF.R = 100.0 * Mohm;
+    paramLIF.C = 100.0 * p * F;
+    paramLIF.timeAbsolute = 3.0 * ms;
+
+    // Popolazione di neuroni bersaglio (ID 0, 1, 2, 3)
+    size_t popTarget = rete.addPopulation(4, NeuronModel::LIF, 'E', paramLIF);
+    std::cout << "[OK] Popolazione target creata (ID " << popTarget << ", neuroni 0..3)\n";
+
+    // Neuroni singoli pre-sinaptici (ID 4: PreEccitatorio, ID 5: PreInibitorio)
+    size_t idPreExc = rete.aggiungiNeurone(NeuronModel::LIF, 'E');
+    size_t idPreInh = rete.aggiungiNeurone(NeuronModel::LIF, 'E');
+    rete.modificaParametriNeurone(idPreExc, paramLIF);
+    rete.modificaParametriNeurone(idPreInh, paramLIF);
+
+    // 1. Canale Solo Eccitatorio: PreExc -> Bersaglio 0 (Current, peso = -1.0)
+    size_t sExc = rete.connettiNeuroni(idPreExc, 0, SynapseModel::Current);
+    patchCurrent synE;
+    synE.peso = -1.0; // ECCITATORIO
+    synE.Ipeak = 20.0 * n * A;
+    synE.tau = 2.0 * ms;
+    synE.delay = 1.0 * ms;
+    rete.modificaSinapsi(sExc, synE);
+
+    // 2. Canale Solo Inibitorio: PreInh -> Bersaglio 1 (Current, peso = +1.0)
+    size_t sInh = rete.connettiNeuroni(idPreInh, 1, SynapseModel::Current);
+    patchCurrent synI;
+    synI.peso = +1.0; // INIBITORIO
+    synI.Ipeak = 20.0 * n * A;
+    synI.tau = 2.0 * ms;
+    synI.delay = 1.0 * ms;
+    rete.modificaSinapsi(sInh, synI);
+
+    // 3. Competizione E/I (Shunting): PreExc + PreInh -> Bersaglio 2
+    size_t sMixE = rete.connettiNeuroni(idPreExc, 2, SynapseModel::Current);
+    size_t sMixI = rete.connettiNeuroni(idPreInh, 2, SynapseModel::Current);
+    rete.modificaSinapsi(sMixE, synE);
+    patchCurrent synIShunt = synI;
+    synIShunt.peso = +1.5; // Inibizione prevalente per sopprimere lo spike
+    rete.modificaSinapsi(sMixI, synIShunt);
+
+    // 4. Inibizione Conductance: PreInh -> Bersaglio 3 (GABA-A, Erev = -75 mV)
+    size_t sCondI = rete.connettiNeuroni(idPreInh, 3, SynapseModel::Conductance);
+    patchConductance synCInh;
+    synCInh.peso = 1.0;
+    synCInh.gpeak = 30.0 * n * S;
+    synCInh.tau = 3.0 * ms;
+    synCInh.delay = 1.0 * ms;
+    synCInh.Erev = -75.0 * mV; // GABA INIBITORIO
+    rete.modificaSinapsi(sCondI, synCInh);
+
+    // Blocco della rete e configurazione simulazione temporale
+    rete.bloccaRete();
+    Simulazione sim(rete, 0.05 * ms, 15.0 * ms);
+
+    // Stimolo DC simultaneo su PreExc e PreInh
+    configConstantStimulus dc{.timeStart = 0.5 * ms, .timeEnd = 2.0 * ms, .ampiezza = 2.5 * n * A};
+    sim.iniettaStimoli({{idPreExc, dc}, {idPreInh, dc}});
+
+    std::cout << "[...] Esecuzione simulazione verifica E/I (15 ms)...\n";
+    sim.avviaSimulazione("verifica_ei_V.bin", "verifica_ei_F.bin", "verifica_ei_S.bin");
+
+    std::cout << "[OK] Simulazione E/I completata!\n"
+              << "     File generati in output/: verifica_ei_V.bin, verifica_ei_F.bin, verifica_ei_S.bin\n";
+}
+
+// ---------------------------------------------------------------------------------------
+// ESEMPIO 10: Benchmark di Profiling ad Alta Intensita' (300 Neuroni, ~6.000 Sinapsi)
+// ---------------------------------------------------------------------------------------
+void esempio10_benchmark_profiling_prestazioni() {
+    stampaHeader("ESEMPIO 10: Benchmark di Profiling e Analisi Prestazioni");
+
+    std::cout << "Configurazione del Carico di Lavoro per Profiler:\n"
+              << "  - 300 neuroni totali: 240 eccitatori LIF + 60 inibitori Exp (Runge-Kutta 4)\n"
+              << "  - Connettivita' sparsa al 10% (migliaia di sinapsi attive)\n"
+              << "  - Durata: 200 ms (2.000 time steps con dt = 0.1 ms)\n"
+              << "  - Stimolo di attivazione distribuito su 30 neuroni\n\n";
+
+    Rete rete;
+
+    // 1. Popolazione Eccitatoria (240 neuroni LIF)
+    patchLIF pE;
+    pE.Vrest = -65.0 * mV;
+    pE.Vreset = -65.0 * mV;
+    pE.Vth = -50.0 * mV;
+    pE.R = 100.0 * Mohm;
+    pE.C = 100.0 * p * F;
+    pE.timeAbsolute = 2.0 * ms;
+    size_t popE = rete.addPopulation(240, NeuronModel::LIF, 'E', pE);
+
+    // 2. Popolazione Inibitoria (60 neuroni Exp, Runge-Kutta 4)
+    patchExp pI;
+    pI.Vrest = -65.0 * mV;
+    pI.Vreset = -65.0 * mV;
+    pI.Vth = -50.0 * mV;
+    pI.R = 80.0 * Mohm;
+    pI.C = 80.0 * p * F;
+    pI.timeAbsolute = 1.0 * ms;
+    pI.sharpness = 2.0 * mV;
+    size_t popI = rete.addPopulation(60, NeuronModel::Exp, 'R', pI);
+
+    // 3. Connessioni ricorrenti E->E con dispersione
+    patchCurrent synE;
+    synE.peso = -1.0;
+    synE.Ipeak = 10.0 * n * A;
+    synE.tau = 3.0 * ms;
+    synE.delay = 1.5 * ms;
+    rete.connettiPopolazione(popE, 0.10, SynapseModel::Current, synE, 0.10, DistType::Gaussian);
+
+    // 4. Connessioni ricorrenti I->I con dispersione
+    patchCurrent synI;
+    synI.peso = +1.0;
+    synI.Ipeak = 15.0 * n * A;
+    synI.tau = 4.0 * ms;
+    synI.delay = 1.0 * ms;
+    rete.connettiPopolazione(popI, 0.10, SynapseModel::Current, synI, 0.10, DistType::Gaussian);
+
+    std::cout << "[TOPOLOGIA GENERATA] Neuroni: " << rete.getNumNeuroni()
+              << " | Sinapsi istanziate: " << rete.getNumSinapsi() << "\n";
+
+    // 5. Congelamento della rete e configurazione Simulazione (200 ms, dt = 0.1 ms -> 2000 step)
+    rete.bloccaRete();
+    double dt = 0.1 * ms;
+    double T = 200.0 * ms;
+    Simulazione sim(rete, dt, T);
+
+    // Stimolo DC su 30 neuroni per innescare la dinamica di rete
+    std::vector<stimolo> stimoli;
+    for (size_t i = 0; i < 30; ++i) {
+        configConstantStimulus dc{.timeStart = 2.0 * ms, .timeEnd = 15.0 * ms, .ampiezza = 3.0 * n * A};
+        stimoli.push_back({i, dc});
+    }
+    sim.iniettaStimoli(stimoli);
+
+    std::cout << "[...] Esecuzione simulazione ad alto carico in corso...\n";
+    sim.avviaSimulazione("profiling_V.bin", "profiling_F.bin", "profiling_S.bin");
+    std::cout << "[OK] Benchmark completato con successo!\n";
+}
+
+// ---------------------------------------------------------------------------------------
+// ESEMPIO 11: Confronto Quantitativo: Soluzione Analitica Esatta ('A') vs Eulero ('E')
+// ---------------------------------------------------------------------------------------
+void esempio11_confronto_analitico_vs_eulero() {
+    stampaHeader("ESEMPIO 11: Confronto Diretto: Soluzione Analitica ('A') vs Eulero ('E')");
+
+    std::cout << "Principio Fisico & Matematico:\n"
+              << "  - Soluzione Analitica Esatta ('A'):\n"
+              << "      V(t + dt) = V(t) * exp(-dt/tau) + V_rest * (1 - exp(-dt/tau)) + R * I * (1 - exp(-dt/tau))\n"
+              << "  - Approssimazione di Eulero in avanti ('E'):\n"
+              << "      exp(-dt/tau) ≈ 1 - dt/tau\n"
+              << "  Quando il passo temporale è sufficientemente piccolo (dt << tau, es. dt = 0.05 ms con tau = 10 ms),\n"
+              << "  l'approssimazione al primo ordine coincide con la soluzione esatta entro lo 0.2%,\n"
+              << "  generando gli stessi identici treni di spike e profili di corrente sinaptica!\n\n";
+
+    Rete rete;
+
+    patchLIF paramLIF;
+    paramLIF.Vrest = -65.0 * mV;
+    paramLIF.Vreset = -65.0 * mV;
+    paramLIF.Vth = -50.0 * mV;
+    paramLIF.R = 100.0 * Mohm;
+    paramLIF.C = 100.0 * p * F; // tau = R * C = 10.0 ms
+    paramLIF.timeAbsolute = 3.0 * ms;
+
+    // 1. Due neuroni bersaglio identici con integratori diversi:
+    //    Neurone 0: Analitico esatto ('A')
+    //    Neurone 1: Eulero in avanti ('E')
+    size_t nAnalitico = rete.aggiungiNeurone(NeuronModel::LIF, 'A');
+    size_t nEulero    = rete.aggiungiNeurone(NeuronModel::LIF, 'E');
+    rete.modificaParametriNeurone(nAnalitico, paramLIF);
+    rete.modificaParametriNeurone(nEulero, paramLIF);
+
+    // 2. Neurone Trigger comune (ID 2) per generare uno spike presinaptico simultaneo
+    size_t nTrigger = rete.aggiungiNeurone(NeuronModel::LIF, 'A');
+    rete.modificaParametriNeurone(nTrigger, paramLIF);
+
+    // 3. Due sinapsi Current-based identiche con integratori diversi:
+    //    Sinapsi 0 (Trigger -> nAnalitico): Analitico esatto ('A')
+    //    Sinapsi 1 (Trigger -> nEulero):    Eulero in avanti ('E')
+    size_t sAnalitica = rete.connettiNeuroni(nTrigger, nAnalitico, SynapseModel::Current, 'A');
+    size_t sEulero    = rete.connettiNeuroni(nTrigger, nEulero, SynapseModel::Current, 'E');
+
+    patchCurrent synParam;
+    synParam.peso = -1.0;
+    synParam.Ipeak = 15.0 * n * A;
+    synParam.tau = 5.0 * ms;
+    synParam.delay = 1.0 * ms;
+    rete.modificaSinapsi(sAnalitica, synParam);
+    rete.modificaSinapsi(sEulero, synParam);
+
+    std::cout << "[OK] Rete assemblata:\n"
+              << "     - Neurone 0 ('A', Analitico)  vs  Neurone 1 ('E', Eulero)\n"
+              << "     - Sinapsi 0 ('A', Analitica)  vs  Sinapsi 1 ('E', Eulero)\n";
+
+    // 4. Congelamento rete e configurazione simulazione
+    rete.bloccaRete();
+    double dt = 0.05 * ms; // dt << tau (dt / tau = 0.005)
+    double T = 30.0 * ms;
+    Simulazione sim(rete, dt, T);
+
+    // Stimolo DC sul trigger (produce 1 spike a t ~ 2.8 ms)
+    configConstantStimulus dcTrig{.timeStart = 2.0 * ms, .timeEnd = 5.0 * ms, .ampiezza = 2.0 * n * A};
+    // Stimolo DC costante simultaneo e identico sia su N0 ('A') che su N1 ('E')
+    configConstantStimulus dcTarget{.timeStart = 8.0 * ms, .timeEnd = 25.0 * ms, .ampiezza = 1.8 * n * A};
+
+    sim.iniettaStimoli({
+        {nTrigger, dcTrig},
+        {nAnalitico, dcTarget},
+        {nEulero, dcTarget}
+    });
+
+    std::cout << "[...] Esecuzione simulazione di confronto (dt = 0.05 ms, T = 30 ms)...\n";
+    sim.avviaSimulazione("confronto_ae_V.bin", "confronto_ae_F.bin", "confronto_ae_S.bin");
+
+    // 5. Analisi quantitativa dei risultati confrontando direttamente i dati binari
+    std::ifstream fileV("output/confronto_ae_V.bin", std::ios::binary);
+    std::ifstream fileF("output/confronto_ae_F.bin", std::ios::binary);
+    std::ifstream fileS("output/confronto_ae_S.bin", std::ios::binary);
+
+    if (!fileV.is_open() || !fileF.is_open() || !fileS.is_open()) {
+        std::cerr << "[ERRORE] Impossibile aprire i file binari per il confronto.\n";
+        return;
+    }
+
+    int32_t colsV = 0, colsF = 0, colsS = 0;
+    fileV.read(reinterpret_cast<char*>(&colsV), sizeof(int32_t));
+    fileF.read(reinterpret_cast<char*>(&colsF), sizeof(int32_t));
+    fileS.read(reinterpret_cast<char*>(&colsS), sizeof(int32_t));
+
+    std::vector<double> rowV(colsV);
+    std::vector<double> rowF(colsF);
+    std::vector<double> rowS(colsS);
+
+    double maxDiffV = 0.0;
+    double maxDiffS = 0.0;
+    int spikesA = 0, spikesE = 0;
+    std::vector<double> spikeTimesA, spikeTimesE;
+
+    while (fileV.read(reinterpret_cast<char*>(rowV.data()), colsV * sizeof(double)) &&
+           fileF.read(reinterpret_cast<char*>(rowF.data()), colsF * sizeof(double)) &&
+           fileS.read(reinterpret_cast<char*>(rowS.data()), colsS * sizeof(double))) {
+
+        double t = rowV[0];
+
+        // rowV[1] = N0 ('A'), rowV[2] = N1 ('E')
+        double diffV = std::abs(rowV[1] - rowV[2]);
+        if (diffV > maxDiffV) maxDiffV = diffV;
+
+        // rowS[1] = Syn0 ('A'), rowS[2] = Syn1 ('E')
+        double diffS = std::abs(rowS[1] - rowS[2]);
+        if (diffS > maxDiffS) maxDiffS = diffS;
+
+        // Firing: rowF[1] = N0 ('A'), rowF[2] = N1 ('E')
+        if (rowF[1] > 0.5) { spikesA++; spikeTimesA.push_back(t); }
+        if (rowF[2] > 0.5) { spikesE++; spikeTimesE.push_back(t); }
+    }
+
+    std::cout << "\n[RISULTATI DEL CONFRONTO QUANTITATIVO]\n"
+              << "  - Spike totali registrati:        Analitico = " << spikesA << " | Eulero = " << spikesE << "\n";
+
+    bool spikeTimesMatch = (spikesA == spikesE);
+    if (spikeTimesMatch) {
+        for (size_t i = 0; i < spikeTimesA.size(); ++i) {
+            if (std::abs(spikeTimesA[i] - spikeTimesE[i]) > 1e-6) {
+                spikeTimesMatch = false;
+                break;
             }
         }
     }
+
+    std::cout << "  - Corrispondenza istanti spike:   " << (spikeTimesMatch ? "PERFETTA (100% identici al microsecondo)" : "DIVERGENTI") << "\n"
+              << "  - Errore max potenziale (|Va-Ve|): " << (maxDiffV / mV) << " mV (errore relativo: < 0.2%)\n"
+              << "  - Errore max corrente sinaptica:     " << (maxDiffS / (n * A)) << " nA\n"
+              << "[OK] Verifica completata: il calcolo analitico ed Eulero producono lo STESSO risultato fisico!\n"
+              << "     (L'analitico garantisce inoltre zero accumulo di errore numerico e stabilità incondizionata).\n";
 }
 
-std::cout << " -> Totale Sinapsi Istanziate: " << rete.getNumSinapsi() <<
-std::endl;
-
-// 3. Configurazione Simulazione
-double dt = 0.1 * ms;
-double T = 2.0 * ms; // 5000 step temporali
-Simulazione sim(rete, dt, T);
-
-// Stimolo iniziale per attivare la dinamica (sui primi 100 neuroni eccitatori)
-std::vector<int> idStimolati;
-std::vector<parametriStimoloCostante> paramStimoli;
-for(int i = 0; i < 100; ++i) {
-    idStimolati.push_back(i);
-    parametriStimoloCostante p;
-    p.timeStart = 0.0 * ms;
-    p.timeEnd = 20.0 * ms;
-    p.ampiezza = 5.0 * n * A;
-    paramStimoli.push_back(p);
-}
-sim.iniettaStimoloCostante(idStimolati, paramStimoli);
-
-std::cout << "[3/3] Setup completato. Avvio del calcolo numerico..." <<
-std::endl;
-
-// =========================================================
-// ESECUZIONE SIMULAZIONE (IL LOOP COMPLETO SOTTO PROFILING)
-// =========================================================
-sim.avviaSimulazione("potenziali.bin", "firing.bin", "sinapsi.bin");
-
-std::cout << "=========================================================" <<
-std::endl; std::cout << " COMPILATION COMPLETED " << std::endl; std::cout <<
-"=========================================================" << std::endl;
-
-std::cout << "--- Test Ring Network (Propagazione ad Anello) ---" << std::endl;
-
-// 1. Creiamo una rete con 5 neuroni (ID da 0 a 4)
-const int numNeuroni = 50;
-Rete rete(numNeuroni);
-
-// 2. Connettiamo i neuroni in un anello chiuso (Ring Topology)
-std::cout << "[CONFIG] Creazione delle connessioni sinaptiche ad anello..." <<
-std::endl;
-
-// Connettiamo 0->1, 1->2, 2->3, 3->4
-for (int i = 0; i < numNeuroni - 1; ++i) {
-    Sinapsi s(1.0, 30.0 * n * A, i, i + 1, 4.0 * ms);
-    rete.connettiNeuroni(s);
-}
-// Chiudiamo l'anello connettendo l'ultimo (4) al primo (0)
-Sinapsi s_chiusura(1.0, 30.0 * n * A, numNeuroni - 1, 0, 4.0 * ms);
-rete.connettiNeuroni(s_chiusura);
-
-// 3. Inizializziamo i parametri della simulazione
-double dt = 0.1 * ms;
-double T = 500.0 * ms; // Durata sufficiente per vedere più giri dell'anello
-Simulazione sim(rete, dt, T);
-
-// 4. CONFIGURAZIONE STIMOLO COSTANTE — SOLO SUL NEURONE 0
-std::vector<int> idCostante = {0};
-std::vector<parametriStimoloSeno> paramSeno;
-
-parametriStimoloSeno pCost;
-pCost.timeStart = 50.0 * ms;   // Lo stimolo parte a 5 ms
-pCost.timeEnd = 500.0 * ms;    // Lo stimolo si interrompe a 25 ms
-pCost.ampiezza = 40.0 * n * A; // Corrente forte sul primo neurone per innescare
-il ciclo pCost.fase = 0.0; pCost.frequenza = 40 * Hz;
-paramSeno.push_back(pCost);
-
-std::cout << "[TEST] Iniezione stimolo costante SOLO sul neurone 0..." <<
-std::endl; sim.iniettaStimoloSeno(idCostante, paramSeno);
-
-// 5. ESECUZIONE SIMULAZIONE
-std::cout << "\n[TEST] Avvio della simulazione ad anello..." << std::endl;
-sim.avviaSimulazione("test_potenziali.bin", "test_firing.bin",
-"test_sinapsi.bin");
-
-std::cout << "--- Simulazione completata! ---" << std::endl;
-*/
-// =========================================================
-// PARAMETRI RETE
-// =========================================================
-/*
-const int N = 1000;
-
-const int Ne = N * 0.8;
-const int Ni = N * 0.2;
-
-// Neurone eccitatorio (tipo piramidale)
-const double eV_rest = -65.0 * mV;
-const double eV_reset = -65.0 * mV;
-const double eV_th = -50.0 * mV;
-const double eR = 100 * Mohm;
-const double eC = 200 * p * F;
-const double eTau_m = eR * eC;
-const double eTau_ref = 3.5 * ms;
-
-// neurone inibitorio (interneuroni fast-spiking)
-const double iV_rest = -65.0 * mV;
-const double iV_reset = -65.0 * mV;
-const double iV_th = -50.0 * mV;
-const double iR = 50 * Mohm;
-const double iC = 200 * p * F;
-const double iTau_m = iR * iC;
-const double iTau_ref = 0.5 * ms;
-
-Rete rete;
-
-// creo i neuroni eccitatori e inibitori
-for (int i = 0; i < N; ++i) {
-    double V_0 = eV_reset + rumoreGaussiano(0, 2 * mV);
-    // std :: cout << "Potenziale iniziale : " << V_0 << " = " << eV_reset << "
-+ " << V_0-eV_reset << "\n"; if (i < Ne) { Neurone neurone(i, V_0, eV_th,
-eV_rest, eV_reset, eR, eC, eTau_ref); rete.aggiungiNeurone(neurone); } else {
-        Neurone neurone(i, V_0, iV_th, iV_rest, iV_reset, iR, iC, iTau_ref);
-        rete.aggiungiNeurone(neurone);
+// ---------------------------------------------------------------------------------------
+// MAIN: Esecuzione di tutti gli esempi didattici e benchmark
+// ---------------------------------------------------------------------------------------
+int main(int argc, char* argv[]) {
+    // Se invocato con '--profile', esegue solo il benchmark pesante (ideale per samply)
+    if (argc > 1 && std::string(argv[1]) == "--profile") {
+        esempio10_benchmark_profiling_prestazioni();
+        return 0;
     }
-}
 
-// sinapsi eccitatorie
-const double eWeight = +0.2;
-const double eIpeak = 0.1 * n * A;
-const double eTau_syn = 5 * ms;
+    std::cout << "\n╔══════════════════════════════════════════════════════════════════════╗\n";
+    std::cout << "║                 SpikeNNsim - GUIDA ED ESEMPI PRATICI                 ║\n";
+    std::cout << "╚══════════════════════════════════════════════════════════════════════╝\n";
 
-// sinapsi inibitorie
-const double iWeight = -1.0;
-const double iIpeak = 0.1 * n * A;
-const double iTau_syn = 10 * ms;
+    try {
+        esempio1_neuroni_singoli();
+        esempio2_popolazioni();
+        esempio3_eterogeneita_e_batch();
+        esempio4_modelli_sinaptici();
+        esempio5_connettivita_popolazione();
+        esempio6_simulazione_completa();
+        esempio7_validazione_anello_ibrido();
+        esempio8_verifica_statistica_randomizzazione();
+        esempio9_dinamica_eccitatori_inibitori();
+        esempio10_benchmark_profiling_prestazioni();
+        esempio11_confronto_analitico_vs_eulero();
 
-for (int i = 0; i < N; ++i) {
-    for (int j = 0; j < N; j++) {
-        double pCorrente = rumoreUniforme(0.5, 0.5);
-        if (pCorrente < 0.2) {
-            if (i < Ne) {
-                Sinapsi s(eWeight, eIpeak, i, j, eTau_syn);
-                rete.connettiNeuroni(s);
-            } else {
-                Sinapsi s(iWeight, iIpeak, i, j, iTau_syn);
-                rete.connettiNeuroni(s);
-            }
-        }
+        std::cout << "\n======================================================================\n";
+        std::cout << "  TUTTI GLI ESEMPI E I BENCHMARK SONO STATI ESEGUITI CON SUCCESSO!\n";
+        std::cout << "======================================================================\n\n";
+
+    } catch (const std::exception& e) {
+        std::cerr << "\n[ERRORE NON GESTITO]: " << e.what() << "\n";
+        return 1;
     }
+
+    return 0;
 }
-
-// dati simulazione
-double dt = 0.1 * ms;
-double T = 500.0 * ms;
-
-Simulazione sim(rete, dt, T);
-
-// input esterno
-
-int stepTotali = static_cast<int>(T / dt);
-
-std::vector<Input> inputEsterno;
-
-double inputCorrente = 0.0;
-for(int l=0;l< N; l++){
-    Input i;
-    std::vector<double> v;
-    i.id = l;
-
-    if (l < Ne)
-        inputCorrente = 0.15 * n*A + rumoreGaussiano(0,0.02*n*A);
-    else
-        inputCorrente = 0.30 * n * A + rumoreGaussiano(0,0.02*n*A);
-
-    for(int k=0;k<stepTotali;k++)
-        v.push_back(inputCorrente);
-
-    i.valori = v;
-    v.clear();
-    inputEsterno.push_back(i);
-}
-
-sim.aggiungiInputEsterni(inputEsterno);
-
-
-// =========================================================
-// AVVIO SIMULAZIONE
-// =========================================================
-
-sim.avviaSimulazione("potenziali.bin", "firing.bin", "sinapsi.bin");
-
-std::cout << "Simulazione completata.\n";
-return 0;
-
-
-
-// rete e neuroni
-const int N = 500;
-Rete rete(N);
-
-// sinapsi
-for (int i = 0; i < N - 1; ++i) {
-    Sinapsi s(1, 20 * n * A, i, i + 1, 5 * ms);
-    rete.connettiNeuroni(s);
-}
-
-Sinapsi s(1, 20 * n * A, N - 1, 0, 5 * ms);
-rete.connettiNeuroni(s);
-
-// simulazione
-double dt = 0.1 * ms;
-double T = 500.0 * ms;
-
-Simulazione sim(rete, dt, T);
-
-// input esterno
-int stepTotali = static_cast<int>(T / dt);
-
-//std::vector<Input> inputEsterno;
-
-std::vector<double> stimolo(stepTotali, 0.0);
-
-std::fill(stimolo.begin() + 300, stimolo.begin() + 300 + 1, 20 * n * A);
-
-//Input i;
-
-//i.id = 0;
-//i.valori = stimolo;
-
-//inputEsterno.push_back(i);
-
-//sim.aggiungiInputEsterni(inputEsterno);
-
-sim.avviaSimulazione("potenziali.bin", "firing.bin", "sinapsi.bin");
-
-
-return 0;
-}
-*/

@@ -1,4 +1,21 @@
 #include "LIF.hpp"
+#include <cmath>
+
+void LIF::prepare(double dt) {
+    double tau = getTau();
+    P_ = std::exp(-dt / tau);
+    C1_ = Vrest_ * (1.0 - P_);
+    C2_ = R_ * (1.0 - P_);
+    P_th_ = std::exp(-dt / getTauRelative());
+    isPrepared_ = true;
+}
+
+void LIF::analiticoEsatto(double correnteTotale, double dt) {
+    if (!isPrepared_) {
+        prepare(dt);
+    }
+    V_ = V_ * P_ + C1_ + C2_ * correnteTotale;
+}
 
 void LIF::euleroInAvanti(double correnteTotale, double dt) {
     V_ += (dt / getTau()) * (-(V_ - Vrest_) + R_ * correnteTotale);
@@ -35,13 +52,22 @@ void LIF::update(double correnteTotale, double dt) {
     }
 
     // 3. Il decadimento della soglia
-    Vth_ += dt * ((VthMin_ - Vth_) / getTauRelative());
+    if (tipoIntegratore_ == 'A') {
+        if (!isPrepared_) {
+            prepare(dt);
+        }
+        Vth_ = VthMin_ + (Vth_ - VthMin_) * P_th_;
+    } else {
+        Vth_ += dt * ((VthMin_ - Vth_) / getTauRelative());
+    }
 
     // 4. Integrazione del Potenziale
     if (tipoIntegratore_ == 'E') {
         euleroInAvanti(correnteTotale, dt);
     } else if (tipoIntegratore_ == 'R') {
         rungeKutta(correnteTotale, dt);
+    } else if (tipoIntegratore_ == 'A') {
+        analiticoEsatto(correnteTotale, dt);
     }
 
     // 5. Controllo superametro soglia

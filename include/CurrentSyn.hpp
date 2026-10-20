@@ -28,11 +28,11 @@
  * - peso < 0 -> I_syn < 0 -> Eccitatoria (alza il potenziale post-sinaptico)
  */
 struct patchCurrent {
-    std::optional<double> Isyn;  ///< Stato: Corrente sinaptica iniziale/attuale [A]
-    std::optional<double> peso;  ///< Parametro: Fattore di scala adimensionale della sinapsi
-    std::optional<double> Ipeak; ///< Parametro: Corrente di picco iniettata per peso unitario [A]
-    std::optional<double> tau;   ///< Parametro: Scala temporale di decadimento esponenziale [s]
-    std::optional<double> delay; ///< Parametro: Ritardo di conduzione sinaptica (delay) [s]
+    std::optional<double> Isyn = std::nullopt;  ///< Stato: Corrente sinaptica iniziale/attuale [A]
+    std::optional<double> peso = std::nullopt;  ///< Parametro: Fattore di scala adimensionale della sinapsi
+    std::optional<double> Ipeak = std::nullopt; ///< Parametro: Corrente di picco iniettata per peso unitario [A]
+    std::optional<double> tau = std::nullopt;   ///< Parametro: Scala temporale di decadimento esponenziale [s]
+    std::optional<double> delay = std::nullopt; ///< Parametro: Ritardo di conduzione sinaptica (delay) [s]
 };
 
 /**
@@ -63,8 +63,10 @@ class Current {
      * @brief Costruttore interno utilizzato da Rete.
      * @param indexPre Indice del neurone pre-sinaptico nel vettore di Rete.
      * @param indexPost Indice del neurone post-sinaptico nel vettore di Rete.
+     * @param typeIntegratore Metodo di integrazione: 'A' (Analitico esatto), 'E' (Eulero in avanti), 'R' (Runge-Kutta 4).
      */
-    Current(size_t indexPre, size_t indexPost) : indexPre_(indexPre), indexPost_(indexPost) {}
+    Current(size_t indexPre, size_t indexPost, char typeIntegratore = 'E')
+        : indexPre_(indexPre), indexPost_(indexPost), tipoIntegratore_(typeIntegratore) {}
 
     ~Current() = default;
 
@@ -75,7 +77,8 @@ class Current {
     size_t indexPre_, indexPost_; // Indici neuroni della sinapsi
 
     // Stato Dinamico
-    double Isyn_ = 0.0 * A; // Corrente sinaptica calcolata in questo step [A]
+    double Isyn_ = 0.0 * A;      // Corrente sinaptica calcolata in questo step [A]
+    char tipoIntegratore_ = 'E'; // Risolutore ODE ('A' = Analitico, 'E' = Eulero, 'R' = Runge-Kutta)
 
     // Parametri Fisici
     double peso_ = 1.0;          // Forza adimensionale della sinapsi
@@ -87,23 +90,41 @@ class Current {
     size_t presentStep_ = 0;        // Indice di lettura corrente nel ring buffer
     size_t delayStep_ = 0;          // Numero di step temporali corrispondenti al delay_
     std::vector<double> delayRing_; // Ring buffer per immagazzinare gli spike in transito
+    double decayFactor_ = 0.0;      // Fattore di decadimento analitico esatto: exp(-dt / tau_)
 
     // -- METODI PRIVATI --------------------------------------------------------------------------------------
 
     // 1. Gestione evoluzione temporale
     void update(double dt, bool preFired);
+    void euleroInAvanti(double dt);
+    void rungeKutta(double dt);
+    void analiticoEsatto(double dt);
 
     // 2. Metodi getter
     inline double getCurrent() const { return Isyn_; }
     inline size_t getIndexPre() const { return indexPre_; }
     inline size_t getIndexPost() const { return indexPost_; }
 
-    // 3. metodi setter
+    // 3. Metodi di preparazione e configurazione interna
     inline void setIndexPre(size_t idx) { indexPre_ = idx; }
     inline void setIndexPost(size_t idx) { indexPost_ = idx; }
+
+    /**
+     * @brief Inizializza il buffer circolare per il ritardo di conduzione.
+     * @param dt Passo di integrazione temporale [s].
+     */
     inline void setDelayRing(double dt) {
         delayStep_ = static_cast<size_t>(std::round(delay_ / dt));
         delayRing_.assign(delayStep_ + 1, 0.0);
+    }
+
+    /**
+     * @brief Prepara la sinapsi prima della simulazione (buffer delay + coefficienti analitici).
+     * @param dt Passo di integrazione temporale [s].
+     */
+    inline void prepare(double dt) {
+        setDelayRing(dt);
+        decayFactor_ = std::exp(-dt / tau_);
     }
 };
 

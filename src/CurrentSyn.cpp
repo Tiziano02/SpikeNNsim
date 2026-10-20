@@ -1,9 +1,33 @@
 #include "CurrentSyn.hpp"
 
+void Current::euleroInAvanti(double dt) {
+    Isyn_ += dt * (-Isyn_ / tau_);
+}
+
+void Current::analiticoEsatto(double dt) {
+    if (decayFactor_ == 0.0) {
+        decayFactor_ = std::exp(-dt / tau_);
+    }
+    Isyn_ *= decayFactor_;
+}
+
+void Current::rungeKutta(double dt) {
+    double alpha = dt / tau_;
+    double rk4 = 1.0 - alpha + (alpha * alpha) / 2.0 - (alpha * alpha * alpha) / 6.0 +
+                 (alpha * alpha * alpha * alpha) / 24.0;
+    Isyn_ *= rk4;
+}
+
 void Current::update(double dt, bool preFired) {
 
-    // 1. Decadimento esponenziale della corrente sinaptica
-    Isyn_ += dt * (-Isyn_ / tau_);
+    // 1. Decadimento della corrente sinaptica in base al risolutore ODE scelto
+    if (tipoIntegratore_ == 'A') {
+        analiticoEsatto(dt);
+    } else if (tipoIntegratore_ == 'R') {
+        rungeKutta(dt);
+    } else {
+        euleroInAvanti(dt);
+    }
 
     // 2. Raccolta spike dal delayRing
     if (delayRing_[presentStep_] != 0.0) {
@@ -17,6 +41,6 @@ void Current::update(double dt, bool preFired) {
         delayRing_[(presentStep_ + delayStep_) % delayRing_.size()] += peso_ * Ipeak_;
     }
 
-    // 5. Avanzamento posizione nel ring
+    // 4. Avanzamento posizione nel ring
     presentStep_ = (presentStep_ + 1) % delayRing_.size();
 }

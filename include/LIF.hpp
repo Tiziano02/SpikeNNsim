@@ -23,16 +23,16 @@
  * Si consiglia l'uso dei moltiplicatori definiti in `UnitaSI.hpp` (es. `-65.0 * mV`).
  */
 struct patchLIF {
-    std::optional<double> V;            ///< Potenziale di membrana attuale [V]
-    std::optional<double> Vth;          ///< Soglia dinamica attuale [V]
-    std::optional<double> VthMin;       ///< Parametro: Soglia minima (asintoto di riposo) [V]
-    std::optional<double> VthMax;       ///< Parametro: Soglia massima (picco post-spike) [V]
-    std::optional<double> Vrest;        ///< Parametro: Potenziale di riposo [V]
-    std::optional<double> Vreset;       ///< Parametro: Potenziale di reset post-spike [V]
-    std::optional<double> R;            ///< Parametro: Resistenza di membrana [Ω]
-    std::optional<double> C;            ///< Parametro: Capacità di membrana [F]
-    std::optional<double> timeAbsolute; ///< Parametro: Durata del periodo refrattario assoluto [s]
-    std::optional<double> timeRelative; ///< Parametro: Durata del periodo refrattario relativo [s]
+    std::optional<double> V = std::nullopt;            ///< Potenziale di membrana attuale [V]
+    std::optional<double> Vth = std::nullopt;          ///< Soglia dinamica attuale [V]
+    std::optional<double> VthMin = std::nullopt;       ///< Parametro: Soglia minima (asintoto di riposo) [V]
+    std::optional<double> VthMax = std::nullopt;       ///< Parametro: Soglia massima (picco post-spike) [V]
+    std::optional<double> Vrest = std::nullopt;        ///< Parametro: Potenziale di riposo [V]
+    std::optional<double> Vreset = std::nullopt;       ///< Parametro: Potenziale di reset post-spike [V]
+    std::optional<double> R = std::nullopt;            ///< Parametro: Resistenza di membrana [Ω]
+    std::optional<double> C = std::nullopt;            ///< Parametro: Capacità di membrana [F]
+    std::optional<double> timeAbsolute = std::nullopt; ///< Parametro: Durata del periodo refrattario assoluto [s]
+    std::optional<double> timeRelative = std::nullopt; ///< Parametro: Durata del periodo refrattario relativo [s]
 };
 
 /**
@@ -64,7 +64,7 @@ class LIF {
   public:
     /**
      * @brief Costruttore interno utilizzato da Rete.
-     * @param typeIntegratore Metodo di integrazione: 'E' (Eulero in avanti) o 'R' (Runge-Kutta 4).
+     * @param typeIntegratore Metodo di integrazione: 'A' (Analitico esatto), 'E' (Eulero in avanti) o 'R' (Runge-Kutta 4).
      */
     LIF(char typeIntegratore) : tipoIntegratore_(typeIntegratore) {}
     ~LIF() = default;
@@ -85,13 +85,22 @@ class LIF {
 
     double tempoRR_ = 0.0 * s;   // Stato interno: Timer refrattarietà residua
     bool fired_ = false;         // Stato interno: Flag di spike in questo dt
-    char tipoIntegratore_ = 'E'; // Impostazione: Tipo di risolutore ODE
+    char tipoIntegratore_ = 'E'; // Impostazione: Tipo di risolutore ODE ('A', 'E', 'R')
+
+    // Coefficienti precalcolati per l'integrazione analitica esatta ('A')
+    double P_ = 0.0;            // Fattore di decadimento passivo: exp(-dt / tau)
+    double C1_ = 0.0;           // Termine di riposo: Vrest * (1 - P)
+    double C2_ = 0.0;           // Termine di corrente: R * (1 - P)
+    double P_th_ = 0.0;         // Decadimento della soglia adattiva: exp(-dt / tau_rel)
+    bool isPrepared_ = false;   // Flag di validità dei coefficienti analitici
 
     // -- METODI INTERNI ------------------------------------------------------
 
-    // 1. Integratori numerici s
+    // 1. Integratori numerici e analitici
     void euleroInAvanti(double correnteTotale, double dt);
     void rungeKutta(double correnteTotale, double dt);
+    void analiticoEsatto(double correnteTotale, double dt);
+    void prepare(double dt);
 
     // 2. Metodi getter
     bool hasFired() const { return fired_; }
