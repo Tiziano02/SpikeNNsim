@@ -64,7 +64,8 @@ class LIF {
   public:
     /**
      * @brief Costruttore interno utilizzato da Rete.
-     * @param typeIntegratore Metodo di integrazione: 'A' (Analitico esatto), 'E' (Eulero in avanti) o 'R' (Runge-Kutta 4).
+     * @param typeIntegratore Metodo di integrazione: 'A' (Analitico esatto), 'E' (Eulero in avanti) o 'R' (Runge-Kutta
+     * 4).
      */
     LIF(char typeIntegratore) : tipoIntegratore_(typeIntegratore) {}
     ~LIF() = default;
@@ -78,7 +79,7 @@ class LIF {
     double VthMax_ = -35.0 * mV;      // Parametro: Soglia di picco
     double Vrest_ = -65.0 * mV;       // Parametro: Potenziale di riposo
     double Vreset_ = -70.0 * mV;      // Parametro: Potenziale post-spike
-    double R_ = 1.0 * Mohm;           // Parametro: Resistenza di membrana
+    double R_ = 100.0 * Mohm;         // Parametro: Resistenza di membrana
     double C_ = 100.0 * p * F;        // Parametro: Capacità di membrana
     double timeAbsolute_ = 5.0 * ms;  // Parametro: Refrattarietà assoluta
     double timeRelative_ = 15.0 * ms; // Parametro: Refrattarietà relativa
@@ -88,10 +89,10 @@ class LIF {
     char tipoIntegratore_ = 'E'; // Impostazione: Tipo di risolutore ODE ('A', 'E', 'R')
 
     // Coefficienti precalcolati per l'integrazione analitica esatta ('A')
-    double P_ = 0.0;            // Fattore di decadimento passivo: exp(-dt / tau)
-    double C1_ = 0.0;           // Termine di riposo: Vrest * (1 - P)
-    double C2_ = 0.0;           // Termine di corrente: R * (1 - P)
-    double P_th_ = 0.0;         // Decadimento della soglia adattiva: exp(-dt / tau_rel)
+    double P_ = 0.0;    // Fattore di decadimento passivo: exp(-dt / tau)
+    double C1_ = 0.0;   // Termine di riposo: Vrest * (1 - P)
+    double C2_ = 0.0;   // Termine di corrente: R * (1 - P)
+    double P_th_ = 0.0; // Decadimento della soglia adattiva: exp(-dt / tau_rel)
 
     // -- METODI INTERNI ------------------------------------------------------
 

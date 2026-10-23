@@ -155,6 +155,26 @@ Per modelli fisici con equazioni differenziali lineari a tratti, SpikeNNsim supp
         - `rete.modificaIntegratoreSinapsiSubPopolazione(idxPop, idxSubPop, type)`
    - Ciascun metodo verifica lo stato di congelamento (`verificaNonBloccata`) e valida rigorosamente i limiti dimensionali.
 
+---
+
+### Sinapsi a Delta Istantanee (senza decadimento esponenziale)
+SpikeNNsim supporta la modalità **Sinapsi a Delta** tramite la flag booleana `isDelta` (riservata alle sole sinapsi **Current-based**):
+1. **Modello Fisico & Matematico:**
+   - *Sinapsi classica con decadimento continuo:* Quando arriva uno spike dopo il `delay`, la corrente riceve un incremento e decade secondo $\frac{dI}{dt} = -\frac{I}{\tau}$.
+   - *Sinapsi a delta (`isDelta = true`):* L'impulso viene trasmesso istantaneamente ed è attivo **per un singolo time step $dt$** (all'arrivo dal delay ring). Al time step successivo, la corrente si azzera istantaneamente ($I_{syn} = 0$) senza code o decadimenti esponenziali nel tempo.
+2. **Esclusività per Current-based:**
+   - La modalità a delta è supportata e applicabile **esclusivamente alle sinapsi Current-based** (`CurrentSyn`), dove rappresenta una scarica impulsiva istantanea di carica.
+   - Le sinapsi Conductance-based (`ConductanceSyn`) mantengono invece la loro naturale cinetica biofisica continua di conduttanza di canale ($g_{syn}(t)$).
+3. **Livelli di Configurazione:**
+   - **Tramite Patch:** `patchCurrent{.isDelta = true}` (usabile sia in `connettiNeuroni` / `connettiPopolazione`, sia in `modificaSinapsi`).
+   - **Tramite API Dedicate:**
+     - Singola sinapsi: `rete.modificaDeltaSinapsi(idx, bool isDelta)`
+     - Batch di indici: `rete.modificaDeltaSinapsi(idxs, bool isDelta)`
+     - Popolazione: `rete.modificaDeltaSinapsiPopolazione(idxPop, bool isDelta)`
+     - Sub-popolazione: `rete.modificaDeltaSinapsiSubPopolazione(idxPop, idxSubPop, bool isDelta)`
+   - **Metodo di ispezione:** `rete.isSinapsiDelta(idx)`
+
+
 
 
 

@@ -33,6 +33,8 @@ struct patchCurrent {
     std::optional<double> Ipeak = std::nullopt; ///< Parametro: Corrente di picco iniettata per peso unitario [A]
     std::optional<double> tau = std::nullopt;   ///< Parametro: Scala temporale di decadimento esponenziale [s]
     std::optional<double> delay = std::nullopt; ///< Parametro: Ritardo di conduzione sinaptica (delay) [s]
+    std::optional<bool> isDelta =
+        std::nullopt; ///< Parametro: Se true, sinapsi a delta (nessun decadimento esponenziale)
 };
 
 /**
@@ -65,9 +67,10 @@ class Current {
      * @param indexPost Indice del neurone post-sinaptico nel vettore di Rete.
      * @param typeIntegratore Metodo di integrazione: 'A' (Analitico esatto), 'E' (Eulero in avanti), 'R' (Runge-Kutta
      * 4).
+     * @param isDelta Flag per sinapsi a delta istantanea senza decadimento esponenziale.
      */
-    Current(size_t indexPre, size_t indexPost, char typeIntegratore = 'E')
-        : indexPre_(indexPre), indexPost_(indexPost), tipoIntegratore_(typeIntegratore) {}
+    Current(size_t indexPre, size_t indexPost, char typeIntegratore = 'E', bool isDelta = false)
+        : indexPre_(indexPre), indexPost_(indexPost), tipoIntegratore_(typeIntegratore), isDelta_(isDelta) {}
 
     ~Current() = default;
 
@@ -80,6 +83,7 @@ class Current {
     // Stato Dinamico
     double Isyn_ = 0.0 * A;      // Corrente sinaptica calcolata in questo step [A]
     char tipoIntegratore_ = 'E'; // Risolutore ODE ('A' = Analitico, 'E' = Eulero, 'R' = Runge-Kutta)
+    bool isDelta_ = false;       // Flag: true per sinapsi a delta istantanea senza decadimento esponenziale
 
     // Parametri Fisici
     double peso_ = 1.0;          // Forza adimensionale della sinapsi
@@ -107,6 +111,8 @@ class Current {
     inline double getCurrent() const { return Isyn_; }
     inline size_t getIndexPre() const { return indexPre_; }
     inline size_t getIndexPost() const { return indexPost_; }
+    inline bool isDelta() const { return isDelta_; }
+    inline void setDelta(bool delta) { isDelta_ = delta; }
 
     // 3. Metodi di preparazione e configurazione interna
     inline void setIndexPre(size_t idx) { indexPre_ = idx; }

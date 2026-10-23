@@ -55,6 +55,14 @@ class Simulazione {
     void iniettaStimoli(const std::vector<stimolo>& stimoli);
 
     /**
+     * @brief Registra una singolo stimolo esterno da applicare durante la simulazione.
+     * @param stimolo 'struct' da registrare (contiene indice neurone bersaglio e lisa di parametri)
+     * @note Se uno stimolo è indirizzato a un ID neurone non esistente, verrà ignorato
+     * e verrà stampato un errore su stderr.
+     */
+    void iniettaStimoli(const stimolo& stimolo);
+
+    /**
      * @brief Avvia il loop di calcolo temporale e la scrittura su disco.
      * @param filenameV Percorso del file binario di output per i Potenziali di Membrana.
      * @param filenameF Percorso del file binario di output per la matrice di Firing (Spike).
@@ -73,6 +81,9 @@ class Simulazione {
     double dt_;        // Passo temporale di integrazione [s]
     int stepCorrente_; // Indice dello step attuale (t = stepCorrente_ * dt_)
     int stepTotali_;   // Numero totale di step previsti
+
+    // Generatore numeri casuale
+    std::mt19937 generatoreCasualeSimulazione{1337};
 
     // Gestione Nomi File Output
     std::string fileNameV_;

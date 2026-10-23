@@ -15,6 +15,17 @@
 
 /**
  * @ingroup publicapi
+ * @brief Generatore di corrente a delta di dirac s
+ */
+struct configPoissonStimulus {
+    double timeStart; ///< [s] Istante di accensione dello stimolo
+    double timeEnd;   ///< [s] Istante di spegnimento dello stimolo
+    double ampiezza;  ///< [A] Intensità della delta
+    double frequenza; ///< [Hz] Numero di eventi al secondo
+};
+
+/**
+ * @ingroup publicapi
  * @brief Generatore di corrente continua (DC) per una finestra temporale.
  */
 struct configConstantStimulus {
@@ -40,7 +51,7 @@ struct configSinStimulus {
  * @ingroup publicapi
  * @brief Variante polimorfa per uniformare il passaggio dei parametri degli stimoli.
  */
-using typeParameters = std::variant<configConstantStimulus, configSinStimulus>;
+using typeParameters = std::variant<configConstantStimulus, configSinStimulus, configPoissonStimulus>;
 
 // -- STRUTTURE DI ROUTING DEGLI STIMOLI ----------------------------------------------------------
 
@@ -50,7 +61,7 @@ using typeParameters = std::variant<configConstantStimulus, configSinStimulus>;
  * @details L'utente crea vettori di questo tipo per passarli a `Simulazione::iniettaStimoli()`.
  */
 struct stimolo {
-    std::size_t indexNeurone; ///< ID pubblico del neurone bersaglio
+    std::size_t indexNeurone; ///< indice del neurone bersaglio
     typeParameters parametri; ///< Forma d'onda e parametri della corrente
 };
 

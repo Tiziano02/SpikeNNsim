@@ -18,7 +18,7 @@
 #include <optional>
 #include <deque>
 #include <string>
-#include <stdexcept>
+// #include <stdexcept>
 
 /**
  * @ingroup publicapi
@@ -49,7 +49,8 @@ class Rete {
     /**
      * @brief Inserisce un singolo neurone nella topologia della rete.
      * @param typeNeurone Modello del neurone (es. NeuronModel::Exp).
-     * @param typeIntegratore Metodo di risoluzione ODE ('A' = Analitico esatto per LIF, 'E' = Eulero, 'R' = Runge-Kutta 4).
+     * @param typeIntegratore Metodo di risoluzione ODE ('A' = Analitico esatto per LIF, 'E' = Eulero, 'R' = Runge-Kutta
+     * 4).
      * @param config (opzionale) Configurazione (Patch) iniziale per il neurone.
      * @param dispersione Ampiezza della dispersione relativa della distribuzione (default 0.0).
      * @param tipoDist Tipo di distribuzione per la randomizzazione (default Gaussian).
@@ -180,8 +181,7 @@ class Rete {
      * @param indiceSubPopolazione Indice della sub-popolazione da modificare.
      * @param typeIntegratore Nuovo metodo ('A' = Analitico esatto, 'E' = Eulero, 'R' = Runge-Kutta 4).
      */
-    void modificaIntegratoreSubPopolazione(size_t indicePopolazione, size_t indiceSubPopolazione,
-                                         char typeIntegratore);
+    void modificaIntegratoreSubPopolazione(size_t indicePopolazione, size_t indiceSubPopolazione, char typeIntegratore);
 
     // -- CONDIZIONI INIZIALI POTENZIALI (SYNTACTIC SUGAR) ---------------------------------------------------
 
@@ -201,7 +201,7 @@ class Rete {
      * @param tipoDist Tipo di distribuzione statistica per la randomizzazione (default Gaussian).
      */
     void setCondizioneInizialePopolazione(size_t indicePopolazione, double V, double dispersione = 0.0,
-                                         DistType tipoDist = DistType::Gaussian);
+                                          DistType tipoDist = DistType::Gaussian);
 
     /**
      * @brief Imposta la condizione iniziale del potenziale di membrana V(0) su un intervallo contiguo [start, end).
@@ -212,7 +212,7 @@ class Rete {
      * @param tipoDist Tipo di distribuzione statistica per la randomizzazione (default Gaussian).
      */
     void setCondizioneInizialeIntervallo(size_t start, size_t end, double V, double dispersione = 0.0,
-                                        DistType tipoDist = DistType::Gaussian);
+                                         DistType tipoDist = DistType::Gaussian);
 
     // -- GESTIONE CONNESSIONI POPOLAZIONI ---------------------------------------------------------------------
 
@@ -229,14 +229,15 @@ class Rete {
      */
     std::vector<size_t> connettiPopolazione(size_t indicePopolazione, double probabilitaConnessione,
                                             SynapseModel typeSynapse, char typeIntegratore = 'E',
-                                            std::optional<TypePatchSyn> config = std::nullopt,
-                                            double dispersione = 0.0, DistType tipoDist = DistType::Gaussian);
+                                            std::optional<TypePatchSyn> config = std::nullopt, double dispersione = 0.0,
+                                            DistType tipoDist = DistType::Gaussian);
 
     // Overload per retrocompatibilità quando config viene passata direttamente
     std::vector<size_t> connettiPopolazione(size_t indicePopolazione, double probabilitaConnessione,
                                             SynapseModel typeSynapse, const TypePatchSyn& config,
                                             double dispersione = 0.0, DistType tipoDist = DistType::Gaussian) {
-        return connettiPopolazione(indicePopolazione, probabilitaConnessione, typeSynapse, 'E', config, dispersione, tipoDist);
+        return connettiPopolazione(indicePopolazione, probabilitaConnessione, typeSynapse, 'E', config, dispersione,
+                                   tipoDist);
     }
 
     /**
@@ -266,6 +267,21 @@ class Rete {
                                                   char typeIntegratore);
 
     /**
+     * @brief Imposta la modalita' a delta (senza decadimento esponenziale) per tutte le sinapsi di una popolazione.
+     * @param indicePopolazione Indice della popolazione bersaglio.
+     * @param isDelta Se true, le sinapsi erogano impulsi istantanei a delta.
+     */
+    void modificaDeltaSinapsiPopolazione(size_t indicePopolazione, bool isDelta);
+
+    /**
+     * @brief Imposta la modalita' a delta per tutte le sinapsi di una sub-popolazione.
+     * @param indicePopolazione Indice della popolazione contenente la sub-popolazione.
+     * @param indiceSubPopolazione Indice della sub-popolazione bersaglio.
+     * @param isDelta Se true, le sinapsi erogano impulsi istantanei a delta.
+     */
+    void modificaDeltaSinapsiSubPopolazione(size_t indicePopolazione, size_t indiceSubPopolazione, bool isDelta);
+
+    /**
      * @brief Crea connessioni casuali tra i neuroni di due popolazioni distinte.
      * @param indicePopPre Indice della popolazione sorgente (presinaptica).
      * @param indicePopPost Indice della popolazione bersaglio (postsinaptica).
@@ -277,18 +293,17 @@ class Rete {
      * @param tipoDist Tipo di distribuzione statistica per la randomizzazione (default Gaussian).
      * @return Vettore contenente gli ID di tutte le sinapsi create.
      */
-    std::vector<size_t> connettiPopolazioni(size_t indicePopPre, size_t indicePopPost,
-                                            double probabilitaConnessione, SynapseModel typeSynapse,
-                                            char typeIntegratore = 'E',
-                                            std::optional<TypePatchSyn> config = std::nullopt,
-                                            double dispersione = 0.0, DistType tipoDist = DistType::Gaussian);
+    std::vector<size_t> connettiPopolazioni(size_t indicePopPre, size_t indicePopPost, double probabilitaConnessione,
+                                            SynapseModel typeSynapse, char typeIntegratore = 'E',
+                                            std::optional<TypePatchSyn> config = std::nullopt, double dispersione = 0.0,
+                                            DistType tipoDist = DistType::Gaussian);
 
     // Overload per retrocompatibilità quando config viene passata direttamente
-    std::vector<size_t> connettiPopolazioni(size_t indicePopPre, size_t indicePopPost,
-                                            double probabilitaConnessione, SynapseModel typeSynapse,
-                                            const TypePatchSyn& config,
+    std::vector<size_t> connettiPopolazioni(size_t indicePopPre, size_t indicePopPost, double probabilitaConnessione,
+                                            SynapseModel typeSynapse, const TypePatchSyn& config,
                                             double dispersione = 0.0, DistType tipoDist = DistType::Gaussian) {
-        return connettiPopolazioni(indicePopPre, indicePopPost, probabilitaConnessione, typeSynapse, 'E', config, dispersione, tipoDist);
+        return connettiPopolazioni(indicePopPre, indicePopPost, probabilitaConnessione, typeSynapse, 'E', config,
+                                   dispersione, tipoDist);
     }
 
     // -- GESTIONE SINAPSI (API PUBBLICA) ----------------------------------------------------------------------
@@ -298,21 +313,20 @@ class Rete {
      * @param IDXpre indice del neurone sorgente (pre-sinaptico).
      * @param IDXpost indice del neurone bersaglio (post-sinaptico).
      * @param typeSynapse Modello matematico della sinapsi.
-     * @param typeIntegratore Metodo di risoluzione ODE ('A' = Analitico esatto, 'E' = Eulero in avanti, 'R' = Runge-Kutta 4).
+     * @param typeIntegratore Metodo di risoluzione ODE ('A' = Analitico esatto, 'E' = Eulero in avanti, 'R' =
+     * Runge-Kutta 4).
      * @param config (opzionale) Configurazione (Patch) iniziale per la sinapsi.
      * @param dispersione Ampiezza della dispersione relativa per la randomizzazione dei parametri (default 0.0).
      * @param tipoDist Tipo di distribuzione statistica per la randomizzazione (default Gaussian).
      * @return L'ID univoco assegnato automaticamente alla nuova sinapsi, o static_cast<size_t>(-1) in caso di errore.
      */
-    size_t connettiNeuroni(size_t IDXpre, size_t IDXpost, SynapseModel typeSynapse,
-                           char typeIntegratore = 'E',
+    size_t connettiNeuroni(size_t IDXpre, size_t IDXpost, SynapseModel typeSynapse, char typeIntegratore = 'E',
                            std::optional<TypePatchSyn> config = std::nullopt, double dispersione = 0.0,
                            DistType tipoDist = DistType::Gaussian);
 
     // Overload per retrocompatibilità quando config viene passata direttamente
-    size_t connettiNeuroni(size_t IDXpre, size_t IDXpost, SynapseModel typeSynapse,
-                           const TypePatchSyn& config, double dispersione = 0.0,
-                           DistType tipoDist = DistType::Gaussian) {
+    size_t connettiNeuroni(size_t IDXpre, size_t IDXpost, SynapseModel typeSynapse, const TypePatchSyn& config,
+                           double dispersione = 0.0, DistType tipoDist = DistType::Gaussian) {
         return connettiNeuroni(IDXpre, IDXpost, typeSynapse, 'E', config, dispersione, tipoDist);
     }
 
@@ -329,6 +343,20 @@ class Rete {
      * @param typeIntegratore Nuovo metodo ('A' = Analitico esatto, 'E' = Eulero in avanti, 'R' = Runge-Kutta 4).
      */
     void modificaIntegratoreSinapsi(const std::vector<size_t>& idxs, char typeIntegratore);
+
+    /**
+     * @brief Imposta la modalita' a delta (senza decadimento esponenziale) per una specifica sinapsi.
+     * @param idx Identificativo della sinapsi bersaglio.
+     * @param isDelta Se true, la sinapsi eroga un impulso istantaneo a delta.
+     */
+    void modificaDeltaSinapsi(size_t idx, bool isDelta);
+
+    /**
+     * @brief Imposta la modalita' a delta per una lista di sinapsi.
+     * @param idxs Vettore contenente gli indici delle sinapsi da modificare.
+     * @param isDelta Se true, le sinapsi erogano impulsi istantanei a delta.
+     */
+    void modificaDeltaSinapsi(const std::vector<size_t>& idxs, bool isDelta);
 
     /**
      * @brief Aggiorna i parametri di una sinapsi esistente.
@@ -368,11 +396,14 @@ class Rete {
     double getResistenzaNeurone(size_t idx) const;
     double getCapacitaNeurone(size_t idx) const;
     double getSogliaNeurone(size_t idx) const;
+    double getValoreSogliaMin(size_t idx) const;
+    double getPotenzialeNeurone(size_t idx) const;
     double getPesoSinapsi(size_t idx) const;
     double getDelaySinapsi(size_t idx) const;
     double getTauSinapsi(size_t idx) const;
     char getIntegratoreNeurone(size_t idx) const;
     char getIntegratoreSinapsi(size_t idx) const;
+    bool isSinapsiDelta(size_t idx) const;
 
     // 2. metodi controllo
     bool hasNeurone(size_t idx) const { return idx < neuroni_.size(); }
@@ -413,13 +444,14 @@ class Rete {
     std::vector<TypeNeuron> neuroni_;     // Lista dei neuroni
     std::deque<Popolazione> popolazioni_; // Lista delle popolazioni di neuroni
     std::vector<TypeSyn> sinapsi_;        // Lista delle sinapsi
+    std::vector<size_t> sinapsiAttive_;   // Lista di indici delle sinapsi attive (corrente superiore a epsilon)
 
     std::vector<double> stimoli_;     // Correnti esterne calcolate dalla simuazione
     std::vector<double> inputTotale_; // Somma stimoli + correnti sinaptiche
 
     std::vector<double> statoNeuroni_; // Potenziale di membrana di tutti i neuroni nella rete
     std::vector<double> statoFiring_;  // Stato dei neuroni di tutta la rete
-    std::vector<double> statoSinapsi_; // Corrente sinaptica di tutte le sinapsi nella rete
+    // std::vector<double> statoSinapsi_; // Corrente sinaptica di tutte le sinapsi nella rete
 
     // -- METODI INTERNI -----------------------------------------------------------------------------------
 
@@ -438,7 +470,7 @@ class Rete {
     // 3. Metodi getter interni
     const std::vector<double>& getPointerStatoNeuroni() const { return statoNeuroni_; };
     const std::vector<double>& getPointerStatoFiring() const { return statoFiring_; };
-    const std::vector<double>& getPointerStatoSinapsi() const { return statoSinapsi_; };
+    // const std::vector<double>& getPointerStatoSinapsi() const { return statoSinapsi_; };
 };
 
 #endif // RETE_HPP

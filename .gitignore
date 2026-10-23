@@ -48,6 +48,8 @@ output/*
 # Python cache (per plotting/scripts futuri)
 __pycache__/
 *.pyc
+.venv/
+venv/
 plots/
 
 # Profiling directory

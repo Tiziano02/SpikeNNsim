@@ -7,13 +7,9 @@
 // CONTROLLO STATO E CONGELAMENTO RETE
 // -----------------------------------------------------------------------------
 
-void Rete::bloccaRete() {
-    isBloccata_ = true;
-}
+void Rete::bloccaRete() { isBloccata_ = true; }
 
-void Rete::sbloccaRete() {
-    isBloccata_ = false;
-}
+void Rete::sbloccaRete() { isBloccata_ = false; }
 
 void Rete::verificaNonBloccata(const std::string& operazione) const {
     if (isBloccata_) {
@@ -229,7 +225,8 @@ void Rete::setCondizioneInizialeRete(double V, double dispersione, DistType tipo
 void Rete::setCondizioneInizialePopolazione(size_t indicePopolazione, double V, double dispersione, DistType tipoDist) {
     verificaNonBloccata("setCondizioneInizialePopolazione");
     if (indicePopolazione >= popolazioni_.size()) {
-        std::cerr << "[Rete] errore: indice popolazione " << indicePopolazione << " non valido per setCondizioneInizialePopolazione.\n";
+        std::cerr << "[Rete] errore: indice popolazione " << indicePopolazione
+                  << " non valido per setCondizioneInizialePopolazione.\n";
         return;
     }
     const Popolazione& pop = popolazioni_[indicePopolazione];
@@ -397,12 +394,12 @@ void Rete::modificaParametriNeuroni(const std::vector<size_t>& idxs, const TypeP
         modificaParametriNeurone(idx, patch, dispersione, tipoDist);
     }
 }
+
 // -----------------------------------------------------------------------------
 // Sinapsi
 // -----------------------------------------------------------------------------
 
-size_t Rete::connettiNeuroni(size_t indexPre, size_t indexPost, SynapseModel typeSynapse,
-                             char typeIntegratore,
+size_t Rete::connettiNeuroni(size_t indexPre, size_t indexPost, SynapseModel typeSynapse, char typeIntegratore,
                              std::optional<TypePatchSyn> config, double dispersione, DistType tipoDist) {
     verificaNonBloccata("connettiNeuroni");
     // 1. Controllo indici neuroni da connettere
@@ -413,18 +410,18 @@ size_t Rete::connettiNeuroni(size_t indexPre, size_t indexPost, SynapseModel typ
     }
 
     // 2. Variabile per la condizione inizale della sinapsi
-    double initial_Isyn = 0.0;
+    // double initial_Isyn = 0.0;
 
     // 3. Chiamata del costrutture a seconda della tipologia di sinapsi e inserimento nella rete
     switch (typeSynapse) {
     case SynapseModel::Conductance: {
-        auto& s = sinapsi_.emplace_back(std::in_place_type<Conductance>, indexPre, indexPost, typeIntegratore);
-        initial_Isyn = std::get<Conductance>(s).Isyn_;
+        /*auto& s =*/sinapsi_.emplace_back(std::in_place_type<Conductance>, indexPre, indexPost, typeIntegratore);
+        // initial_Isyn = std::get<Conductance>(s).Isyn_;
         break;
     }
     case SynapseModel::Current: {
-        auto& s = sinapsi_.emplace_back(std::in_place_type<Current>, indexPre, indexPost, typeIntegratore);
-        initial_Isyn = std::get<Current>(s).Isyn_;
+        /*auto& s =*/sinapsi_.emplace_back(std::in_place_type<Current>, indexPre, indexPost, typeIntegratore);
+        // initial_Isyn = std::get<Current>(s).Isyn_;
         break;
     }
 
@@ -435,7 +432,7 @@ size_t Rete::connettiNeuroni(size_t indexPre, size_t indexPost, SynapseModel typ
     }
 
     // 5. Inizializzazione stato sinapse nela rete
-    statoSinapsi_.push_back(initial_Isyn);
+    // statoSinapsi_.push_back(initial_Isyn);
 
     size_t idxSyn = sinapsi_.size() - 1;
 
@@ -470,6 +467,32 @@ void Rete::modificaIntegratoreSinapsi(const std::vector<size_t>& idxs, char type
     }
 }
 
+void Rete::modificaDeltaSinapsi(size_t idx, bool isDelta) {
+    verificaNonBloccata("modificaDeltaSinapsi");
+    if (!hasSinapsi(idx)) {
+        std::cerr << "[Rete] errore: sinapsi con ID " << idx << " non esiste.\n";
+        return;
+    }
+    std::visit(
+        [&](auto& s) {
+            using T = std::decay_t<decltype(s)>;
+            if constexpr (std::is_same_v<T, Current>) {
+                s.setDelta(isDelta);
+            } else {
+                std::cerr << "[Rete] avviso: la modalita' delta e' supportata solo per sinapsi Current-based (ID "
+                          << idx << ").\n";
+            }
+        },
+        sinapsi_[idx]);
+}
+
+void Rete::modificaDeltaSinapsi(const std::vector<size_t>& idxs, bool isDelta) {
+    verificaNonBloccata("modificaDeltaSinapsi");
+    for (size_t idx : idxs) {
+        modificaDeltaSinapsi(idx, isDelta);
+    }
+}
+
 void Rete::modificaSinapsi(size_t indexSyn, const TypePatchSyn& patch, double dispersione, DistType tipoDist) {
     verificaNonBloccata("modificaSinapsi");
     // 1. Controllo ID della sinapsi
@@ -494,8 +517,8 @@ void Rete::modificaSinapsi(size_t indexSyn, const TypePatchSyn& patch, double di
 
                     if (cfg->Isyn.has_value()) {
                         syn.Isyn_ = generaAttorno(cfg->Isyn.value(), dispersione, tipoDist);
-                        statoSinapsi_[indexSyn] = syn.Isyn_; // a differenza della conductance-based si deve
-                                                             // aggiornare lo stato della sinapse nella rete
+                        // statoSinapsi_[indexSyn] = syn.Isyn_; // a differenza della conductance-based si deve
+                        //  aggiornare lo stato della sinapse nella rete
                     }
                     if (cfg->peso.has_value())
                         syn.peso_ = generaAttorno(cfg->peso.value(), dispersione, tipoDist);
@@ -505,6 +528,8 @@ void Rete::modificaSinapsi(size_t indexSyn, const TypePatchSyn& patch, double di
                         syn.tau_ = generaAttorno(cfg->tau.value(), dispersione, tipoDist);
                     if (cfg->delay.has_value())
                         syn.delay_ = generaAttorno(cfg->delay.value(), dispersione, tipoDist);
+                    if (cfg->isDelta.has_value())
+                        syn.isDelta_ = cfg->isDelta.value();
                 } else {
                     std::cerr << "[Rete] errore: configurazione incompatibile per CurrentSyn "
                               << "(hai passato configConductanceSyn?).\n";
@@ -570,8 +595,8 @@ std::vector<size_t> Rete::findSinapsi(size_t pre, size_t post) const {
 
 std::vector<size_t> Rete::connettiPopolazione(size_t indicePopolazione, double probabilitaConnessione,
                                               SynapseModel typeSynapse, char typeIntegratore,
-                                              std::optional<TypePatchSyn> config,
-                                              double dispersione, DistType tipoDist) {
+                                              std::optional<TypePatchSyn> config, double dispersione,
+                                              DistType tipoDist) {
     verificaNonBloccata("connettiPopolazione");
     // 1. Controllo che l'indice della popolazione sia valido
     if (indicePopolazione >= popolazioni_.size()) {
@@ -599,7 +624,8 @@ std::vector<size_t> Rete::connettiPopolazione(size_t indicePopolazione, double p
 
                 // Se il numero casuale è minore della probabilità di connessione, creo la sinapsi
                 if (randomValue < probabilitaConnessione) {
-                    size_t id = connettiNeuroni(indexPre, indexPost, typeSynapse, typeIntegratore, config, dispersione, tipoDist);
+                    size_t id = connettiNeuroni(indexPre, indexPost, typeSynapse, typeIntegratore, config, dispersione,
+                                                tipoDist);
                     if (id != static_cast<size_t>(-1)) {
                         sinapsiCreate.push_back(id);
                     }
@@ -614,15 +640,15 @@ std::vector<size_t> Rete::connettiPopolazione(size_t indicePopolazione, double p
     return sinapsiCreate;
 }
 
-std::vector<size_t> Rete::connettiPopolazioni(size_t indicePopPre, size_t indicePopPost,
-                                              double probabilitaConnessione, SynapseModel typeSynapse,
-                                              char typeIntegratore,
-                                              std::optional<TypePatchSyn> config,
-                                              double dispersione, DistType tipoDist) {
+std::vector<size_t> Rete::connettiPopolazioni(size_t indicePopPre, size_t indicePopPost, double probabilitaConnessione,
+                                              SynapseModel typeSynapse, char typeIntegratore,
+                                              std::optional<TypePatchSyn> config, double dispersione,
+                                              DistType tipoDist) {
     verificaNonBloccata("connettiPopolazioni");
     // 1. Se le due popolazioni coincidono, delega a connettiPopolazione per tracciare le sinapsi interne
     if (indicePopPre == indicePopPost) {
-        return connettiPopolazione(indicePopPre, probabilitaConnessione, typeSynapse, typeIntegratore, config, dispersione, tipoDist);
+        return connettiPopolazione(indicePopPre, probabilitaConnessione, typeSynapse, typeIntegratore, config,
+                                   dispersione, tipoDist);
     }
 
     // 2. Controllo validità degli indici delle popolazioni
@@ -649,7 +675,8 @@ std::vector<size_t> Rete::connettiPopolazioni(size_t indicePopPre, size_t indice
             if (indexPre != indexPost) {
                 double randomValue = generaNumero<double>(0.0, 1.0, DistType::Uniform);
                 if (randomValue < probabilitaConnessione) {
-                    size_t id = connettiNeuroni(indexPre, indexPost, typeSynapse, typeIntegratore, config, dispersione, tipoDist);
+                    size_t id = connettiNeuroni(indexPre, indexPost, typeSynapse, typeIntegratore, config, dispersione,
+                                                tipoDist);
                     if (id != static_cast<size_t>(-1)) {
                         sinapsiCreate.push_back(id);
                     }
@@ -701,6 +728,32 @@ void Rete::modificaIntegratoreSinapsiSubPopolazione(size_t indicePopolazione, si
     modificaIntegratoreSinapsi(pop.subPop_[indiceSubPopolazione].sinapsiInterne_, typeIntegratore);
 }
 
+void Rete::modificaDeltaSinapsiPopolazione(size_t indicePopolazione, bool isDelta) {
+    verificaNonBloccata("modificaDeltaSinapsiPopolazione");
+    if (indicePopolazione >= popolazioni_.size()) {
+        std::cerr << "[Rete] errore: indice popolazione " << indicePopolazione << " non valido.\n";
+        return;
+    }
+
+    modificaDeltaSinapsi(popolazioni_[indicePopolazione].sinapsiInterne_, isDelta);
+}
+
+void Rete::modificaDeltaSinapsiSubPopolazione(size_t indicePopolazione, size_t indiceSubPopolazione, bool isDelta) {
+    verificaNonBloccata("modificaDeltaSinapsiSubPopolazione");
+    if (indicePopolazione >= popolazioni_.size()) {
+        std::cerr << "[Rete] errore: indice popolazione " << indicePopolazione << " non valido.\n";
+        return;
+    }
+
+    const Popolazione& pop = popolazioni_[indicePopolazione];
+    if (indiceSubPopolazione >= pop.subPop_.size()) {
+        std::cerr << "[Rete] errore: indice sub-popolazione " << indiceSubPopolazione << " non valido.\n";
+        return;
+    }
+
+    modificaDeltaSinapsi(pop.subPop_[indiceSubPopolazione].sinapsiInterne_, isDelta);
+}
+
 // -----------------------------------------------------------------------------
 // Metodi operativi interni
 // -----------------------------------------------------------------------------
@@ -728,7 +781,7 @@ void Rete::step(double dt) {
     // 1. Azzeramento dell'input totale di tutti i neuroni
     std::fill(inputTotale_.begin(), inputTotale_.end(), 0.0);
 
-    // 2. Evoluzione delle sinapsi
+    // 2. Evoluzione delle sinapsi --> stato precedente dei neuroni si può prendere dai vettori di stato della rete
     for (auto& synVar : sinapsi_) {
 
         std::visit(
@@ -736,7 +789,8 @@ void Rete::step(double dt) {
                 using TSyn = std::decay_t<decltype(syn)>;
 
                 // 2.1 Controllo se il neurone pre-sinaptico ha sparato
-                bool preFired = std::visit([](const auto& n) { return n.hasFired(); }, neuroni_[syn.getIndexPre()]);
+                bool preFired = statoFiring_[syn.getIndexPre()];
+                // bool preFired = std::visit([](const auto& n) { return n.hasFired(); }, neuroni_[syn.getIndexPre()]);
 
                 // 2.2 Metodo di evoluzione delle sinapsi a seconda del tipo di sinapsi
                 if constexpr (std::is_same_v<TSyn, Current>) {
@@ -745,13 +799,13 @@ void Rete::step(double dt) {
                 } else if constexpr (std::is_same_v<TSyn, Conductance>) {
 
                     // 2.2.1 Calcolo del potenziale di membrana del neurone post-sinaptico
-                    double V_post =
-                        std::visit([](const auto& n) { return n.getPotential(); }, neuroni_[syn.getIndexPost()]);
+                    double V_post = statoNeuroni_[syn.getIndexPost()];
 
                     syn.update(dt, preFired, V_post);
                 }
 
-                // 2.3 Inserico le correnti sinaptiche all'input totale del neurone post-sinaptico
+                // 2.3 Inserico le correnti sinaptiche all'input totale del neurone post-sinaptico (inserite con il
+                // segno meno --> I positive)
                 inputTotale_[syn.getIndexPost()] -= syn.getCurrent();
             },
             synVar);
@@ -777,9 +831,9 @@ void Rete::aggiornaStatoRete() {
     }
 
     // 2. Aggiornamento delle correnti sinaptiche
-    for (size_t i = 0; i < sinapsi_.size(); i++) {
-        statoSinapsi_[i] = std::visit([](const auto& s) { return s.getCurrent(); }, sinapsi_[i]);
-    }
+    // for (size_t i = 0; i < sinapsi_.size(); i++) {
+    //    statoSinapsi_[i] = std::visit([](const auto& s) { return s.getCurrent(); }, sinapsi_[i]);
+    //}
 }
 
 double Rete::getMinTau() const {
@@ -808,6 +862,8 @@ double Rete::getMinTau() const {
 // Metodi getter
 // -----------------------------------------------------------------------------
 
+// questi vanno messi inline deltro rete.hpp
+
 double Rete::getResistenzaNeurone(size_t idx) const {
     if (!hasNeurone(idx))
         return 0.0;
@@ -818,6 +874,18 @@ double Rete::getCapacitaNeurone(size_t idx) const {
     if (!hasNeurone(idx))
         return 0.0;
     return std::visit([](const auto& n) { return n.C_; }, neuroni_[idx]);
+}
+
+double Rete::getValoreSogliaMin(size_t idx) const {
+    if (!hasNeurone(idx))
+        return 0.0;
+    return std::visit([](const auto& n) { return n.VthMin_; }, neuroni_[idx]);
+}
+
+double Rete::getPotenzialeNeurone(size_t idx) const {
+    if (!hasNeurone(idx))
+        return 0.0;
+    return std::visit([](const auto& n) { return n.V_; }, neuroni_[idx]);
 }
 
 double Rete::getSogliaNeurone(size_t idx) const {
@@ -854,4 +922,18 @@ char Rete::getIntegratoreSinapsi(size_t idx) const {
     if (!hasSinapsi(idx))
         return ' ';
     return std::visit([](const auto& s) { return s.tipoIntegratore_; }, sinapsi_[idx]);
+}
+
+bool Rete::isSinapsiDelta(size_t idx) const {
+    if (!hasSinapsi(idx))
+        return false;
+    return std::visit(
+        [](const auto& s) -> bool {
+            using T = std::decay_t<decltype(s)>;
+            if constexpr (std::is_same_v<T, Current>) {
+                return s.isDelta();
+            }
+            return false;
+        },
+        sinapsi_[idx]);
 }

@@ -1,5 +1,5 @@
 CXX = clang++
-BASE_FLAGS = -std=c++23 -Wall -Wextra -Iinclude -I.
+BASE_FLAGS = -std=c++23 -Wall -Wextra -MMD -MP -Iinclude -I.
 
 # GENERALIZZAZIONE CORRETTA: Estrae il nome puro della cartella corrente
 TARGET := $(notdir $(patsubst %/,%,$(CURDIR)))
@@ -46,7 +46,7 @@ $(DBG_DIR)/%.o: src/%.cpp | $(DBG_DIR)
 
 
 # --- COMPILAZIONE PROFILER (SAMPLY) ---
-samply: CXXFLAGS = $(BASE_FLAGS) -O3 -g -fno-omit-frame-pointer -fno-inline
+samply: CXXFLAGS = $(BASE_FLAGS) -O3 -g -fno-omit-frame-pointer
 samply: $(TARGET)_samply
 
 $(TARGET)_samply: $(SMP_OBJS)
@@ -63,3 +63,6 @@ $(REL_DIR) $(DBG_DIR) $(SMP_DIR):
 # --- PULIZIA TOTALE ---
 clean:
 	rm -rf $(BUILD_DIR) $(TARGET) $(TARGET)_debug $(TARGET)_samply
+
+# Include automatic header dependencies
+-include $(wildcard $(BUILD_DIR)/*/*.d)

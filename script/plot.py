@@ -31,9 +31,9 @@ def leggi_file_binario(filename):
 
 def plot_risultati():
     # Nomi dei file generati (modificali se nel main.cpp hai usato nomi diversi)
-    file_v = "potenziali.bin"
-    file_f = "firing.bin"
-    file_s = "sinapsi.bin"
+    file_v = "output/testSinapsiV.bin"
+    file_f = "output/testSinapsiF.bin"
+    file_s = "output/testSinapsiS.bin"
 
     # Carica i dati
     tempi_v, pot_membrana = leggi_file_binario(file_v)
@@ -44,19 +44,31 @@ def plot_risultati():
         return
 
     # Crea una figura con 3 grafici impilati
-    fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(10, 12), sharex=True)
+    fig, (ax2, ax3,ax4) = plt.subplots(3, 1, figsize=(10, 12), sharex=True)
 
-    # --- 1. Grafico Potenziali di Membrana ---
+    # --- 1. Grafico Potenziali di Membrana - neuroni pre --
     # Per non intasare il grafico, disegniamo solo i primi 5 neuroni
-    # num_neuroni_da_disegnare = min(5, pot_membrana.shape[1])
-    for i in range(pot_membrana.shape[1]):
+    '''num_neuroni_da_disegnare = min(4, pot_membrana.shape[1])
+    for i in range(num_neuroni_da_disegnare):
         # Moltiplichiamo per 1000 per convertire da Volt a milliVolt per leggibilità
         ax1.plot(tempi_v, pot_membrana[:, i] * 1000, label=f'Neurone {i}')
     
     ax1.set_ylabel('Potenziale di Membrana (mV)')
-    ax1.set_title('Dinamica dei Potenziali (primi 5 neuroni)')
+    ax1.set_title('Dinamica dei Potenziali neuroni pre sinapsi')
     ax1.legend(loc='upper right', fontsize='small')
-    ax1.grid(True, linestyle='--', alpha=0.6)
+    ax1.grid(True, linestyle='--', alpha=0.6)'''
+
+        # --- 1. Grafico Potenziali di Membrana - neuroni post --
+    # Per non intasare il grafico, disegniamo solo i primi 5 neuroni
+    num_neuroni_da_disegnare = min(4, pot_membrana.shape[1])
+    for i in range(num_neuroni_da_disegnare, pot_membrana.shape[1]):
+        # Moltiplichiamo per 1000 per convertire da Volt a milliVolt per leggibilità
+        ax2.plot(tempi_v, pot_membrana[:, i] * 1000, label=f'Neurone {i}')
+    
+    ax2.set_ylabel('Potenziale di Membrana (mV)')
+    ax2.set_title('Dinamica dei Potenziali neuroni post sinapsi')
+    ax2.legend(loc='upper right', fontsize='small')
+    ax2.grid(True, linestyle='--', alpha=0.6)
 
     # --- 2. Raster Plot dei Firing ---
     if tempi_f is not None and firing is not None:
@@ -66,28 +78,28 @@ def plot_risultati():
         spike_times = tempi_f[spike_steps]
         
         # Disegniamo dei puntini neri ad ogni spike
-        ax2.scatter(spike_times, spike_neurons, s=10, c='black', marker='|')
-        ax2.set_ylabel('ID Neurone')
-        ax2.set_title('Raster Plot (Spike di tutti i neuroni)')
-        ax2.set_ylim(-1, firing.shape[1])
-        ax2.grid(True, linestyle='--', alpha=0.6)
+        ax3.scatter(spike_times, spike_neurons, s=10, c='black', marker='|')
+        ax3.set_ylabel('ID Neurone')
+        ax3.set_title('Raster Plot (Spike di tutti i neuroni)')
+        ax3.set_ylim(-1, firing.shape[1])
+        ax3.grid(True, linestyle='--', alpha=0.6)
 
     # --- 3. Grafico Correnti Sinaptiche ---
     if tempi_s is not None and sinapsi is not None and sinapsi.shape[1] > 0:
         num_sinapsi_da_disegnare = min(10, sinapsi.shape[1])
         for i in range(num_sinapsi_da_disegnare):
             # Convertiamo da Ampere a nanoAmpere (nA) o picoAmpere (pA) in base alla scala
-            ax3.plot(tempi_s, sinapsi[:, i] * 1e9, label=f'Sinapsi {i}')
+            ax4.plot(tempi_s, sinapsi[:, i] * 1e9, label=f'Sinapsi {i}')
         
-        ax3.set_ylabel('Corrente (nA)')
-        ax3.set_title('Correnti Sinaptiche Totali')
-        ax3.legend(loc='upper right', fontsize='small')
+        ax4.set_ylabel('Corrente (nA)')
+        ax4.set_title('Correnti Sinaptiche Totali')
+        ax4.legend(loc='upper right', fontsize='small')
     else:
-        ax3.text(0.5, 0.5, "Nessuna sinapsi registrata", ha='center', va='center')
-        ax3.set_ylabel('Corrente')
+        ax4.text(0.5, 0.5, "Nessuna sinapsi registrata", ha='center', va='center')
+        ax4.set_ylabel('Corrente')
 
-    ax3.set_xlabel('Tempo (s)')
-    ax3.grid(True, linestyle='--', alpha=0.6)
+    ax4.set_xlabel('Tempo (s)')
+    ax4.grid(True, linestyle='--', alpha=0.6)
 
     plt.tight_layout()
     plt.show()

@@ -1,17 +1,13 @@
 #include "ConductanceSyn.hpp"
 
-void Conductance::euleroInAvanti(double dt) {
-    gsyn_ += dt * (-gsyn_ / tau_);
-}
+void Conductance::euleroInAvanti(double dt) { gsyn_ += dt * (-gsyn_ / tau_); }
 
-void Conductance::analiticoEsatto() {
-    gsyn_ *= decayFactor_;
-}
+void Conductance::analiticoEsatto() { gsyn_ *= decayFactor_; }
 
 void Conductance::rungeKutta(double dt) {
     double alpha = dt / tau_;
-    double rk4 = 1.0 - alpha + (alpha * alpha) / 2.0 - (alpha * alpha * alpha) / 6.0 +
-                 (alpha * alpha * alpha * alpha) / 24.0;
+    double rk4 =
+        1.0 - alpha + (alpha * alpha) / 2.0 - (alpha * alpha * alpha) / 6.0 + (alpha * alpha * alpha * alpha) / 24.0;
     gsyn_ *= rk4;
 }
 
@@ -34,7 +30,7 @@ void Conductance::update(double dt, bool preFired, double Vpost) {
 
     // 3. Controllo dello spike pre-sinaptico
     if (preFired) {
-        // 3.1 Inserimento dello spike nel delay ring
+        // Inserimento dello spike nel delay ring
         delayRing_[(presentStep_ + delayStep_) % delayRing_.size()] += peso_ * gpeak_;
     }
 

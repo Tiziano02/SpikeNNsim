@@ -78,8 +78,8 @@ class Conductance {
     size_t indexPre_, indexPost_; // Indici interni per accesso rapido ai vettori di Rete (Cache)
 
     // Stato Dinamico
-    double Isyn_ = 0.0 * A;      // Corrente sinaptica calcolata in questo step [A]
-    double gsyn_ = 0.0 * S;      // Conduttanza dinamica corrente [S]
+    double Isyn_ = 0.0 * A; // Corrente sinaptica calcolata in questo step [A]
+    double gsyn_ = 0.0 * S; // Conduttanza dinamica corrente [S] --> sempre positiva deve essere --> mettere controllo
     char tipoIntegratore_ = 'E'; // Risolutore ODE ('A' = Analitico, 'E' = Eulero, 'R' = Runge-Kutta)
 
     // Parametri Fisici
