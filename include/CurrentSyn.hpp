@@ -58,6 +58,7 @@ struct patchCurrent {
  */
 class Current {
 
+    friend class engine;
     friend class Rete;
 
   public:

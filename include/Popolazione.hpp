@@ -27,6 +27,7 @@
  */
 class Popolazione {
 
+    friend class engine;
     friend class Rete; // Permette a Rete di accedere agli attributi privati
 
   public:
@@ -45,9 +46,9 @@ class Popolazione {
   private:
     // -- ATTRIBUTI PRIVATI --------------------------------------------------------------
 
-    size_t indexStart_;               ///< Indice del primo neurone nel vettore neuroni_ di Rete
-    size_t size_;                     ///< Numero di neuroni nella popolazione
-    std::vector<Popolazione> subPop_; ///< sotto popolazioni all'interno di una popolazione eterogenea
+    size_t indexStart_;                  ///< Indice del primo neurone nel vettore neuroni_ di Rete
+    size_t size_;                        ///< Numero di neuroni nella popolazione
+    std::vector<Popolazione> subPop_;    ///< sotto popolazioni all'interno di una popolazione eterogenea
     std::vector<size_t> sinapsiInterne_; ///< ID delle sinapsi ricorrenti (intra-popolazione)
 
     // -- METODI PRIVATI -----------------------------------------------------------------

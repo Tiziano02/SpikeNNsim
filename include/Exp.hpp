@@ -53,6 +53,7 @@ struct patchExp {
  */
 class Exp {
 
+    friend class engine;
     friend class Rete;
 
   public:

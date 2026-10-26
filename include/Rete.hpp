@@ -441,10 +441,10 @@ class Rete {
 
     bool isBloccata_ = false; // Flag che indica se la rete e' bloccata/congelata
 
-    std::vector<TypeNeuron> neuroni_;     // Lista dei neuroni
-    std::deque<Popolazione> popolazioni_; // Lista delle popolazioni di neuroni
-    std::vector<TypeSyn> sinapsi_;        // Lista delle sinapsi
-    std::vector<size_t> sinapsiAttive_;   // Lista di indici delle sinapsi attive (corrente superiore a epsilon)
+    std::vector<TypeNeuron> neuroni_;                 // Lista dei neuroni
+    std::deque<Popolazione> popolazioni_;             // Lista delle popolazioni di neuroni
+    std::vector<TypeSyn> sinapsi_;                    // Lista delle sinapsi
+    std::vector<std::vector<size_t>> listaAdiacenza_; // lista adaicenza : neurone i : sinapsi
 
     std::vector<double> stimoli_;     // Correnti esterne calcolate dalla simuazione
     std::vector<double> inputTotale_; // Somma stimoli + correnti sinaptiche

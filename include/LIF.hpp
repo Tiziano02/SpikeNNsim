@@ -59,6 +59,7 @@ struct patchLIF {
  */
 class LIF {
 
+    friend class engine;
     friend class Rete;
 
   public:

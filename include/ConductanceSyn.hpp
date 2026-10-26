@@ -56,6 +56,7 @@ struct patchConductance {
  */
 class Conductance {
 
+    friend class engine;
     friend class Rete;
 
   public:
