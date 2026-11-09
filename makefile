@@ -1,0 +1,68 @@
+CXX = clang++
+BASE_FLAGS = -std=c++23 -Wall -Wextra -MMD -MP -Iinclude -I.
+
+# GENERALIZZAZIONE CORRETTA: Estrae il nome puro della cartella corrente
+TARGET := $(notdir $(patsubst %/,%,$(CURDIR)))
+
+# Cerca tutti i file .cpp dentro src/
+SRCS = $(wildcard src/*.cpp)
+
+# Definisco le cartelle di destinazione per i file .o
+BUILD_DIR = build
+REL_DIR = $(BUILD_DIR)/release
+DBG_DIR = $(BUILD_DIR)/debug
+SMP_DIR = $(BUILD_DIR)/samply
+
+# Converte src/file.cpp in build/.../file.o
+REL_OBJS = $(patsubst src/%.cpp, $(REL_DIR)/%.o, $(SRCS))
+DBG_OBJS = $(patsubst src/%.cpp, $(DBG_DIR)/%.o, $(SRCS))
+SMP_OBJS = $(patsubst src/%.cpp, $(SMP_DIR)/%.o, $(SRCS))
+
+.PHONY: all release debug samply clean
+
+# Target di default
+all: release
+
+# --- COMPILAZIONE NORMALE (RELEASE) ---
+release: CXXFLAGS = $(BASE_FLAGS) -O3
+release: $(TARGET)
+
+$(TARGET): $(REL_OBJS)
+	$(CXX) $(CXXFLAGS) -o $(TARGET) $(REL_OBJS)
+
+$(REL_DIR)/%.o: src/%.cpp | $(REL_DIR)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+
+# --- COMPILAZIONE DEBUG ---
+debug: CXXFLAGS = $(BASE_FLAGS) -O0 -g -DDEBUG_ABILITATO
+debug: $(TARGET)_debug
+
+$(TARGET)_debug: $(DBG_OBJS)
+	$(CXX) $(CXXFLAGS) -o $(TARGET)_debug $(DBG_OBJS)
+
+$(DBG_DIR)/%.o: src/%.cpp | $(DBG_DIR)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+
+# --- COMPILAZIONE PROFILER (SAMPLY) ---
+samply: CXXFLAGS = $(BASE_FLAGS) -O3 -g -fno-omit-frame-pointer
+samply: $(TARGET)_samply
+
+$(TARGET)_samply: $(SMP_OBJS)
+	$(CXX) $(CXXFLAGS) -o $(TARGET)_samply $(SMP_OBJS)
+
+$(SMP_DIR)/%.o: src/%.cpp | $(SMP_DIR)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+
+# --- CREAZIONE CARTELLE AUTOMATICA ---
+$(REL_DIR) $(DBG_DIR) $(SMP_DIR):
+	mkdir -p $@
+
+# --- PULIZIA TOTALE ---
+clean:
+	rm -rf $(BUILD_DIR) $(TARGET) $(TARGET)_debug $(TARGET)_samply
+
+# Include automatic header dependencies
+-include $(wildcard $(BUILD_DIR)/*/*.d)
