@@ -30,10 +30,6 @@ size_t Rete::allocazioneNeuroni(size_t size, NeuronModel type, char integratore,
 
     // 2. Riservo lo spazio per i vettori di stato e di topologia
     neuroni_.reserve(neuroni_.size() + size);
-    inputTotale_.reserve(inputTotale_.size() + size);
-    stimoli_.reserve(stimoli_.size() + size);
-    statoNeuroni_.reserve(statoNeuroni_.size() + size);
-    statoFiring_.reserve(statoFiring_.size() + size);
 
     // 3. Aggiungo neuroni e applico patch/dispersione se fornita
     for (size_t i = 0; i < size; ++i) {
@@ -241,20 +237,15 @@ size_t Rete::aggiungiNeurone(NeuronModel typeNeurone, char typeIntegratore, std:
                              double dispersione, DistType tipoDist) {
     verificaNonBloccata("aggiungiNeurone");
 
-    // 1. Variabile per la condizione inziale dei neuroni
-    double initial_V = 0.0;
-
-    // 2. Chiamata costruttore a seconda del tipo di neurone e inserimento nella rete
+    // 1. Chiamata costruttore a seconda del tipo di neurone e inserimento nella rete
     switch (typeNeurone) {
 
     case NeuronModel::LIF: {
-        auto& n = neuroni_.emplace_back(std::in_place_type<LIF>, typeIntegratore);
-        initial_V = std::get<LIF>(n).V_; // Prende il valore di default dalla classe
+        neuroni_.emplace_back(std::in_place_type<LIF>, typeIntegratore);
         break;
     }
     case NeuronModel::Exp: {
-        auto& n = neuroni_.emplace_back(std::in_place_type<Exp>, typeIntegratore);
-        initial_V = std::get<Exp>(n).V_; // Prende il valore di default dalla classe
+        neuroni_.emplace_back(std::in_place_type<Exp>, typeIntegratore);
         break;
     }
     default: {
@@ -263,19 +254,15 @@ size_t Rete::aggiungiNeurone(NeuronModel typeNeurone, char typeIntegratore, std:
     }
     }
 
-    // 3. Inizializzazione dello stato della rete
-    statoNeuroni_.push_back(initial_V);
-    inputTotale_.push_back(0.0);
-    stimoli_.push_back(0.0);
-    statoFiring_.push_back(0.0);
-
+    // 2. Calcolo indice del nuovo neurone
     size_t idx = neuroni_.size() - 1;
 
-    // 4. Modifica parametri tramite patch opzionale
+    // 3. Modifica parametri tramite patch opzionale
     if (config.has_value()) {
         modificaParametriNeurone(idx, config.value(), dispersione, tipoDist);
     }
 
+    // 4. Restituisco indice del nuovo neurone
     return idx;
 }
 
@@ -376,15 +363,6 @@ void Rete::modificaParametriNeurone(size_t idx, const TypePatchNeuron& patch, do
             }
         },
         neuroni_[idx]);
-
-    // 3. Aggiornamento dello stato della rete dopo le modifiche
-
-    // 3.1 Potenziale neurone
-    statoNeuroni_[idx] = std::visit([](const auto& n) { return n.getPotential(); }, neuroni_[idx]);
-
-    // 3.2 Firing neurone
-    bool fire = std::visit([](const auto& n) { return n.hasFired(); }, neuroni_[idx]);
-    statoFiring_[idx] = fire ? 1.0 : 0.0;
 }
 
 void Rete::modificaParametriNeuroni(const std::vector<size_t>& idxs, const TypePatchNeuron& patch, double dispersione,

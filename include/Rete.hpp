@@ -441,35 +441,35 @@ class Rete {
 
     bool isBloccata_ = false; // Flag che indica se la rete e' bloccata/congelata
 
-    std::vector<TypeNeuron> neuroni_;                 // Lista dei neuroni
-    std::deque<Popolazione> popolazioni_;             // Lista delle popolazioni di neuroni
-    std::vector<TypeSyn> sinapsi_;                    // Lista delle sinapsi
-    std::vector<std::vector<size_t>> listaAdiacenza_; // lista adaicenza : neurone i : sinapsi
+    std::vector<TypeNeuron> neuroni_;     // Lista dei neuroni
+    std::deque<Popolazione> popolazioni_; // Lista delle popolazioni di neuroni
+    std::vector<TypeSyn> sinapsi_;        // Lista delle sinapsi
+    // std::vector<std::vector<size_t>> listaAdiacenza_; // lista adiacenza = neurone i : sinapsi
 
-    std::vector<double> stimoli_;     // Correnti esterne calcolate dalla simuazione
-    std::vector<double> inputTotale_; // Somma stimoli + correnti sinaptiche
+    // std::vector<double> stimoli_;     // Correnti esterne calcolate dalla simuazione
+    // std::vector<double> inputTotale_; // Somma stimoli + correnti sinaptiche
 
-    std::vector<double> statoNeuroni_; // Potenziale di membrana di tutti i neuroni nella rete
-    std::vector<double> statoFiring_;  // Stato dei neuroni di tutta la rete
-    // std::vector<double> statoSinapsi_; // Corrente sinaptica di tutte le sinapsi nella rete
+    // std::vector<double> statoNeuroni_; // Potenziale di membrana di tutti i neuroni nella rete
+    // std::vector<double> statoFiring_;  // Stato dei neuroni di tutta la rete
+    //  std::vector<double> statoSinapsi_; // Corrente sinaptica di tutte le sinapsi nella rete
 
     // -- METODI INTERNI -----------------------------------------------------------------------------------
 
     // 1. Metodi evoluzione della rete e stato della rete
-    void step(double dt);
-    void aggiornaStatoRete();
+    // void step(double dt);
+    // void aggiornaStatoRete();
 
     // 2. Metodi applicativi
-    double getMinTau() const;
-    void prepare(double dt);
+    // double getMinTau() const;
+    // void prepare(double dt);
     void verificaNonBloccata(const std::string& operazione) const;
     size_t allocazioneNeuroni(size_t size, NeuronModel type, char integratore,
                               std::optional<TypePatchNeuron> config = std::nullopt, double dispersione = 0.0,
                               DistType tipoDist = DistType::Gaussian);
 
     // 3. Metodi getter interni
-    const std::vector<double>& getPointerStatoNeuroni() const { return statoNeuroni_; };
-    const std::vector<double>& getPointerStatoFiring() const { return statoFiring_; };
+    // const std::vector<double>& getPointerStatoNeuroni() const { return statoNeuroni_; };
+    // const std::vector<double>& getPointerStatoFiring() const { return statoFiring_; };
     // const std::vector<double>& getPointerStatoSinapsi() const { return statoSinapsi_; };
 };
 
