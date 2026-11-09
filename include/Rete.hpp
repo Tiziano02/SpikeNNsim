@@ -35,6 +35,7 @@
 class Rete {
 
     friend class Simulazione;
+    friend class engine;
 
   public:
     /**

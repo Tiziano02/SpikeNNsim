@@ -1,24 +1,11 @@
 #include "engine.hpp"
-/*
+
 void engine::prepare(double dt) {
 
-    // 1. Creazione della lista di adiacenza e preparazione delle sinapsi
+    // 1. Preparazione sinapsi
 
-    // 1.1 inizializzazione della lista di adiacenza
-    size_t numNeuroniTotali = statoNeuroni_.size(); // o il totale dei tuoi neuroni
-    listaAdiacenza_.clear();
-    listaAdiacenza_.resize(numNeuroniTotali);
-    size_t countSinapsi = 0;
-
-    // 1.1 inserimento dati nella lista di adiacenza e preparazione sinapsi
     for (auto& s : sinapsi_) {
-        std::visit(
-            [&](auto& syn) {
-                listaAdiacenza_[syn.getIndexPre()].push_back(countSinapsi);
-                syn.prepare(dt);
-            },
-            s);
-        countSinapsi++;
+        std::visit([&](auto& syn) { syn.prepare(dt); }, s);
     }
 
     // 2. Preparazione dei neuroni (precalcolo coefficienti analitici esatti per LIF)
@@ -92,9 +79,8 @@ void engine::aggiornaStatoRete() {
     //    statoSinapsi_[i] = std::visit([](const auto& s) { return s.getCurrent(); }, sinapsi_[i]);
     //}
 }
-*/
 
-double Rete::getMinTau() const {
+double engine::getMinTau() const {
     // 1. Inizializzazione
     double minTau = std::numeric_limits<double>::max();
 

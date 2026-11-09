@@ -9,6 +9,7 @@
 #ifndef SIMULAZIONE_HPP
 #define SIMULAZIONE_HPP
 
+#include "engine.hpp"
 #include "Rete.hpp"
 #include "Stimoli.hpp"
 #include <fstream>
@@ -74,7 +75,7 @@ class Simulazione {
     // -- ATTRIBUTI PRIVATI ----------------------------------------------------------------------------------------
 
     // Topologia e Dati
-    Rete rete_;                            // Copia isolata della rete da simulare
+    engine engine_;                        // Motore di calcolo della rete
     std::vector<stimolo> RegistroStimoli_; // Registro degli stimoli da iniettare
 
     // Controllo Temporale

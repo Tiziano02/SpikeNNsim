@@ -5,23 +5,16 @@
 #include <cstdint> // per int32_t
 #include <fstream>
 #include <iostream>
-#include <stdexcept>
 
 // -----------------------------------------------------------------------------
 // COSTRUTTORE
 // -----------------------------------------------------------------------------
 
 Simulazione::Simulazione(const Rete& rete, double dt, double T)
-    : rete_(rete), dt_(dt), stepCorrente_(0), stepTotali_(static_cast<int>(std::round(T / dt))) {
-
-    // 0. Controllo che la rete sia stata bloccata prima di inizializzare la simulazione
-    if (!rete_.isBloccata()) {
-        throw std::logic_error("[Simulazione] Errore: la rete non e' bloccata. Chiamare rete.bloccaRete() prima di "
-                               "creare la Simulazione.");
-    }
+    : engine_(rete), dt_(dt), stepCorrente_(0), stepTotali_(static_cast<int>(std::round(T / dt))) {
 
     // 1. Controllo del tau minimo per il metodo di integrazione Eulero in avanti
-    double tauMin = rete_.getMinTau();
+    double tauMin = engine_.getMinTau();
     if (dt > tauMin / 10.0) {
         std::cerr << "⚠️  [Simulazione] ATTENZIONE: dt = " << dt << "s è maggiore di tau_min/10 (" << tauMin / 10.0
                   << "s).\n"
@@ -48,7 +41,7 @@ void Simulazione::iniettaStimoli(const std::vector<stimolo>& stimoli) {
 void Simulazione::iniettaStimoli(const stimolo& stimolo) {
 
     // 1. Controllo esistenza indice del neurone che riceve lo stimolo
-    if (!rete_.hasNeurone(stimolo.indexNeurone)) {
+    if (!engine_.hasNeurone(stimolo.indexNeurone)) {
         std::cerr << "[Simulazione] errore: neurone indice " << stimolo.indexNeurone << " non trovato.\n";
         return;
     }
@@ -60,7 +53,7 @@ void Simulazione::iniettaStimoli(const stimolo& stimolo) {
 void Simulazione::valutaStimoli(double t) {
 
     // 1. Azzero il vector degli stimoli della rete
-    std::fill(rete_.stimoli_.begin(), rete_.stimoli_.end(), 0.0);
+    std::fill(engine_.stimoli_.begin(), engine_.stimoli_.end(), 0.0);
 
     // 2. Ispezione del registro degli stimoli
     for (const auto& recordStimolo : RegistroStimoli_) {
@@ -98,7 +91,7 @@ void Simulazione::valutaStimoli(double t) {
             recordStimolo.parametri);
 
         // 2.2 Inserimento nel vettore degli stimoli il valore appena calcolato
-        rete_.stimoli_[recordStimolo.indexNeurone] += valore;
+        engine_.stimoli_[recordStimolo.indexNeurone] += valore;
     }
 }
 
@@ -120,9 +113,9 @@ void Simulazione::scritturaHeader() {
     }
 
     // 3. Calcolo "numero di colonne"
-    int32_t colsV = rete_.getNumNeuroni() + 1;
-    int32_t colsF = rete_.getNumNeuroni() + 1;
-    // int32_t colsS = rete_.getNumSinapsi() + 1;
+    int32_t colsV = engine_.neuroni_.size() + 1;
+    int32_t colsF = engine_.neuroni_.size() + 1;
+    // int32_t colsS = engine_.sinapsi_.size() + 1;
 
     // 4. Scrittura dell'header nei file
     filePotenziali_.write(reinterpret_cast<const char*>(&colsV), sizeof(int32_t));
@@ -133,9 +126,9 @@ void Simulazione::scritturaHeader() {
 void Simulazione::creazioneBuffer() {
 
     // 1. Calcolo "numero di colonne"
-    int32_t colsV = rete_.getNumNeuroni() + 1;
-    int32_t colsF = rete_.getNumNeuroni() + 1;
-    // int32_t colsS = rete_.getNumSinapsi() + 1;
+    int32_t colsV = engine_.neuroni_.size() + 1;
+    int32_t colsF = engine_.neuroni_.size() + 1;
+    // int32_t colsS = engine_.sinapsi_.size() + 1;
 
     // 2. Calcolo numero di byte da scrviere ad ogni step
     bytesPerStepV_ = static_cast<size_t>(colsV) * sizeof(double);
@@ -239,13 +232,13 @@ void Simulazione::loadStatoRete(double time) {
     // 5. Copio, in blocco, lo stato della rete (neuroni, firing e sinapsi)
 
     // 5.1 Prendo il puntatore all'inizio dell'array e lo converto in puntatore a char
-    const char* srcV = reinterpret_cast<const char*>(rete_.getPointerStatoNeuroni().data());
+    const char* srcV = reinterpret_cast<const char*>(engine_.getPointerStatoNeuroni().data());
     std::copy(srcV, srcV + byteNeuroni, bufferV_.begin() + offsetV);
 
-    const char* srcF = reinterpret_cast<const char*>(rete_.getPointerStatoFiring().data());
+    const char* srcF = reinterpret_cast<const char*>(engine_.getPointerStatoFiring().data());
     std::copy(srcF, srcF + byteFiring, bufferF_.begin() + offsetF);
 
-    // const char* srcS = reinterpret_cast<const char*>(rete_.getPointerStatoSinapsi().data());
+    // const char* srcS = reinterpret_cast<const char*>(engine_.getPointerStatoSinapsi().data());
     // std::copy(srcS, srcS + byteSinapsi, bufferS_.begin() + offsetS);
 
     // 6. Avanzo la pozione nel buffer dopo aver salvato uno step di simulazione
@@ -273,12 +266,6 @@ void stampaProgresso(double progresso) {
 void Simulazione::avviaSimulazione(const std::string& filenameV, const std::string& filenameF,
                                    const std::string& filenameS) {
 
-    // 0. Controllo di sicurezza: rete bloccata
-    if (!rete_.isBloccata()) {
-        throw std::logic_error("[Simulazione] Errore: la rete non e' bloccata. Chiamare rete.bloccaRete() prima di "
-                               "avviare la simulazione.");
-    }
-
     // 1. Inizializza il tempo della simulazione e il passo attuale a zero
     double time = 0.0;
     stepCorrente_ = 0;
@@ -292,7 +279,7 @@ void Simulazione::avviaSimulazione(const std::string& filenameV, const std::stri
     preparazioneOutput();
 
     // 4. Per adesso : creazione della dimensione dei ring per il ritardo sinaptico
-    rete_.prepare(dt_);
+    engine_.prepare(dt_);
 
     // 5. Avvio della simulazione
     for (; stepCorrente_ < stepTotali_; ++stepCorrente_) {
@@ -301,11 +288,11 @@ void Simulazione::avviaSimulazione(const std::string& filenameV, const std::stri
         valutaStimoli(time);
 
         // 2. Avanza la rete di un passo
-        rete_.step(dt_);
+        engine_.step(dt_);
         time += dt_;
 
         // 3. Aggiorna lo stato e salva
-        rete_.aggiornaStatoRete();
+        engine_.aggiornaStatoRete();
         loadStatoRete(time);
         if (stepCorrente_ % 100 == 0 || stepCorrente_ == stepTotali_ - 1) {
             double percentuale = static_cast<double>(stepCorrente_) / static_cast<double>(stepTotali_);
