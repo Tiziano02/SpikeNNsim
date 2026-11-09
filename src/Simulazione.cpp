@@ -113,9 +113,9 @@ void Simulazione::scritturaHeader() {
     }
 
     // 3. Calcolo "numero di colonne"
-    int32_t colsV = engine_.neuroni_.size() + 1;
-    int32_t colsF = engine_.neuroni_.size() + 1;
-    // int32_t colsS = engine_.sinapsi_.size() + 1;
+    int32_t colsV = engine_.numeroNeuroniTotali_ + 1;
+    int32_t colsF = engine_.numeroNeuroniTotali_ + 1;
+    // int32_t colsS = engine_.numeroSinapsiTotali_ + 1;
 
     // 4. Scrittura dell'header nei file
     filePotenziali_.write(reinterpret_cast<const char*>(&colsV), sizeof(int32_t));
@@ -126,9 +126,9 @@ void Simulazione::scritturaHeader() {
 void Simulazione::creazioneBuffer() {
 
     // 1. Calcolo "numero di colonne"
-    int32_t colsV = engine_.neuroni_.size() + 1;
-    int32_t colsF = engine_.neuroni_.size() + 1;
-    // int32_t colsS = engine_.sinapsi_.size() + 1;
+    int32_t colsV = engine_.numeroNeuroniTotali_ + 1;
+    int32_t colsF = engine_.numeroNeuroniTotali_ + 1;
+    // int32_t colsS = engine_.numeroSinapsiTotali_ + 1;
 
     // 2. Calcolo numero di byte da scrviere ad ogni step
     bytesPerStepV_ = static_cast<size_t>(colsV) * sizeof(double);

@@ -1046,7 +1046,7 @@ int main(int argc, char* argv[]) {
         // esempio10_benchmark_profiling_prestazioni();
         // esempio11_confronto_analitico_vs_eulero();
         // provaStimoloPoissoniano();
-        testSinapsi();
+        // testSinapsi();
 
         // Lanciamo i 4 regimi classici di Brunel (2000)
         eseguiSimulazioneBrunel("SR_SynchronousRegular", 3.0, 2.0, numE, numI);
