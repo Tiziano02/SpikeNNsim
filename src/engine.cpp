@@ -22,6 +22,7 @@ engine::engine(const Rete& rete) {
     statoSinapsi_.assign(numeroSinapsiTotali_, 0.0);
 
     // 3. Inizializzazione dei vettori di input e stimoli
+    delaySteps_.resize(rete.sinapsi_.size());
     stimoli_.assign(numeroNeuroniTotali_, 0.0);
     inputTotale_.assign(numeroNeuroniTotali_, 0.0);
 
@@ -50,10 +51,12 @@ engine::engine(const Rete& rete) {
                 using T = std::decay_t<decltype(syn)>;
                 if constexpr (std::is_same_v<T, Current>) {
                     current_.push_back(syn);
+                    sinapsiReteToEngine.push_back({SynapseModel::Current, current_.size() - 1});
                     currentEngineToRete.push_back(i);
                 } else if constexpr (std::is_same_v<T, Conductance>) {
                     conductance_.push_back(syn);
-                    ConductanceEngineToRete.push_back(i);
+                    sinapsiReteToEngine.push_back({SynapseModel::Conductance, conductance_.size() - 1});
+                    conductanceEngineToRete.push_back(i);
                 }
             },
             s);
@@ -66,9 +69,22 @@ engine::engine(const Rete& rete) {
     size_t countSinapsi = 0;
 
     // 1.2 inserimento dati nella lista di adiacenza
-    for (auto& s : rete.sinapsi_) {
-        std::visit([&](auto& syn) { listaAdiacenza_[syn.getIndexPre()].push_back(countSinapsi); }, s);
-        countSinapsi++;
+    for (size_t i = 0; i < rete.sinapsi_.size(); ++i) {
+        auto& s = rete.sinapsi_[i];
+        std::visit(
+            [&](auto& syn) {
+                using T = std::decay_t<decltype(syn)>;
+                if constexpr (std::is_same_v<T, Current>) {
+                    listaAdiacenza_[syn.getIndexPre()].push_back(
+                        {SynapseModel::Current, sinapsiReteToEngine[countSinapsi].indiceEngine});
+                    countSinapsi++;
+                } else if constexpr (std::is_same_v<T, Conductance>) {
+                    listaAdiacenza_[syn.getIndexPre()].push_back(
+                        {SynapseModel::Conductance, sinapsiReteToEngine[countSinapsi].indiceEngine});
+                    countSinapsi++;
+                }
+            },
+            s);
     }
 
     // Osservazione: potrebbe essere fatto dopo la creazione della struttua dati per l'engine
@@ -84,15 +100,23 @@ engine::engine(const Rete& rete) {
 
 void engine::prepare(double dt) {
 
-    // 1. Preparazione sinapsi
-    for (auto& s : current_) {
+    // 1. Preparazione sinapsi e inzializzazione vettore delaySteps_
+    for (size_t i = 0; i < current_.size(); ++i) {
+        auto& s = current_[i];
         s.prepare(dt);
+        delaySteps_[currentEngineToRete[i]] = static_cast<size_t>(std::round(s.getDelay() / dt));
     }
-    for (auto& s : conductance_) {
+    for (size_t i = 0; i < conductance_.size(); ++i) {
+        auto& s = conductance_[i];
         s.prepare(dt);
+        delaySteps_[conductanceEngineToRete[i]] = static_cast<size_t>(std::round(s.getDelay() / dt));
     }
 
-    // 2. Preparazione dei neuroni (precalcolo coefficienti analitici esatti per LIF)
+    // 2. Preparazione del ring buffer degli eventi sinaptici
+    size_t maxDelaySteps = *std::max_element(delaySteps_.begin(), delaySteps_.end());
+    ringEventi_.resize(maxDelaySteps + 1);
+
+    // 3. Preparazione dei neuroni (precalcolo coefficienti analitici esatti per LIF)
     for (auto& n : lif_) {
         n.prepare(dt);
     }
@@ -102,33 +126,68 @@ void engine::step(double dt) {
     // 1. Azzeramento dell'input totale di tutti i neuroni
     std::fill(inputTotale_.begin(), inputTotale_.end(), 0.0);
 
-    // 2. Evoluzione delle sinapsi --> stato precedente dei neuroni si può prendere dai vettori di stato della rete
+    // 2. Controllo spike pre-sinaptici e inserimento degli eventi nel ring buffer
+    for (std::size_t id = 0; id < numeroNeuroniTotali_; ++id) {
+
+        if (statoFiring_[id] > 0.0) {
+
+            // 2.1 Inserisco eventi nel ring per tutte le sinapsi che hanno il neurone id come pre-sinaptico
+            for (const auto& s : listaAdiacenza_[id]) {
+
+                if (s.modello == SynapseModel::Current) {
+
+                    // 2.1.1 Calcolo il delayStep corrispondente alla sinapsi s
+                    size_t delayStep = delaySteps_[currentEngineToRete[s.indiceEngine]];
+
+                    // 2.1.2 Inserisco l'evento nel ring buffer alla posizione corretta
+                    ringEventi_[(presentStep_ + delayStep) % ringEventi_.size()].push_back(
+                        {SynapseModel::Current, s.indiceEngine});
+
+                } else if (s.modello == SynapseModel::Conductance) {
+
+                    // 2.2.1 Calcolo il delayStep corrispondente alla sinapsi s
+                    size_t delayStep = delaySteps_[conductanceEngineToRete[s.indiceEngine]];
+
+                    // 2.2.2 Inserisco l'evento nel ring buffer alla posizione corretta
+                    ringEventi_[(presentStep_ + delayStep) % ringEventi_.size()].push_back(
+                        {SynapseModel::Conductance, s.indiceEngine});
+                }
+            }
+        }
+    }
+
+    // 3. Elaborazione degli eventi sinaptici nello step corrente
+    for (const auto& evento : ringEventi_[presentStep_]) {
+        if (evento.modello == SynapseModel::Current) {
+            current_[evento.indiceEngine].eventoArrivato_ = true;
+        } else if (evento.modello == SynapseModel::Conductance) {
+            conductance_[evento.indiceEngine].eventoArrivato_ = true;
+        }
+    }
+
+    // 3.1 Pulizia del ring buffer degli eventi nello step corrente
+    ringEventi_[presentStep_].clear();
+
+    // 2. Evoluzione delle sinapsi
     for (auto& s : current_) {
-        // 2.1 Controllo se il neurone pre-sinaptico ha sparato
-        bool preFired = statoFiring_[s.getIndexPre()];
-        // bool preFired = std::visit([](const auto& n) { return n.hasFired(); }, neuroni_[s.getIndexPre()]);
 
-        // 2.2 Evoluzione della sinapsi
-        s.update(dt, preFired);
+        // 2.1 Avanzamento dinamica sinapsi
+        s.update(dt);
 
-        // 2.3 Inserico le correnti sinaptiche all'input totale del neurone post-sinaptico (inserite con il segno meno
-        // --> I positive)
-        inputTotale_[s.getIndexPost()] -= s.getCurrent();
+        // 2.2 Aggiungo le correnti appena calcolate all'input totale del neurone post-sinaptico
+        inputTotale_[s.getIndexPost()] -= s.getCurrent(); // inserite con il segno meno per convenzione
     }
 
     for (auto& s : conductance_) {
-        // 2.1 Controllo se il neurone pre-sinaptico ha sparato
-        bool preFired = statoFiring_[s.getIndexPre()];
 
-        // 2.2 Calcolo del potenziale di membrana del neurone post-sinaptico
+        // 2.1 Calcolo del potenziale di membrana del neurone post-sinaptico
         double V_post = statoNeuroni_[s.getIndexPost()];
 
-        // 2.3 Evoluzione della sinapsi
-        s.update(dt, preFired, V_post);
+        // 2.2 Avanzamento dinamica sinapsi
+        s.update(dt, V_post);
 
-        // 2.4 Inserico le correnti sinaptiche all'input totale del neurone post-sinaptico (inserite con il segno meno
-        // --> I positive)
-        inputTotale_[s.getIndexPost()] -= s.getCurrent();
+        // 2.3 Aggiungo le correnti appena calcolate all'input totale del neurone post-sinaptico
+        inputTotale_[s.getIndexPost()] -= s.getCurrent(); // inserite con il segno meno per convenzione
     }
 
     // 3. Aggiunta degli stimoli esterni
@@ -154,6 +213,9 @@ void engine::step(double dt) {
         // 4.4 evoluzione del neurone
         exp_[k].update(inputTotale_[id], dt);
     }
+
+    // 5. Avanzamento posizione nel ring buffer degli eventi sinaptici
+    presentStep_ = (presentStep_ + 1) % ringEventi_.size();
 }
 
 void engine::aggiornaStatoRete() {

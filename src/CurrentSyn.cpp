@@ -11,16 +11,18 @@ void Current::rungeKutta(double dt) {
     Isyn_ *= rk4;
 }
 
-void Current::update(double dt, bool preFired) {
+void Current::update(double dt) {
 
-    // 1. Decadimento della corrente sinaptica
+    // 1. Controllo tipologia sinapsi
     if (isDelta_) {
-        // Sinapsi a delta: nessun decadimento esponenziale continuo.
-        // La corrente sinaptica dura esattamente uno step (in cui arriva lo spike dal delay ring).
-        Isyn_ = delayRing_[presentStep_];
-        delayRing_[presentStep_] = 0.0;
+        if (eventoArrivato_) {
+            Isyn_ = peso_ * Ipeak_;
+        } else {
+            Isyn_ = 0.0;
+        }
     } else {
-        // Decadimento continuo secondo il risolutore ODE scelto
+
+        // 1.1 Decadimento corrente già presente
         if (tipoIntegratore_ == 'A') {
             analiticoEsatto();
         } else if (tipoIntegratore_ == 'R') {
@@ -29,19 +31,14 @@ void Current::update(double dt, bool preFired) {
             euleroInAvanti(dt);
         }
 
-        // Raccolta spike dal delayRing
-        if (delayRing_[presentStep_] != 0.0) {
-            Isyn_ += delayRing_[presentStep_];
-            delayRing_[presentStep_] = 0.0;
+        // 1.2 Controllo evento
+        if (eventoArrivato_) {
+
+            // 1.2.1 aggiungo la corrente di picco alla corrente sinaptica
+            Isyn_ += peso_ * Ipeak_;
         }
     }
 
-    // 2. Controllo dello spike pre-sinaptico
-    if (preFired) {
-        // Inserimento dello spike nel delay ring
-        delayRing_[(presentStep_ + delayStep_) % delayRing_.size()] += peso_ * Ipeak_;
-    }
-
-    // 3. Avanzamento posizione nel ring
-    presentStep_ = (presentStep_ + 1) % delayRing_.size();
+    // 2. Reset del flag dell'evento
+    eventoArrivato_ = false;
 }

@@ -23,6 +23,69 @@ static void stampaHeader(const std::string& titolo) {
     std::cout << "======================================================================\n";
 }
 
+#include "Rete.hpp"
+#include "Simulazione.hpp"
+#include "Stimoli.hpp"
+#include "UnitaSI.hpp"
+#include <array>
+#include <filesystem>
+
+void verificaRingNetwork() {
+    constexpr double dt = 0.1 * ms;
+    constexpr double durata = 20.0 * ms;
+
+    Rete rete;
+
+    // Soglia fissa e reset al riposo.
+    patchLIF neurone;
+    neurone.V = -65.0 * mV;
+    neurone.Vth = -50.0 * mV;
+    neurone.VthMin = -50.0 * mV;
+    neurone.VthMax = -50.0 * mV;
+    neurone.Vrest = -65.0 * mV;
+    neurone.Vreset = -90.0 * mV;
+    neurone.R = 100.0 * Mohm;
+    neurone.C = 100.0 * p * F;
+    neurone.timeAbsolute = 1.0 * ms;
+    neurone.timeRelative = 1.0 * ms;
+
+    std::array<std::size_t, 3> ids;
+
+    for (auto& id : ids) {
+        id = rete.aggiungiNeurone(NeuronModel::LIF, 'E', TypePatchNeuron{neurone});
+    }
+
+    const std::array<double, 3> ritardi{0.0 * ms, 1.0 * ms, 2.0 * ms};
+
+    for (std::size_t i = 0; i < ids.size(); ++i) {
+        patchCurrent sinapsi;
+        sinapsi.Isyn = 0.0;
+        sinapsi.peso = -1.0; // Eccitatoria nella tua convenzione.
+        sinapsi.Ipeak = 20.0 * n * A;
+        sinapsi.tau = 5.0 * ms; // Inutilizzato in modalità delta.
+        sinapsi.delay = ritardi[i];
+        sinapsi.isDelta = true;
+
+        rete.connettiNeuroni(ids[i], ids[(i + 1) % ids.size()], SynapseModel::Current, 'E', TypePatchSyn{sinapsi});
+    }
+
+    rete.bloccaRete();
+
+    std::filesystem::create_directories("output");
+    Simulazione simulazione(rete, dt, durata);
+
+    // Attivo soltanto alla valutazione dello stimolo a t = 0.
+    stimolo impulso;
+    impulso.indexNeurone = ids[0];
+    impulso.parametri = configConstantStimulus{.timeStart = 0.0, .timeEnd = dt / 2.0, .ampiezza = 20.0 * n * A};
+
+    simulazione.iniettaStimoli(impulso);
+
+    simulazione.avviaSimulazione("ring_V.bin", "ring_F.bin",
+                                 "ring_S.bin" // Non viene scritto finché l'output è disattivato.
+    );
+}
+
 // ---------------------------------------------------------------------------------------
 // ESEMPIO 1: Neuroni Singoli, Metodi di Integrazione e Pattern Patch
 // ---------------------------------------------------------------------------------------
@@ -1047,12 +1110,13 @@ int main(int argc, char* argv[]) {
         // esempio11_confronto_analitico_vs_eulero();
         // provaStimoloPoissoniano();
         // testSinapsi();
+        // verificaRingNetwork();
 
         // Lanciamo i 4 regimi classici di Brunel (2000)
         eseguiSimulazioneBrunel("SR_SynchronousRegular", 3.0, 2.0, numE, numI);
-        // eseguiSimulazioneBrunel("AI_AsynchronousIrregular", 5.0, 2.0, numE, numI);
-        // eseguiSimulazioneBrunel("SI_fast_SynchronousFast", 6.0, 4.0, numE, numI);
-        // eseguiSimulazioneBrunel("SI_slow_SynchronousSlow", 4.5, 0.9, numE, numI);
+        eseguiSimulazioneBrunel("AI_AsynchronousIrregular", 5.0, 2.0, numE, numI);
+        eseguiSimulazioneBrunel("SI_fast_SynchronousFast", 6.0, 4.0, numE, numI);
+        eseguiSimulazioneBrunel("SI_slow_SynchronousSlow", 4.5, 0.9, numE, numI);
 
         std::cout << "\n======================================================================\n";
         std::cout << "  TUTTI GLI ESEMPI E I BENCHMARK SONO STATI ESEGUITI CON SUCCESSO!\n";

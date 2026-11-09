@@ -11,6 +11,16 @@
 #include "Rete.hpp"
 #include <cstddef>
 
+struct EventoSinaptico {
+    SynapseModel modello;
+    std::size_t indiceEngine;
+};
+
+struct posizioneSinapsi {
+    SynapseModel modello;
+    std::size_t indiceEngine;
+};
+
 /**
  * @ingroup publicapi
  * @brief Classe principale per la costruzione e simulazione della rete neurale.
@@ -39,29 +49,45 @@ class engine {
   private:
     // -- ATTRIBUTI PRIVATI (Topologia e Stato) --------------------------------------------------------------
 
+    // 1. Parametri totali
     std::size_t numeroNeuroniTotali_; // Numero totale di neuroni nella rete
     std::size_t numeroSinapsiTotali_; // Numero totale di sinapsi nella rete
 
-    std::vector<size_t> lifEngineToRete;         // Mappa id engine --> id rete (neuroni lif)
-    std::vector<size_t> expEngineToRete;         // Mappa id engine --> id rete (neuroni exp)
-    std::vector<size_t> currentEngineToRete;     // Mappa id engine --> id rete (sinapsi current)
-    std::vector<size_t> ConductanceEngineToRete; // Mappa id engine --> id rete (sinapsi conductance)
+    // 2. Mappe tra id engine --> id rete
+    std::vector<size_t> lifEngineToRete;
+    std::vector<size_t> expEngineToRete;
+    std::vector<size_t> currentEngineToRete;
+    std::vector<size_t> conductanceEngineToRete;
 
-    std::vector<LIF> lif_;                 // Lista dei neuroni
-    std::vector<Exp> exp_;                 // Lista dei neuroni
-    std::vector<Current> current_;         // Lista delle sinapsi
-    std::vector<Conductance> conductance_; // Lista delle sinapsi
+    // 3. Mappe tra id rete --> id engine
+    std::vector<posizioneSinapsi> sinapsiReteToEngine; // mappa id rete --> posizione sinapsi interne all'engine
 
-    std::vector<std::vector<size_t>> listaAdiacenza_; // lista adiacenza = neurone i : sinapsi
+    // 3. Vettori dei neuroni e delle sinapsi divisi per tipo
+    std::vector<LIF> lif_;
+    std::vector<Exp> exp_;
+    std::vector<Current> current_;
+    std::vector<Conductance> conductance_;
 
+    // 4. Lista di adiacenza per la rete (per ogni neurone, quali sinapsi è il neurone pre-sinaptico)
+    std::vector<std::vector<posizioneSinapsi>> listaAdiacenza_; // lista adiacenza = neurone i : sinapsi
+
+    // 5. Vettori di input esterno e input totale per ogni neurone della rete
     std::vector<double> stimoli_;     // Correnti esterne calcolate dalla simuazione
     std::vector<double> inputTotale_; // Somma stimoli + correnti sinaptiche
 
     // i vettori stimoli_ e inputTotale_ potrebbero essere uniti per risparimare memoria, è utile ?
 
+    // 6. Vettori di stato della rete (potenziale di membrana, stato firing, corrente sinaptica)
     std::vector<double> statoNeuroni_; // Potenziale di membrana di tutti i neuroni nella rete
     std::vector<double> statoFiring_;  // Stato dei neuroni di tutta la rete
     std::vector<double> statoSinapsi_; // Corrente sinaptica di tutte le sinapsi nella rete
+
+    // 7. registro circolare degli eventi sinaptici in transito
+    std::vector<std::vector<EventoSinaptico>> ringEventi_;
+
+    // 8. Delay sinaptico
+    size_t presentStep_ = 0;         // Posizione corrente nel ring buffer degli eventi sinaptici
+    std::vector<size_t> delaySteps_; // Delay di ogni sinapsi della rete (in step temporali)
 
     // -- METODI INTERNI -----------------------------------------------------------------------------------
 

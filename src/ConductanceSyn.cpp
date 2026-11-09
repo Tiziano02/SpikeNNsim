@@ -11,9 +11,9 @@ void Conductance::rungeKutta(double dt) {
     gsyn_ *= rk4;
 }
 
-void Conductance::update(double dt, bool preFired, double Vpost) {
+void Conductance::update(double dt, double Vpost) {
 
-    // 1. Decadimento della conduttanza in base al risolutore ODE scelto
+    // 1. Decadimento della conduttanza già presente
     if (tipoIntegratore_ == 'A') {
         analiticoEsatto();
     } else if (tipoIntegratore_ == 'R') {
@@ -22,21 +22,12 @@ void Conductance::update(double dt, bool preFired, double Vpost) {
         euleroInAvanti(dt);
     }
 
-    // 2. Raccolta spike dal delayRing
-    if (delayRing_[presentStep_] != 0.0) {
-        gsyn_ += delayRing_[presentStep_];
-        delayRing_[presentStep_] = 0.0;
+    // 2. Controllo degli eventi sinaptici in arrivo e aggiornamento della conduttanza
+    if (eventoArrivato_) {
+        gsyn_ += peso_ * gpeak_;
+        eventoArrivato_ = false;
     }
 
-    // 3. Controllo dello spike pre-sinaptico
-    if (preFired) {
-        // Inserimento dello spike nel delay ring
-        delayRing_[(presentStep_ + delayStep_) % delayRing_.size()] += peso_ * gpeak_;
-    }
-
-    // 4. Calcolo corrente sinaptica
+    // 3. Calcolo la corrente sinaptica
     Isyn_ = gsyn_ * (Vpost - Erev_);
-
-    // 5. Avanzamento posizione nel ring
-    presentStep_ = (presentStep_ + 1) % delayRing_.size();
 }

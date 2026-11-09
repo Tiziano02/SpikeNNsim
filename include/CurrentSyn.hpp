@@ -10,7 +10,6 @@
 
 #include <cmath>
 #include <cstddef>
-#include <vector>
 #include <optional>
 #include "UnitaSI.hpp"
 
@@ -92,10 +91,8 @@ class Current {
     double tau_ = 5.0 * ms;      // Scala temporale di decadimento [s]
     double delay_ = 1.0 * ms;    // Ritardo sinaptico [s]
 
-    // Ring Buffer
-    size_t presentStep_ = 0;        // Indice di lettura corrente nel ring buffer
-    size_t delayStep_ = 0;          // Numero di step temporali corrispondenti al delay_
-    std::vector<double> delayRing_; // Ring buffer per immagazzinare gli spike in transito
+    // Evento
+    bool eventoArrivato_ = false; // Flag per indicare se questa sinapsi ha un evento (spike) nello step corrente
 
     // Coefficienti per il calcolo analitico
     double decayFactor_ = 0.0; // Fattore di decadimento analitico esatto: exp(-dt / tau_)
@@ -103,7 +100,7 @@ class Current {
     // -- METODI PRIVATI --------------------------------------------------------------------------------------
 
     // 1. Gestione evoluzione temporale
-    void update(double dt, bool preFired);
+    void update(double dt);
     void euleroInAvanti(double dt);
     void rungeKutta(double dt);
     void analiticoEsatto();
@@ -114,28 +111,17 @@ class Current {
     inline size_t getIndexPost() const { return indexPost_; }
     inline bool isDelta() const { return isDelta_; }
     inline void setDelta(bool delta) { isDelta_ = delta; }
+    inline double getDelay() const { return delay_; }
 
     // 3. Metodi di preparazione e configurazione interna
     inline void setIndexPre(size_t idx) { indexPre_ = idx; }
     inline void setIndexPost(size_t idx) { indexPost_ = idx; }
 
     /**
-     * @brief Inizializza il buffer circolare per il ritardo di conduzione.
-     * @param dt Passo di integrazione temporale [s].
-     */
-    inline void setDelayRing(double dt) {
-        delayStep_ = static_cast<size_t>(std::round(delay_ / dt));
-        delayRing_.assign(delayStep_ + 1, 0.0);
-    }
-
-    /**
      * @brief Prepara la sinapsi prima della simulazione (buffer delay + coefficienti analitici).
      * @param dt Passo di integrazione temporale [s].
      */
-    inline void prepare(double dt) {
-        setDelayRing(dt);
-        decayFactor_ = std::exp(-dt / tau_);
-    }
+    inline void prepare(double dt) { decayFactor_ = std::exp(-dt / tau_); }
 };
 
 #endif // CURRENTSYN_HPP
