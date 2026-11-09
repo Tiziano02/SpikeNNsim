@@ -59,12 +59,10 @@ class engine {
 
     Rete rete_;
 
-    neuroni
+    // -- METODI INTERNI -----------------------------------------------------------------------------------
 
-        // -- METODI INTERNI -----------------------------------------------------------------------------------
-
-        // 1. Metodi di preparazione dati
-        void prepare(double dt);
+    // 1. Metodi di preparazione dati
+    void prepare(double dt);
 
     // 1. Metodi evoluzione della rete e stato della rete
     void step(double dt);
