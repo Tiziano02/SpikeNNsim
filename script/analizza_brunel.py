@@ -29,53 +29,119 @@ def leggi_file_binario(filepath):
 def analizza_e_plasma(nome_regime):
     file_f = f"output/F_{nome_regime}.bin"
     times, firing_matrix = leggi_file_binario(file_f)
-    
-    if times is None:
+
+    # Escludiamo i primi 0.2 secondi di transitorio.
+    maschera = times >= 0.2
+    tempi = times[maschera]
+
+    cv_neuroni = np.full(firing_matrix.shape[1], np.nan)
+
+    for indice in range(firing_matrix.shape[1]):
+        spike_times = tempi[firing_matrix[maschera, indice] > 0.5]
+        isi = np.diff(spike_times)
+
+        # Soglia pratica: con pochi intervalli il CV è poco affidabile.
+        if isi.size >= 10:
+            cv_neuroni[indice] = np.std(isi, ddof=1) / np.mean(isi)
+
+    validi = cv_neuroni[np.isfinite(cv_neuroni)]
+
+    if validi.size:
+        print(f"Neuroni con almeno 10 ISI: {validi.size}/{cv_neuroni.size}")
+        print(f"CV medio:   {validi.mean():.3f}")
+        print(f"CV mediano: {np.median(validi):.3f}")
+
+        plt.figure(figsize=(7, 4))
+        plt.hist(validi, bins=40, color="steelblue", edgecolor="white")
+        plt.xlabel("CV degli intervalli tra spike")
+        plt.ylabel("Numero di neuroni")
+        plt.tight_layout()
+        plt.show()
+    else:
+        print("Spike insufficienti per stimare il CV.")
+
+    if times is None or len(times) < 2:
         return
 
-    print(f"Analisi per il regime: {nome_regime} (Step temporali: {len(times)})")
-
-    # Estraiamo gli spike (dove firing_matrix == 1.0)
-    # firing_matrix contiene 1.0 se il neurone ha sparato in quel dt, 0.0 altrimenti
-    neuroni_idx, spike_times = [], []
-    
-    # Campioniamo un sottoinsieme di neuroni se sono troppi (es. max 1000 per il plot)
     num_neuroni = firing_matrix.shape[1]
-    step_campione = max(1, num_neuroni // 1000)
-    
-    for n_idx in range(0, num_neuroni, step_campione):
-        spikes = np.where(firing_matrix[:, n_idx] > 0.5)[0]
-        if len(spikes) > 0:
-            for s in spikes:
-                neuroni_idx.append(n_idx)
-                spike_times.append(times[s])
+    dt = times[1] - times[0]
 
-    # Calcoliamo il Firing Rate Globale della popolazione (Hz)
-    dt = times[1] - times[0] if len(times) > 1 else 0.0001
-    spike_counts = np.sum(firing_matrix, axis=1) # totale spike in ogni dt
-    # Firing rate medio normalizzato in Hz (spike al secondo per neurone)
-    firing_rate_global = (spike_counts / num_neuroni) / dt
+    # Finestra dopo il transitorio, in secondi.
+    t_start, t_end = 0.5, 0.7
+    finestra = (times >= t_start) & (times < t_end)
 
-    # --- PLOT ---
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
+    if not np.any(finestra):
+        print(f"{nome_regime}: nessun dato nella finestra scelta.")
+        return
 
-    # 1. Raster Plot
-    ax1.scatter(spike_times, neuroni_idx, s=1, color='black', alpha=0.6)
-    ax1.set_ylabel("Indice Neurone")
-    ax1.set_title(f"Raster Plot - Regime: {nome_regime}")
-    ax1.grid(True, linestyle='--', alpha=0.5)
+    tempi = times[finestra]
+    firing = firing_matrix[finestra] > 0.5
 
-    # 2. Firing Rate Istantaneo Globale
-    ax2.plot(times, firing_rate_global, color='firebrick', linewidth=1.2)
+    # Stesso campione riproducibile nei diversi regimi.
+    rng = np.random.default_rng(42)
+    selezionati = np.sort(
+        rng.choice(num_neuroni, size=min(50, num_neuroni), replace=False)
+    )
+
+    fig, (ax1, ax2) = plt.subplots(
+        2, 1, figsize=(11, 7), sharex=True
+    )
+
+    # Posizioni ordinate nel campione; ogni riga è un neurone.
+    for posizione, indice in enumerate(selezionati):
+        spike_times = tempi[firing[:, indice]]
+        ax1.scatter(
+            spike_times,
+            np.full(spike_times.size, posizione),
+            marker="|", s=18, linewidths=0.6, color="black"
+        )
+
+    ax1.set_ylabel("Neurone nel campione")
+    ax1.set_title(f"Regime obiettivo: {nome_regime}")
+    ax1.set_ylim(-1, len(selezionati))
+
+    # Rate su TUTTI i neuroni, raggruppando timestep completi.
+    passi_bin = max(1, int(round(1e-3 / dt)))
+    n_bin = len(tempi) // passi_bin
+
+    if n_bin == 0:
+        plt.close(fig)
+        print(f"{nome_regime}: finestra troppo breve per il bin scelto.")
+        return
+
+    n_utili = n_bin * passi_bin
+    durata_bin = passi_bin * dt
+
+    conteggi = firing[:n_utili].sum(axis=1)
+    conteggi_bin = conteggi.reshape(n_bin, passi_bin).sum(axis=1)
+    tempi_bin = tempi[:n_utili].reshape(n_bin, passi_bin).mean(axis=1)
+
+    rate = conteggi_bin / (num_neuroni * durata_bin)
+    rate_medio = conteggi.sum() / (num_neuroni * n_utili * dt)
+
+    ax2.plot(tempi_bin, rate, color="firebrick", linewidth=1)
+    ax2.axhline(
+        rate_medio, color="black", linestyle="--",
+        label=f"Media nella finestra: {rate_medio:.1f} Hz"
+    )
     ax2.set_xlabel("Tempo [s]")
-    ax2.set_ylabel("Firing Rate Medio [Hz]")
-    ax2.grid(True, linestyle='--', alpha=0.5)
+    ax2.set_ylabel("Rate di popolazione [Hz]")
+    ax2.legend()
 
-    plt.tight_layout()
+    for ax in (ax1, ax2):
+        ax.set_xlim(t_start, t_end)
+        ax.grid(True, linestyle="--", alpha=0.3)
+
+    fig.tight_layout()
     output_img = f"Brunel_{nome_regime}.png"
-    plt.savefig(output_img, dpi=300)
-    print(f"Grafico salvato con successo come: {output_img}\n")
-    plt.close()
+    fig.savefig(output_img, dpi=300)
+    plt.close(fig)
+
+    print(
+        f"{nome_regime}: rate medio = {rate_medio:.2f} Hz, "
+        f"bin = {durata_bin * 1000:.2f} ms. "
+        f"Salvato: {output_img}"
+    )
 
 if __name__ == "__main__":
     regimi = [

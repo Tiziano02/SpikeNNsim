@@ -8,6 +8,7 @@
 
 #include <cstddef>
 #include <random>
+#include <stdexcept>
 
 /**
  * @ingroup internals

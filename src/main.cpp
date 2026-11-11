@@ -986,99 +986,126 @@ void provaStimoloPoissoniano() {
 }
 
 // Funzione di supporto per lanciare una simulazione per un regime specifico di Brunel
-void eseguiSimulazioneBrunel(const std::string& nomeRegime, double g, double nu_ext_su_nu_thr, size_t numE,
-                             size_t numI) {
-    std::cout << "\n==================================================\n";
-    std::cout << " Avvio Simulazione Regime: " << nomeRegime << "\n";
-    std::cout << " Parametri: g = " << g << ", nu_ext/nu_thr = " << nu_ext_su_nu_thr << "\n";
-    std::cout << "==================================================\n";
+// Incollare queste funzioni nel main.cpp, sostituendo la vecchia funzione Brunel.
+// Dal proprio main chiamare eseguiQuattroRegimiBrunel(1000, 250).
+// Per la dimensione della figura 8: eseguiQuattroRegimiBrunel(10000, 2500).
+// I nomi identificano i regimi obiettivo, non una classificazione dell'output.
+#include "Rete.hpp"
+#include "Simulazione.hpp"
+#include "Stimoli.hpp"
+#include "UnitaSI.hpp"
+#include <cmath>
+#include <cstddef>
+#include <exception>
+#include <filesystem>
+#include <iostream>
+#include <random>
+#include <stdexcept>
+#include <string>
 
-    // 1. Parametri fisici fissi del modello di Brunel (2000)
-    double dt = 0.1 * ms;     // Passo temporale
-    double T = 2 * s;         // Durata della simulazione (2 secondi)
-    double J = 0.1 * mV;      // Ampiezza del salto sinaptico eccitatorio
-    double delayD = 1.5 * ms; // Ritardo fisso sinaptico
-    double p_conn = 0.1;      // Probabilità di connessione sparsa (10%)
-    double nu_thr = 10.0;     // Frequenza soglia di riferimento [Hz] (calcolata per C_ext=1000, J=0.1mV, tau=20ms)
-    double nu_ext = nu_ext_su_nu_thr * nu_thr; // Frequenza del treno di Poisson esterno
+void eseguiSimulazioneBrunel(const std::string& nomeRegime, double g, double eta, std::size_t numE, std::size_t numI) {
+    if (numE == 0 || numI == 0 || !(g > 0.0) || !(eta > 0.0))
+        throw std::invalid_argument("Popolazioni, g ed eta devono essere positivi");
+    const double dt = 0.1 * ms;
+    const double durata = 2.0 * s; // Analizzare dopo almeno 0.2 s di transitorio.
+    const double J = 0.1 * mV;
+    const double delay = 1.5 * ms;
+    const double probabilita = 0.1;
+    const double R = 1.0 * Mohm;
+    const double C = 20000.0 * p * F;
+    const double tauM = R * C; // 20 ms.
+    const double riposo = 0.0 * mV;
+    const double soglia = 20.0 * mV;
+    const double reset = 10.0 * mV;
 
-    // 2. Creazione della Rete e blocco seed
+    // Scelta per la rete ridotta: Cext = numero MEDIO di afferenze E.
+    // Con 1250 neuroni la connettivita' ricorrente NON equivale al caso originale.
+    const double Cext = probabilita * static_cast<double>(numE);
+    const double nuThr = (soglia - riposo) / (J * Cext * tauM);
+    const double nuExt = eta * nuThr; // Frequenza per afferenza.
+    const double frequenzaAggregata = Cext * nuExt;
+
+    // Corrente costante per uno step: contributo al potenziale pari a J
+    // con l'integrazione analitica LIF. Non assegnare J direttamente a Ipeak!
+    const double correnteEvento = J / (R * (-std::expm1(-dt / tauM)));
+
+    std::cout << "\n=== Obiettivo: " << nomeRegime << " ===\n"
+              << "N = " << numE + numI << ", g = " << g << ", eta = " << eta << '\n'
+              << "tau_m [ms] = " << tauM / ms << ", corrente/evento [nA] = " << correnteEvento / (n * A) << '\n'
+              << "Cext = " << Cext << ", nu_thr [Hz] = " << nuThr << ", nu_ext aggregata [Hz] = " << frequenzaAggregata
+              << '\n';
+
     Rete rete;
-    // rete.setSeed(42);
+    const auto popE = rete.addPopulation(numE, NeuronModel::LIF, 'A');
+    const auto popI = rete.addPopulation(numI, NeuronModel::LIF, 'A');
 
-    // 3. Creazione Popolazioni (80% Eccitatori, 20% Inibitori)
-    // Usiamo neuroni LIF con integratore analitico ('A')
-    size_t popE = rete.addPopulation(numE, NeuronModel::LIF, 'A');
-    size_t popI = rete.addPopulation(numI, NeuronModel::LIF, 'A');
+    patchLIF parametri;
+    parametri.V = reset;
+    parametri.Vrest = riposo;
+    parametri.Vreset = reset;
+    parametri.Vth = soglia;
+    parametri.VthMin = soglia;
+    parametri.VthMax = soglia; // Soglia fissa: niente adattamento.
+    parametri.R = R;
+    parametri.C = C;
+    parametri.timeAbsolute = 2.0 * ms;
+    parametri.timeRelative = 20.0 * ms; // Finito; irrilevante con soglia fissa.
+    rete.modificaParametriPopolazione(popE, parametri);
+    rete.modificaParametriPopolazione(popI, parametri);
 
-    // Impostiamo esplicitamente i parametri standard di Brunel sui neuroni creati
-    // (Vrest = 0mV, Vth = 20mV, Vreset = 10mV, tau = 20ms)
-    patchLIF patchBrunel;
-    patchBrunel.Vrest = 0.0 * mV;
-    patchBrunel.Vth = 20.0 * mV;
-    patchBrunel.Vreset = 10.0 * mV;
-    patchBrunel.timeAbsolute = 2.0 * ms; // Refrattarietà tau_rp = 2ms
-
-    // Assegnamo tau = 20ms tramite R * C (es. R=1Mohm, C=2000pF -> tau=20ms)
-    patchBrunel.R = 1.0 * Mohm;
-    patchBrunel.C = 20000.0 * p * F; // 20ms / 1Mohm = 20000pF
-
-    rete.modificaParametriPopolazione(popE, patchBrunel);
-    rete.modificaParametriPopolazione(popI, patchBrunel);
-
-    // 4. Connessioni interne (E->E, E->I, I->E, I->I) con sinapsi Current impulsive (isImpulsive_ = true)
-    patchCurrent patchSynE = {};
-    patchSynE.peso = -1.0;
-    patchSynE.Ipeak = J;
-    patchSynE.delay = delayD;
-    patchSynE.isDelta = true;
-
-    patchCurrent patchSynI = {};
-    patchSynI.peso = 1.0;
-    patchSynI.Ipeak = g * J; // Inibizione scalata per il fattore g
-    patchSynI.delay = delayD;
-    patchSynI.isDelta = true;
-
-    // Creiamo le 4 matrici di connessione sparsa
-    auto sinE_E = rete.connettiPopolazioni(popE, popE, p_conn, SynapseModel::Current, patchSynE);
-    auto sinE_I = rete.connettiPopolazioni(popE, popI, p_conn, SynapseModel::Current, patchSynE);
-    auto sinI_E = rete.connettiPopolazioni(popI, popE, p_conn, SynapseModel::Current, patchSynI);
-    auto sinI_I = rete.connettiPopolazioni(popI, popI, p_conn, SynapseModel::Current, patchSynI);
-
-    // Attiviamo il flag impulsivo su tutte le sinapsi create
-    // (Supponendo di avere il metodo per impostare l'integratore/flag impulsivo sulle sinapsi)
-    // Nota: nel codice puoi iterare e impostare syn.isImpulsive_ = true;
-
-    // 5. Iniezione dell'input esterno di Poisson su TUTTI i neuroni della rete
-
-    rete.bloccaRete();
-
-    Simulazione sim(rete, dt, T);
-    // sim.setSeed(1337);
-
-    for (size_t i = 0; i < (numE + numI); ++i) {
-        configPoissonStimulus pois;
-        pois.timeStart = 0.0;
-        pois.timeEnd = T;
-        pois.frequenza = nu_ext;
-        pois.ampiezza = J;
-
-        sim.iniettaStimoli({{i, pois}});
+    // Solo condizioni iniziali eterogenee; parametri fisici identici.
+    std::mt19937 rngIniziale(42);
+    std::uniform_real_distribution<double> iniziale(reset, soglia);
+    for (std::size_t id = 0; id < numE + numI; ++id) {
+        patchLIF condizione;
+        condizione.V = iniziale(rngIniziale);
+        rete.modificaParametriNeurone(id, condizione);
     }
 
-    // 6. Blocco della rete (Attivazione pre-calcolo analitico) e avvio simulazione
-    std::string fileV = "V_" + nomeRegime + ".bin";
-    std::string fileF = "F_" + nomeRegime + ".bin";
-    std::string fileS = "S_" + nomeRegime + ".bin";
+    patchCurrent eccitatoria;
+    eccitatoria.Isyn = 0.0;
+    eccitatoria.peso = -1.0; // Engine sottrae getCurrent().
+    eccitatoria.Ipeak = correnteEvento;
+    eccitatoria.delay = delay;
+    eccitatoria.tau = 5.0 * ms; // Ignorato per le delta.
+    eccitatoria.isDelta = true;
 
-    std::cout << "[Main] Preparazione e blocco della rete in corso...\n";
-    // (La simulazione o la rete chiamano il prepare/blocco)
+    patchCurrent inibitoria = eccitatoria;
+    inibitoria.peso = 1.0;
+    inibitoria.Ipeak = g * correnteEvento;
 
-    std::cout << "[Main] Avvio simulazione per " << T << " secondi...\n";
-    sim.avviaSimulazione(fileV, fileF, fileS);
-    std::cout << "[Main] Simulazione completata! File salvati nella cartella output/.\n";
+    rete.connettiPopolazioni(popE, popE, probabilita, SynapseModel::Current, 'A', eccitatoria);
+    rete.connettiPopolazioni(popE, popI, probabilita, SynapseModel::Current, 'A', eccitatoria);
+    rete.connettiPopolazioni(popI, popE, probabilita, SynapseModel::Current, 'A', inibitoria);
+    rete.connettiPopolazioni(popI, popI, probabilita, SynapseModel::Current, 'A', inibitoria);
+    rete.bloccaRete();
+
+    Simulazione sim(rete, dt, durata);
+    for (std::size_t id = 0; id < numE + numI; ++id) {
+        configPoissonStimulus pois;
+        pois.timeStart = 0.0;
+        pois.timeEnd = durata;
+        pois.frequenza = frequenzaAggregata;
+        pois.ampiezza = correnteEvento;
+        stimolo esterno;
+        esterno.indexNeurone = id;
+        esterno.parametri = pois;
+        sim.iniettaStimoli(esterno);
+    }
+
+    std::filesystem::create_directories("output");
+    const std::string nome = nomeRegime;
+    sim.avviaSimulazione("V_" + nome + ".bin", "F_" + nome + ".bin", "S_" + nome + ".bin");
 }
 
+// Le etichette identificano i regimi obiettivo. La rete ridotta non e'
+// dinamicamente equivalente alla rete originale: controllare raster, CV e rate.
+void eseguiQuattroRegimiBrunel(std::size_t numE = 1000, std::size_t numI = 250) {
+    eseguiSimulazioneBrunel("SR_SynchronousRegular", 3.0, 2.0, numE, numI);
+    // eseguiSimulazioneBrunel("AI_AsynchronousIrregular", 5.0, 2.0, numE, numI);
+    // eseguiSimulazioneBrunel("SI_fast_SynchronousFast", 6.0, 4.0, numE, numI);
+    // eseguiSimulazioneBrunel("SI_slow_SynchronousSlow", 4.5, 0.9, numE, numI);
+}
 // ---------------------------------------------------------------------------------------
 // MAIN: Esecuzione di tutti gli esempi didattici e benchmark
 // ---------------------------------------------------------------------------------------
@@ -1093,8 +1120,8 @@ int main(int argc, char* argv[]) {
     std::cout << "║                 SpikeNNsim - GUIDA ED ESEMPI PRATICI                 ║\n";
     std::cout << "╚══════════════════════════════════════════════════════════════════════╝\n";
 
-    size_t numE = 1000;
-    size_t numI = 250;
+    size_t numE = 10000;
+    size_t numI = 2500;
 
     try {
         // esempio1_neuroni_singoli();
@@ -1113,10 +1140,7 @@ int main(int argc, char* argv[]) {
         // verificaRingNetwork();
 
         // Lanciamo i 4 regimi classici di Brunel (2000)
-        eseguiSimulazioneBrunel("SR_SynchronousRegular", 3.0, 2.0, numE, numI);
-        eseguiSimulazioneBrunel("AI_AsynchronousIrregular", 5.0, 2.0, numE, numI);
-        eseguiSimulazioneBrunel("SI_fast_SynchronousFast", 6.0, 4.0, numE, numI);
-        eseguiSimulazioneBrunel("SI_slow_SynchronousSlow", 4.5, 0.9, numE, numI);
+        eseguiQuattroRegimiBrunel(numE, numI);
 
         std::cout << "\n======================================================================\n";
         std::cout << "  TUTTI GLI ESEMPI E I BENCHMARK SONO STATI ESEGUITI CON SUCCESSO!\n";
