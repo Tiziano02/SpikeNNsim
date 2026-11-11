@@ -66,7 +66,9 @@ class engine {
     std::vector<LIF> lif_;
     std::vector<Exp> exp_;
     std::vector<Current> current_;
+    std::vector<size_t> activeCurrent_;
     std::vector<Conductance> conductance_;
+    std::vector<size_t> activeConductance_;
 
     // 4. Lista di adiacenza per la rete (per ogni neurone, quali sinapsi è il neurone pre-sinaptico)
     std::vector<std::vector<posizioneSinapsi>> listaAdiacenza_; // lista adiacenza = neurone i : sinapsi

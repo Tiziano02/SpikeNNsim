@@ -105,6 +105,10 @@ void engine::prepare(double dt) {
         auto& s = current_[i];
         s.prepare(dt);
         delaySteps_[currentEngineToRete[i]] = static_cast<size_t>(std::round(s.getDelay() / dt));
+        if (std::abs(s.Isyn_) > s.soglia_) {
+            s.statoSinapsi_ = true;
+            activeCurrent_.push_back(i);
+        }
     }
     for (size_t i = 0; i < conductance_.size(); ++i) {
         auto& s = conductance_[i];
@@ -158,10 +162,18 @@ void engine::step(double dt) {
 
     // 3. Elaborazione degli eventi sinaptici nello step corrente
     for (const auto& evento : ringEventi_[presentStep_]) {
+
         if (evento.modello == SynapseModel::Current) {
-            current_[evento.indiceEngine].eventoArrivato_ = true;
+            auto& s = current_[evento.indiceEngine];
+            s.eventoArrivato_ = true;
+            if (s.statoSinapsi_ == false) {
+                s.statoSinapsi_ = true;
+                activeCurrent_.push_back(evento.indiceEngine);
+            }
         } else if (evento.modello == SynapseModel::Conductance) {
-            conductance_[evento.indiceEngine].eventoArrivato_ = true;
+            auto& s = conductance_[evento.indiceEngine];
+            s.eventoArrivato_ = true;
+            activeConductance_.push_back(evento.indiceEngine);
         }
     }
 
@@ -169,13 +181,29 @@ void engine::step(double dt) {
     ringEventi_[presentStep_].clear();
 
     // 2. Evoluzione delle sinapsi
-    for (auto& s : current_) {
+    for (size_t i = 0; i < activeCurrent_.size();) {
+
+        size_t index = activeCurrent_[i];
+        bool avventoSwap = false;
 
         // 2.1 Avanzamento dinamica sinapsi
-        s.update(dt);
+        current_[index].update(dt);
+
+        // 2.1 Controllo sinapsi attiva (se non è più attiva, la rimuovo dal vettore activeCurrent_)
+        if (current_[index].isDelta() || std::abs(current_[index].Isyn_) < current_[index].soglia_) {
+            current_[index].Isyn_ = 0.0;
+            current_[index].statoSinapsi_ = false;
+            std::swap(activeCurrent_[i], activeCurrent_.back());
+            activeCurrent_.pop_back();
+            avventoSwap = true;
+        }
 
         // 2.2 Aggiungo le correnti appena calcolate all'input totale del neurone post-sinaptico
-        inputTotale_[s.getIndexPost()] -= s.getCurrent(); // inserite con il segno meno per convenzione
+        inputTotale_[current_[index].getIndexPost()] -=
+            current_[index].getCurrent(); // inserite con il segno meno per convenzione
+
+        if (!avventoSwap)
+            ++i;
     }
 
     for (auto& s : conductance_) {

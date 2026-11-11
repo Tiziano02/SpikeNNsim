@@ -84,6 +84,7 @@ class Current {
     double Isyn_ = 0.0 * A;      // Corrente sinaptica calcolata in questo step [A]
     char tipoIntegratore_ = 'E'; // Risolutore ODE ('A' = Analitico, 'E' = Eulero, 'R' = Runge-Kutta)
     bool isDelta_ = false;       // Flag: true per sinapsi a delta istantanea senza decadimento esponenziale
+    double soglia_ = 1e-12;      // Soglia per considerare la sinapsi attiva o inattiva
 
     // Parametri Fisici
     double peso_ = 1.0;          // Forza adimensionale della sinapsi
@@ -91,7 +92,8 @@ class Current {
     double tau_ = 5.0 * ms;      // Scala temporale di decadimento [s]
     double delay_ = 1.0 * ms;    // Ritardo sinaptico [s]
 
-    // Evento
+    // Evento-driven
+    bool statoSinapsi_ = false;   // Stato della sinapsi
     bool eventoArrivato_ = false; // Flag per indicare se questa sinapsi ha un evento (spike) nello step corrente
 
     // Coefficienti per il calcolo analitico
