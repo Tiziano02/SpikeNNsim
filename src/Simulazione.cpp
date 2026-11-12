@@ -102,23 +102,23 @@ void Simulazione::valutaStimoli(double t) {
 void Simulazione::scritturaHeader() {
 
     // 1. Apertura dei file
-    filePotenziali_.open("output/" + fileNameV_, std::ios::binary | std::ios::out);
+    // filePotenziali_.open("output/" + fileNameV_, std::ios::binary | std::ios::out);
     fileFiring_.open("output/" + fileNameF_, std::ios::binary | std::ios::out);
     // fileSinapsi_.open("output/" + fileNameS_, std::ios::binary | std::ios::out);
 
     // 2. Controllo della corretta apertura dei file
-    if (!filePotenziali_.is_open() || !fileFiring_.is_open() /*|| !fileSinapsi_.is_open()*/) {
+    if (/*!filePotenziali_.is_open() || */ !fileFiring_.is_open() /*|| !fileSinapsi_.is_open()*/) {
         std::cerr << "[Simulazione] errore: impossibile aprire i file di output.\n";
         return;
     }
 
     // 3. Calcolo "numero di colonne"
-    int32_t colsV = engine_.numeroNeuroniTotali_ + 1;
+    // int32_t colsV = engine_.numeroNeuroniTotali_ + 1;
     int32_t colsF = engine_.numeroNeuroniTotali_ + 1;
-    // int32_t colsS = engine_.numeroSinapsiTotali_ + 1;
+    //  int32_t colsS = engine_.numeroSinapsiTotali_ + 1;
 
     // 4. Scrittura dell'header nei file
-    filePotenziali_.write(reinterpret_cast<const char*>(&colsV), sizeof(int32_t));
+    // filePotenziali_.write(reinterpret_cast<const char*>(&colsV), sizeof(int32_t));
     fileFiring_.write(reinterpret_cast<const char*>(&colsF), sizeof(int32_t));
     // fileSinapsi_.write(reinterpret_cast<const char*>(&colsS), sizeof(int32_t));
 }
@@ -126,12 +126,12 @@ void Simulazione::scritturaHeader() {
 void Simulazione::creazioneBuffer() {
 
     // 1. Calcolo "numero di colonne"
-    int32_t colsV = engine_.numeroNeuroniTotali_ + 1;
+    // int32_t colsV = engine_.numeroNeuroniTotali_ + 1;
     int32_t colsF = engine_.numeroNeuroniTotali_ + 1;
     // int32_t colsS = engine_.numeroSinapsiTotali_ + 1;
 
     // 2. Calcolo numero di byte da scrviere ad ogni step
-    bytesPerStepV_ = static_cast<size_t>(colsV) * sizeof(double);
+    // bytesPerStepV_ = static_cast<size_t>(colsV) * sizeof(double);
     bytesPerStepF_ = static_cast<size_t>(colsF) * sizeof(double);
     // bytesPerStepS_ = static_cast<size_t>(colsS) * sizeof(double);
 
@@ -139,16 +139,17 @@ void Simulazione::creazioneBuffer() {
     size_t ramDisponibile = getAvailableRAM(); // detection --> scritta interamente da gemini, da controllare
 
     // 4. Calcolo la grandezza massima uguale per i tre buffer
-    size_t bufferTarget = ramDisponibile / 4;
+    size_t bufferTarget = ramDisponibile / 2;
     std::cout << "RAM disponibile : " << ramDisponibile / (1024 * 1024) << " MB" << std::endl;
 
     // 5. Calcolo il numero di step di simulazione che entrano nel buffer di dimensione massima
-    size_t stepsPerFlushV = bufferTarget / bytesPerStepV_;
+    // size_t stepsPerFlushV = bufferTarget / bytesPerStepV_;
     size_t stepsPerFlushF = bufferTarget / bytesPerStepF_;
     // size_t stepsPerFlushS = bufferTarget / bytesPerStepS_;
 
     // 6. Considero il numero di step minore
-    stepsPerFlush_ = std::min({stepsPerFlushV, stepsPerFlushF, /*stepsPerFlushS,*/ static_cast<size_t>(stepTotali_)});
+    stepsPerFlush_ =
+        std::min({/*stepsPerFlushV,*/ stepsPerFlushF, /*stepsPerFlushS,*/ static_cast<size_t>(stepTotali_)});
 
     // 7. Controllo che il numero di step più piccolo non sia nullo
     if (stepsPerFlush_ == 0) {
@@ -159,17 +160,17 @@ void Simulazione::creazioneBuffer() {
 
     // 8. Calcolo la dimensione di ciascun buffer in base al numero di byte scritti in uno step
     // Osservazione : i buffer hanno dimensioni diverse ma si riempiono tutti allo stesso step (stepPerFlush_)
-    size_t bufferSizeV = stepsPerFlush_ * bytesPerStepV_;
+    // size_t bufferSizeV = stepsPerFlush_ * bytesPerStepV_;
     size_t bufferSizeF = stepsPerFlush_ * bytesPerStepF_;
     // size_t bufferSizeS = stepsPerFlush_ * bytesPerStepS_;
 
     // 9. Imposto la dimensione dei tre buffer
-    bufferV_.resize(bufferSizeV);
+    // bufferV_.resize(bufferSizeV);
     bufferF_.resize(bufferSizeF);
     // bufferS_.resize(bufferSizeS);
 
     // 10. Log per vedere quanta RAM si sta usando effettivamente
-    std::cout << "[Simulazione] RAM allocata per i 3 buffer: " << (bufferSizeV + bufferSizeF) / (1024 * 1024) << " MB ("
+    std::cout << "[Simulazione] RAM allocata per i 3 buffer: " << (bufferSizeF) / (1024 * 1024) << " MB ("
               << stepsPerFlush_ << " step per flush)\n";
 }
 
@@ -189,7 +190,7 @@ void Simulazione::preparazioneOutput() {
 void Simulazione::writeFile() {
 
     // 1. Scrivo i buffer sui file
-    filePotenziali_.write(bufferV_.data(), posizioneBuffer_ * bytesPerStepV_);
+    // filePotenziali_.write(bufferV_.data(), posizioneBuffer_ * bytesPerStepV_);
     fileFiring_.write(bufferF_.data(), posizioneBuffer_ * bytesPerStepF_);
     // fileSinapsi_.write(bufferS_.data(), posizioneBuffer_ * bytesPerStepS_);
 
@@ -207,7 +208,7 @@ void Simulazione::loadStatoRete(double time) {
         writeFile();
 
     // 2. Calcolo in che poszione sono nel buffer
-    size_t offsetV = posizioneBuffer_ * bytesPerStepV_;
+    // size_t offsetV = posizioneBuffer_ * bytesPerStepV_;
     size_t offsetF = posizioneBuffer_ * bytesPerStepF_;
     // size_t offsetS = posizioneBuffer_ * bytesPerStepS_;
 
@@ -215,25 +216,25 @@ void Simulazione::loadStatoRete(double time) {
     const char* src = reinterpret_cast<const char*>(&time);
 
     // 3.1 Inserisco il tempo nei tre buffer
-    std::copy(src, src + sizeof(time), bufferV_.begin() + offsetV);
+    // std::copy(src, src + sizeof(time), bufferV_.begin() + offsetV);
     std::copy(src, src + sizeof(time), bufferF_.begin() + offsetF);
     // std::copy(src, src + sizeof(time), bufferS_.begin() + offsetS);
 
     // 3.2 Sposto l'offset pari a nuemro di byte della "variabile" tempo
-    offsetV += sizeof(time);
+    // offsetV += sizeof(time);
     offsetF += sizeof(time);
     // offsetS += sizeof(time);
 
     // 4. Calcolo quanti BYTE totali occupano gli array
-    size_t byteNeuroni = bytesPerStepV_ - sizeof(time);
+    // size_t byteNeuroni = bytesPerStepV_ - sizeof(time);
     size_t byteFiring = bytesPerStepF_ - sizeof(time);
     // size_t byteSinapsi = bytesPerStepS_ - sizeof(time);
 
     // 5. Copio, in blocco, lo stato della rete (neuroni, firing e sinapsi)
 
     // 5.1 Prendo il puntatore all'inizio dell'array e lo converto in puntatore a char
-    const char* srcV = reinterpret_cast<const char*>(engine_.getPointerStatoNeuroni().data());
-    std::copy(srcV, srcV + byteNeuroni, bufferV_.begin() + offsetV);
+    // const char* srcV = reinterpret_cast<const char*>(engine_.getPointerStatoNeuroni().data());
+    // std::copy(srcV, srcV + byteNeuroni, bufferV_.begin() + offsetV);
 
     const char* srcF = reinterpret_cast<const char*>(engine_.getPointerStatoFiring().data());
     std::copy(srcF, srcF + byteFiring, bufferF_.begin() + offsetF);
@@ -273,7 +274,7 @@ void Simulazione::avviaSimulazione(const std::string& filenameV, const std::stri
     // 2. Inializzo il nome del file dove salvare l'output della simulazione
     fileNameV_ = filenameV;
     fileNameF_ = filenameF;
-    // fileNameS_ = filenameS;
+    fileNameS_ = filenameS;
 
     // 3. Preparo il necessario per poter salvare su disco l'output
     preparazioneOutput();

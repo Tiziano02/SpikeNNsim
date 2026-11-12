@@ -1,4 +1,5 @@
 #include "CurrentSyn.hpp"
+#include <cmath>
 
 void Current::euleroInAvanti(double dt) { Isyn_ += dt * (-Isyn_ / tau_); }
 
@@ -42,3 +43,10 @@ void Current::update(double dt) {
     // 2. Reset del flag dell'evento
     eventoArrivato_ = false;
 }
+
+void Current::prepare(double dt) {
+    decayFactor_ = std::exp(-dt / tau_);
+    setSoglia();
+}
+
+inline void Current::setSoglia() { soglia_ = 1e-12 * A; }

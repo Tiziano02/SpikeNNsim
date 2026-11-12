@@ -101,23 +101,45 @@ engine::engine(const Rete& rete) {
 void engine::prepare(double dt) {
 
     // 1. Preparazione sinapsi e inzializzazione vettore delaySteps_
+
+    // 1.1 Preparazione sinapsi di tipo Current
     for (size_t i = 0; i < current_.size(); ++i) {
-        auto& s = current_[i];
+
+        Current& s = current_[i];
+
+        // 1.1.1 Preparazione della sinapsi (coefficienti analitici + soglia)
         s.prepare(dt);
+
+        // 1.1.2 Calcolo del delay in step temporali e inserimento nel vettore delaySteps_
         delaySteps_[currentEngineToRete[i]] = static_cast<size_t>(std::round(s.getDelay() / dt));
+
+        // 1.1.3 Controllo condizione inziale della sinapsi e inserimento nell'array activeCurrent_
         if (std::abs(s.Isyn_) > s.soglia_) {
             s.statoSinapsi_ = true;
             activeCurrent_.push_back(i);
+        } else {
+            s.Isyn_ = 0.0;
+            s.statoSinapsi_ = false;
         }
     }
+
+    // 1.2 Preparazione sinapsi di tipo Conductance
     for (size_t i = 0; i < conductance_.size(); ++i) {
+
         auto& s = conductance_[i];
+
+        // 1.2.1 Preparazione della sinapsi (coefficienti analitici + soglia)
         s.prepare(dt);
+
+        // 1.2.2 Calcolo del delay in step temporali e inserimento nel vettore delaySteps_
         delaySteps_[conductanceEngineToRete[i]] = static_cast<size_t>(std::round(s.getDelay() / dt));
     }
 
-    // 2. Preparazione del ring buffer degli eventi sinaptici
-    size_t maxDelaySteps = *std::max_element(delaySteps_.begin(), delaySteps_.end());
+    // 2. Preparazione del ring buffer degli eventi sinaptici (risolvere problema di rete senza sinapsi)
+    size_t maxDelaySteps = 0;
+    if (!delaySteps_.empty()) {
+        maxDelaySteps = *std::max_element(delaySteps_.begin(), delaySteps_.end());
+    }
     ringEventi_.resize(maxDelaySteps + 1);
 
     // 3. Preparazione dei neuroni (precalcolo coefficienti analitici esatti per LIF)
@@ -131,6 +153,7 @@ void engine::step(double dt) {
     std::fill(inputTotale_.begin(), inputTotale_.end(), 0.0);
 
     // 2. Controllo spike pre-sinaptici e inserimento degli eventi nel ring buffer
+    // (quali neuroni hanno fatto spike nel passo precedente)
     for (std::size_t id = 0; id < numeroNeuroniTotali_; ++id) {
 
         if (statoFiring_[id] > 0.0) {
@@ -173,7 +196,7 @@ void engine::step(double dt) {
         } else if (evento.modello == SynapseModel::Conductance) {
             auto& s = conductance_[evento.indiceEngine];
             s.eventoArrivato_ = true;
-            activeConductance_.push_back(evento.indiceEngine);
+            // activeConductance_.push_back(evento.indiceEngine);
         }
     }
 
@@ -184,25 +207,26 @@ void engine::step(double dt) {
     for (size_t i = 0; i < activeCurrent_.size();) {
 
         size_t index = activeCurrent_[i];
-        bool avventoSwap = false;
+        bool avvenutoSwap = false;
 
         // 2.1 Avanzamento dinamica sinapsi
         current_[index].update(dt);
-
-        // 2.1 Controllo sinapsi attiva (se non è più attiva, la rimuovo dal vettore activeCurrent_)
-        if (current_[index].isDelta() || std::abs(current_[index].Isyn_) < current_[index].soglia_) {
-            current_[index].Isyn_ = 0.0;
-            current_[index].statoSinapsi_ = false;
-            std::swap(activeCurrent_[i], activeCurrent_.back());
-            activeCurrent_.pop_back();
-            avventoSwap = true;
-        }
 
         // 2.2 Aggiungo le correnti appena calcolate all'input totale del neurone post-sinaptico
         inputTotale_[current_[index].getIndexPost()] -=
             current_[index].getCurrent(); // inserite con il segno meno per convenzione
 
-        if (!avventoSwap)
+        // 2.3 Controllo se la sinapsi è ancora attiva, altrimenti la rimuovo dall'array activeCurrent_
+        // Se la sinapsi è delta può essere rimossa appena è stata processata (altrimenti viene chiamato update nello
+        // step successivo)
+        if (current_[index].isDelta() || std::abs(current_[index].Isyn_) <= current_[index].soglia_) {
+            current_[index].Isyn_ = 0.0;
+            current_[index].statoSinapsi_ = false;
+            std::swap(activeCurrent_[i], activeCurrent_.back());
+            activeCurrent_.pop_back();
+            avvenutoSwap = true;
+        }
+        if (!avvenutoSwap)
             ++i;
     }
 

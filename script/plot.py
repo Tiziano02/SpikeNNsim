@@ -31,8 +31,8 @@ def leggi_file_binario(filename):
 
 def plot_risultati():
     # Nomi dei file generati (modificali se nel main.cpp hai usato nomi diversi)
-    file_v = "output/testSinapsiV.bin"
-    file_f = "output/testSinapsiF.bin"
+    file_v = "output/V_ringNetwork.bin"
+    file_f = "output/F_ringNetwork.bin"
     file_s = "output/testSinapsiS.bin"
 
     # Carica i dati

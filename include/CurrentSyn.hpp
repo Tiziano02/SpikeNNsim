@@ -8,7 +8,6 @@
 #ifndef CURRENTSYN_HPP
 #define CURRENTSYN_HPP
 
-#include <cmath>
 #include <cstddef>
 #include <optional>
 #include "UnitaSI.hpp"
@@ -84,7 +83,7 @@ class Current {
     double Isyn_ = 0.0 * A;      // Corrente sinaptica calcolata in questo step [A]
     char tipoIntegratore_ = 'E'; // Risolutore ODE ('A' = Analitico, 'E' = Eulero, 'R' = Runge-Kutta)
     bool isDelta_ = false;       // Flag: true per sinapsi a delta istantanea senza decadimento esponenziale
-    double soglia_ = 1e-12;      // Soglia per considerare la sinapsi attiva o inattiva
+    double soglia_ = 1e-12 * A;  // Soglia per considerare la sinapsi attiva o inattiva
 
     // Parametri Fisici
     double peso_ = 1.0;          // Forza adimensionale della sinapsi
@@ -118,12 +117,13 @@ class Current {
     // 3. Metodi di preparazione e configurazione interna
     inline void setIndexPre(size_t idx) { indexPre_ = idx; }
     inline void setIndexPost(size_t idx) { indexPost_ = idx; }
+    inline void setSoglia();
 
     /**
-     * @brief Prepara la sinapsi prima della simulazione (buffer delay + coefficienti analitici).
+     * @brief Prepara la sinapsi prima della simulazione (coefficienti analitici).
      * @param dt Passo di integrazione temporale [s].
      */
-    inline void prepare(double dt) { decayFactor_ = std::exp(-dt / tau_); }
+    void prepare(double dt);
 };
 
 #endif // CURRENTSYN_HPP

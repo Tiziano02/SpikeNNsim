@@ -1102,10 +1102,70 @@ void eseguiSimulazioneBrunel(const std::string& nomeRegime, double g, double eta
 // dinamicamente equivalente alla rete originale: controllare raster, CV e rate.
 void eseguiQuattroRegimiBrunel(std::size_t numE = 1000, std::size_t numI = 250) {
     eseguiSimulazioneBrunel("SR_SynchronousRegular", 3.0, 2.0, numE, numI);
-    // eseguiSimulazioneBrunel("AI_AsynchronousIrregular", 5.0, 2.0, numE, numI);
-    // eseguiSimulazioneBrunel("SI_fast_SynchronousFast", 6.0, 4.0, numE, numI);
-    // eseguiSimulazioneBrunel("SI_slow_SynchronousSlow", 4.5, 0.9, numE, numI);
+    eseguiSimulazioneBrunel("AI_AsynchronousIrregular", 5.0, 2.0, numE, numI);
+    eseguiSimulazioneBrunel("SI_fast_SynchronousFast", 6.0, 4.0, numE, numI);
+    eseguiSimulazioneBrunel("SI_slow_SynchronousSlow", 4.5, 0.9, numE, numI);
 }
+
+void ringNetwork(size_t N = 100) {
+
+    Rete rete;
+
+    const double dt = 0.1 * ms;
+    const double durata = 2.0 * s; // Analizzare dopo almeno 0.2 s di transitorio.
+
+    patchLIF parametri;
+    parametri.V = 10.0 * mV;
+    parametri.Vrest = 0.0 * mV;
+    parametri.Vreset = 10.0 * mV;
+    parametri.Vth = 20.0 * mV;
+    parametri.VthMin = 20.0 * mV;
+    parametri.VthMax = 20.0 * mV; // Soglia fissa: niente adattamento.
+    parametri.R = 1.0 * Mohm;
+    parametri.C = 20000.0 * p * F;
+    parametri.timeAbsolute = 2.0 * ms;
+    parametri.timeRelative = 20.0 * ms; // Finito; irrilevante con soglia fissa.
+
+    const double tauM = parametri.R.value() * parametri.C.value(); // 20 ms.
+    const double J = 21.0 * mV;
+    const double correnteEvento = J / (parametri.R.value() * (-std::expm1(-dt / tauM)));
+
+    patchCurrent eccitatoria;
+    eccitatoria.Isyn = 0.0;
+    eccitatoria.peso = -1.0; // Engine sottrae getCurrent().
+    eccitatoria.Ipeak = correnteEvento;
+    eccitatoria.delay = 1.5 * ms;
+    eccitatoria.tau = 5.0 * ms; // Ignorato per le delta.
+    eccitatoria.isDelta = true;
+
+    for (size_t i = 0; i < N; i++) {
+        auto j = rete.aggiungiNeurone(NeuronModel::LIF);
+        if (j != 0) {
+            rete.connettiNeuroni(j - 1, j, SynapseModel::Current, 'A', eccitatoria);
+        }
+        if (j == N - 1) {
+            rete.connettiNeuroni(j, 0, SynapseModel::Current, 'A', eccitatoria);
+        }
+    }
+
+    rete.bloccaRete();
+
+    Simulazione sim(rete, dt, durata);
+
+    configConstantStimulus inputIniziale;
+    inputIniziale.ampiezza = 500.0 * n * A;
+    inputIniziale.timeStart = 50 * ms;
+    inputIniziale.timeEnd = 51 * ms;
+
+    stimolo s1 = {0, inputIniziale};
+
+    sim.iniettaStimoli(s1);
+
+    std::filesystem::create_directories("output");
+    const std::string nome = "ringNetwork";
+    sim.avviaSimulazione("V_" + nome + ".bin", "F_" + nome + ".bin", "S_" + nome + ".bin");
+}
+
 // ---------------------------------------------------------------------------------------
 // MAIN: Esecuzione di tutti gli esempi didattici e benchmark
 // ---------------------------------------------------------------------------------------
@@ -1141,6 +1201,8 @@ int main(int argc, char* argv[]) {
 
         // Lanciamo i 4 regimi classici di Brunel (2000)
         eseguiQuattroRegimiBrunel(numE, numI);
+
+        // ringNetwork(1000);
 
         std::cout << "\n======================================================================\n";
         std::cout << "  TUTTI GLI ESEMPI E I BENCHMARK SONO STATI ESEGUITI CON SUCCESSO!\n";
